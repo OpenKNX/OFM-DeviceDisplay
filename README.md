@@ -1,6 +1,6 @@
 # OFM-DevideDisplay
 
-DeviceDisplay is a flexible library for managing an OLED display on an embedded device. This library supports multiple widgets, scrolling text, and animated transitions. It integrates with the OpenKNX framework and includes modular components to define custom display widgets.
+DeviceDisplay is a flexible library for managing an OLED display on an embedded device. This library supports multiple widgets, scrolling text, and (ToDo) animated transitions . It integrates with the OpenKNX framework and includes modular components to define custom display widgets.
 
 ## Features
 
@@ -15,15 +15,8 @@ DeviceDisplay is a flexible library for managing an OLED display on an embedded 
 ### 1. **DeviceDisplay** (Main Library Class)
    - Manages widgets and display settings.
    - Controls transitions, programming mode, and display refresh.
-   - **Methods**:
-      - `setup()`: Initializes the display.
-      - `loop(bool configured)`: Updates the display in each loop cycle.
-      - `showTextWidget()`: Switches to the `TextWidget` display.
-      - `showStatusWidget()`: Switches to the `StatusWidget` display.
-      - `addWidget(DisplayWidget* widget, uint32_t duration)`: Adds a widget to the display queue with a display duration.
-      - `activateProgMode(bool active)`: Activates or deactivates the programming mode widget.
-
-### 2. **DisplayFacade** (Facade for Display Management)
+   
+### 2. **DisplayFacade** (Facade for Display Management) ToDo!
    - Manages active widgets and transitions between them.
    - **Methods**:
       - `setWidget(DisplayWidget* widget, bool animate, const char* direction)`: Sets the active widget with optional animation.
@@ -35,8 +28,6 @@ DeviceDisplay is a flexible library for managing an OLED display on an embedded 
    - **Available Widgets**:
      - `TextWidget`: Displays customizable text content with options for multiple lines.
      - `StatusWidget`: Shows status information with header and body text.
-   - **Defining New Widgets**:
-     - Extend `DisplayWidget` and implement `draw(Adafruit_SSD1306* display, int x = 0, int y = 0)`.
 
 ### 4. **i2cDisplay** (Display Hardware Handler)
    - Handles hardware-specific initialization and communication for the OLED display.
@@ -52,27 +43,14 @@ DeviceDisplay is a flexible library for managing an OLED display on an embedded 
 
 ```cpp
 #include "DeviceDisplay.h"
-#include "TextWidget.h"
-#include "StatusWidget.h"
 
-DeviceDisplay display;
+openknx.addModule(1, openknxDisplayModule);
 
-// Example widgets
-TextWidget textWidget("Welcome", "Line 1", "Line 2", "Line 3");
-StatusWidget statusWidget("System Status", "All systems go");
+Widget* WidgetNetInfo = new Widget(Widget::DisplayMode::FOUR_LINE);
+WidgetNetInfo->SetFourLines("Network", "IP: 11.11.0.123", "Subnet: 255.255.255.0", "Gateway: 11.11.0.1");
+WidgetNetInfo->TextHeader->textSize = 2;
+WidgetNetInfo->TextLine1->textSize = 2;
+WidgetNetInfo->TextLine2->textSize = 2;
+WidgetNetInfo->TextLine3->textSize = 2;
 
-void setup() {
-    // Initialize display
-    display.setup();
-
-    // Add widgets with duration (in milliseconds)
-    display.addWidget(&textWidget, 5000);  // Show text widget for 5 seconds
-    display.addWidget(&statusWidget, 3000); // Show status widget for 3 seconds
-
-    // Activate programming mode if needed
-    display.activateProgMode(true);
-}
-
-void loop() {
-    display.loop(true); // Regularly update display content
-}
+openknxDisplayModule.addWidget(WidgetNetInfo,  2000, "NetworkInfo", DeviceDisplay::WidgetAction::NoAction);
