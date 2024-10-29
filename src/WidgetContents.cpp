@@ -1,19 +1,17 @@
 #include "WidgetContents.h"
 #include "i2c-Display.h"
 
-
-//WidgetContents::WidgetContents() {
-//  // Constructor implementation
-//}
+// WidgetContents::WidgetContents() {
+//   // Constructor implementation
+// }
 //
-//WidgetContents::~WidgetContents() {
-//  // Destructor implementation
-//}
+// WidgetContents::~WidgetContents() {
+//   // Destructor implementation
+// }
 //
-//void WidgetContents::display() {
-//  // Display method implementation
-//}
-
+// void WidgetContents::display() {
+//   // Display method implementation
+// }
 
 // Print text on the display
 void WidgetContents::printText(i2cDisplay* display, std::string strText, uint8_t size, uint16_t color, uint8_t x, uint8_t y)
@@ -30,7 +28,7 @@ void WidgetContents::printText(i2cDisplay* display, std::string strText, uint8_t
     }
 }
 
-void WidgetContents::testdrawline( i2cDisplay* display)
+void WidgetContents::testdrawline(i2cDisplay* display)
 {
     int16_t i;
 
@@ -98,7 +96,7 @@ void WidgetContents::testdrawline( i2cDisplay* display)
     }
 }
 
-void WidgetContents::testdrawrect( i2cDisplay* display)
+void WidgetContents::testdrawrect(i2cDisplay* display)
 {
     display->display->clearDisplay();
 
@@ -154,7 +152,7 @@ void WidgetContents::testdrawroundrect(i2cDisplay* display)
     for (int16_t i = 0; i < display->display->height() / 2 - 2; i += 2)
     {
         display->display->drawRoundRect(i, i, display->display->width() - 2 * i, display->display->height() - 2 * i,
-                               display->display->height() / 4, SSD1306_WHITE);
+                                        display->display->height() / 4, SSD1306_WHITE);
         display->display->display();
         sleep_ms(1);
     }
@@ -168,7 +166,7 @@ void WidgetContents::testfillroundrect(i2cDisplay* display)
     {
         // The INVERSE color is used so round-rects alternate white/black
         display->display->fillRoundRect(i, i, display->display->width() - 2 * i, display->display->height() - 2 * i,
-                               display->display->height() / 4, SSD1306_INVERSE);
+                                        display->display->height() / 4, SSD1306_INVERSE);
         display->display->display();
         sleep_ms(1);
     }
@@ -278,8 +276,8 @@ void WidgetContents::testdrawbitmap(i2cDisplay* display)
 {
     display->display->clearDisplay();
 
-    //display->display->drawBitmap( (display->display->width()  - logo_OpenKNX_WIDTH ) / 2, (display->display->height() - logo_OpenKNX_HEIGHT) / 2,
-    //                     logo_OpenKNX, logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
+    // display->display->drawBitmap( (display->display->width()  - logo_OpenKNX_WIDTH ) / 2, (display->display->height() - logo_OpenKNX_HEIGHT) / 2,
+    //                      logo_OpenKNX, logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
 
     //  display->display->drawBitmap( (display->display->width()  - LOGO_WIDTH_OKNX ) / 2, (display->display->height() - LOGO_HEIGHT_OKNX) / 2,
     //                        logo_OKNX, LOGO_WIDTH_OKNX , LOGO_HEIGHT_OKNX, 1);
@@ -287,7 +285,7 @@ void WidgetContents::testdrawbitmap(i2cDisplay* display)
     // display->display->drawBitmap( (display->display->width()  - LOGO_WIDTH_ICON_OKNX ) / 2, (display->display->height() - LOGO_HEIGHT_ICON_OKNX) / 2,
     //                      logoICON_OKNX, LOGO_WIDTH_ICON_OKNX , LOGO_HEIGHT_ICON_OKNX, 1);
 
-    //display->display->drawBitmap((display->display->width() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2, (display->display->height() - LOGO_HEIGHT_ICON_SMALL_OKNX) / 2,
-    //                    logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX, LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
+    // display->display->drawBitmap((display->display->width() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2, (display->display->height() - LOGO_HEIGHT_ICON_SMALL_OKNX) / 2,
+    //                     logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX, LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
     display->display->display();
 }

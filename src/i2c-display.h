@@ -25,5 +25,5 @@ class i2cDisplay
     std::unique_ptr<TwoWire> CustomI2C;
 
     bool InitDisplay();
-    void setup() ;
+    void setup();
 };

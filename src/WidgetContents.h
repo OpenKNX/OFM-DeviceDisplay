@@ -24,5 +24,4 @@ class WidgetContents : public Widget
     void testdrawstyles(i2cDisplay* display);
     void testscrolltext(i2cDisplay* display);
     void testdrawbitmap(i2cDisplay* display);
-
 };

@@ -16,5 +16,5 @@ bool i2cDisplay::InitDisplay()
 // Setup method for initialization
 void i2cDisplay::setup()
 {
-  //ToDo: Setup OpenKNX Hardware Specific i2c settings, like SDA, SCL, i2c address, etc.
+    // ToDo: Setup OpenKNX Hardware Specific i2c settings, like SDA, SCL, i2c address, etc.
 }

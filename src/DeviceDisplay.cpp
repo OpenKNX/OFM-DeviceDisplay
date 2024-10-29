@@ -1,6 +1,6 @@
 #include "DeviceDisplay.h"
 
-DeviceDisplay _openknxDisplayModule;
+DeviceDisplay openknxDisplayModule;
 i2cDisplay* displayModule = new i2cDisplay();
 
 // Initialize the display and widgets

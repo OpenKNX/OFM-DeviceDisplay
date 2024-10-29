@@ -75,5 +75,5 @@ class DeviceDisplay : public OpenKNX::Module
     WidgetInfo* getWidgetInfo(const std::string& name);
 };
 
-extern DeviceDisplay _openknxDisplayModule;
+extern DeviceDisplay openknxDisplayModule;
 #endif

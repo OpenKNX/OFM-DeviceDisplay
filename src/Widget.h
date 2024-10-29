@@ -2,7 +2,6 @@
 
 #include "i2c-Display.h" // Assuming i2c-Display has display object definitions
 
-
 #define MAX_CHARS_PER_LINE 20         // Maximum 20 characters per line
 #define MAX_CHARS_PER_LINE_SCROLL 100 // Maximum 100 characters per line for scrolling
 #define SCROLL_DELAY 250              // Scrolling speed (in milliseconds)
@@ -15,8 +14,6 @@
 #define LCD_START_LINE_3 23 // Y Start position for line 3
 
 #define SSD1306_NO_SPLASH // Suppress the internal display splash screen
-
-
 
 enum TextAlign
 {
@@ -90,8 +87,7 @@ class Widget
 #define FALL_SPEED 50 // Geschwindigkeit des Falls in Millisekunden
     ulong _lastUpdate = 0;
     char getRandomCP437Character();
-    #define MAX_DROPS 5 // Maximale Anzahl an fallenden Zeichen pro Spalte
-    
+#define MAX_DROPS 5 // Maximale Anzahl an fallenden Zeichen pro Spalte
 
     DisplayMode currentDisplayMode; // Current display mode
 
