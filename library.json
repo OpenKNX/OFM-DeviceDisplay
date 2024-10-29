@@ -1,0 +1,18 @@
+{
+  "name": "OFM-DeviceDisplay",
+  "version": "0.0.1",
+  "dependencies": {
+    "Adafruit_SSD1306": "https://github.com/adafruit/Adafruit_SSD1306"
+  },
+  "description": "OFM-DeviceDisplay is a library for the OpenKNX Framework to display information on a SSD1306 OLED display.",
+  "homepage": "https://openknx.de",
+  "authors": {
+    "name": "Erkan Çolak",
+    "email": "erkanc@gmx.de",
+    "maintainer": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenKNX/OFM-Display"
+  }
+}
