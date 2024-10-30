@@ -20,7 +20,7 @@ DeviceDisplay is a flexible library for managing an OLED display on an embedded 
    - Manages active widgets and transitions between them.
    - **Methods**:
       - `setWidget(DisplayWidget* widget, bool animate, const char* direction)`: Sets the active widget with optional animation.
-      - `updateDisplay()`: Refreshes the display based on the active widget.
+      - `UpdateTextLines()`: Refreshes the display based on the active widget.
       - `animateTransition(DisplayWidget* newWidget, const char* direction)`: Handles sliding animation for widget transitions.
 
 ### 3. **Widgets**

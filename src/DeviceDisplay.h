@@ -1,7 +1,4 @@
-#ifndef DEVICE_DISPLAY_H
-#define DEVICE_DISPLAY_H
-
-#include "DisplayFacade.h"
+#pragma once
 #include "Widget.h"
 #include "i2c-Display.h"
 
@@ -49,7 +46,7 @@ class DeviceDisplay : public OpenKNX::Module
     void showHelp() override; // Show help for console commands
     bool processCommand(const std::string command, bool diagnose) override;
 
-  private:
+//  private:
     // Definition der verschiedenen Zustände als enum-Klasse
     struct WidgetInfo
     {
@@ -59,7 +56,6 @@ class DeviceDisplay : public OpenKNX::Module
         uint8_t action = NoAction; // Action flags for the widget
     };
     i2cDisplay displayModule;     // The hardware display instance
-    DisplayFacade displayManager; // Facade managing the display updates
 
     std::vector<WidgetInfo> widgetsQueue; // Queue of widgets to display
     uint32_t lastWidgetSwitchTime = 0;          // Last time the widget was switched
@@ -76,4 +72,3 @@ class DeviceDisplay : public OpenKNX::Module
 };
 
 extern DeviceDisplay openknxDisplayModule;
-#endif

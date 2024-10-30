@@ -5,8 +5,7 @@ i2cDisplay* displayModule = new i2cDisplay();
 
 // Initialize the display and widgets
 DeviceDisplay::DeviceDisplay()
-    : displayManager(&displayModule), // Connect displayModule to displayManager
-      widget()                        // Initialize the widget
+      : widget()                        // Initialize the widget
 {
 }
 
@@ -64,7 +63,6 @@ void DeviceDisplay::loop(bool configured)
 
     LoopWidgets(); // Switch widgets based on timing
 
-    displayManager.updateDisplay(); // Render the current widget on the display
 }
 
 // Show the help console commands

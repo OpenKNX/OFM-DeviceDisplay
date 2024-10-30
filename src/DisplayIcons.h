@@ -1,6 +1,10 @@
 #pragma once
 
-// To convert a bitmap - use: https://marlinfw.org/tools/u8glib/converter.html
+// To convert a bitmap - use: 
+// https://marlinfw.org/tools/u8glib/converter.html
+// or
+// https://javl.github.io/image2cpp/
+
 #define logo_OpenKNX_WIDTH 106
 #define logo_OpenKNX_HEIGHT 64
 static const unsigned char PROGMEM logo_OpenKNX[] = {

@@ -4,6 +4,7 @@
 Widget::Widget(DisplayMode mode) : currentDisplayMode(mode), iconBitmap(nullptr)
 {
     // Initialize some default values
+    InitDynamicTextLines();
 }
 Widget::~Widget()
 {
@@ -73,14 +74,17 @@ bool Widget::checkAndUpdateLcdText(lcdText* sText)
     return false; // No change
 }
 
-// Update the display if any text has changed
+// Update the display if anythign has changed
 void Widget::draw(i2cDisplay* display)
 {
     if (display == nullptr) return;
     switch (currentDisplayMode)
     {
+        case DisplayMode::DYNAMIC_TEXT:
+            UpdateDynamicTextLines(display);
+            break;
         case DisplayMode::FOUR_LINE:
-            updateDisplay(display);
+            UpdateTextLines(display);
             break;
         case DisplayMode::OPENKNX_LOGO:
             OpenKNXLogo(display);
@@ -94,15 +98,6 @@ void Widget::draw(i2cDisplay* display)
         case DisplayMode::SCREEN_SAVER:
             showMatrixScreensaver(display);
             break;
-        case DisplayMode::SINGLE_LINE:
-            // displaySingleLine(display);
-            break;
-        case DisplayMode::TWO_LINE:
-            // displayTwoLine(display);
-            break;
-        case DisplayMode::THREE_LINE:
-            // displayThreeLine(display);
-            break;
         case DisplayMode::ICON_WITH_TEXT:
             // displayIconWithText(display);
             break;
@@ -110,7 +105,7 @@ void Widget::draw(i2cDisplay* display)
 }
 
 //
-bool Widget::updateDisplay(i2cDisplay* display)
+bool Widget::UpdateTextLines(i2cDisplay* display)
 {
 
     // Do nothing if all lines and the header are empty
@@ -163,6 +158,256 @@ bool Widget::updateDisplay(i2cDisplay* display)
         display->display->display(); // Update the display
     }
     return true;
+}
+
+// Example so set a line of text
+// widget.SetLine(2, "Updated Line 3 Text");
+// widget.SetLine(3, "Updated Line 4 Text");
+void Widget::SetDynamicTextLine(size_t lineIndex, const char* text)
+{
+    // Ensure the line index is within bounds
+    if (lineIndex >= MAX_TEXT_LINES)
+    {
+        return; // Do nothing if index is out of bounds
+    }
+
+    // Copy new text into the specified line's buffer, ensuring no overflow
+    strncpy(textLines[lineIndex].text, text, sizeof(textLines[lineIndex].text) - 1);
+    textLines[lineIndex].text[sizeof(textLines[lineIndex].text) - 1] = '\0'; // Null-terminate explicitly
+
+    // Optionally set other properties for the line here if needed
+    textLines[lineIndex].scrollPos = 0;            // Reset scroll position if this line scrolls
+    textLines[lineIndex].scrollTextPaused = false; // Unpause scroll if needed
+}
+
+// Example of setting dynamic text lines
+// Widget widget;
+// widget.SetLines({"Header Text", "Line 1 Text", "Line 2 Text"});
+void Widget::SetDynamicTextLines(const std::vector<const char*>& lines)
+{
+    // Limit the number of lines to the pre-allocated textLines capacity
+    size_t lineCount = std::min(lines.size(), static_cast<size_t>(MAX_TEXT_LINES));
+
+    // Set each line's text and properties
+    for (size_t i = 0; i < lineCount; ++i)
+    {
+        // Copy text into the text buffer, ensuring no overflow
+        strncpy(textLines[i].text, lines[i], sizeof(textLines[i].text) - 1);
+
+        // Default properties for all lines,  for the header line set the text color to black and background color to white and the alignment to center
+        if (i == 0) // Spezific settings for the header line
+        {
+            textLines[i].textColor = SSD1306_BLACK;
+            textLines[i].bgColor = SSD1306_WHITE;
+            textLines[i].align = CENTER;
+            textLines[i].alignPos = ALIGN_CENTER;
+            // textLines[i].textSize = 1;
+            // textLines[i].pauseAtStart = true;
+        }
+        else // Default settings for all other lines. Since they are allready set in the InitDynamicTextLines function, we don't need to set them here again
+        {
+            // textLines[i].textColor = SSD1306_WHITE;
+            // textLines[i].bgColor = SSD1306_BLACK;
+            // textLines[i].align = LEFT;
+            // textLines[i].textSize = 1;
+            // textLines[i].pauseAtStart = false;
+        }
+    }
+
+    // Clear remaining unused text lines, if any
+    for (size_t i = lineCount; i < MAX_TEXT_LINES; ++i)
+    {
+        textLines[i].text[0] = '\0'; // Empty unused line
+    }
+}
+// Dynamic text lines depending on the lines of the display and their position or settings
+void Widget::InitDynamicTextLines()
+{
+    // Initialize all text lines
+    for (int i = 0; i < MAX_TEXT_LINES; ++i)
+    {
+        textLines[i].scrollPos = 0;
+        textLines[i].startPosY = 0;
+        textLines[i].startPosX = 0;
+        textLines[i].textColor = SSD1306_WHITE;
+        textLines[i].bgColor = SSD1306_BLACK;
+        textLines[i].align = LEFT;
+        textLines[i].alignPos = ALIGN_LEFT;
+        textLines[i].textSize = 1;
+        textLines[i].scrollText = true;
+        textLines[i].pauseAtStart = true;
+        textLines[i].lastPauseTime = 0;
+        textLines[i].lastScrollTime = 0;
+        textLines[i].scrollTextPaused = false;
+        textLines[i].prevText[0] = '\0';
+        textLines[i].text[0] = '\0';
+    }
+}
+// Update the display with dynamic text lines for the loop function to call
+bool Widget::UpdateDynamicTextLines(i2cDisplay* display)
+{
+    // Check if all lines are empty; if so, exit early
+    bool allEmpty = true;
+    for (int i = 0; i < MAX_TEXT_LINES; ++i)
+    {
+        if (strlen(textLines[i].text) != 0)
+        {
+            allEmpty = false;
+            break;
+        }
+    }
+    if (allEmpty) return false;
+    bool changed = false;
+
+    // Check if any line has changed or needs to scroll
+    for (int i = 0; i < MAX_TEXT_LINES; ++i)
+    {
+        changed |= checkAndUpdateLcdText(&textLines[i]);
+    }
+
+    displayDynamicText(display, {&textLines[0], &textLines[1], &textLines[2], &textLines[3], &textLines[4], &textLines[5], &textLines[6], &textLines[7]});
+
+    return true;
+}
+
+// Get the width of the text in pixels, considering the text size.
+uint16_t Widget::getTextWidth(i2cDisplay* display, const char* text, uint8_t textSize)
+{
+    int16_t x1, y1;
+    uint16_t w, h;
+    display->display->setTextSize(textSize); // Set text size before calculating bounds
+    display->display->getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+    return w;
+}
+
+// Get the height of the text in pixels, considering the text size.
+uint16_t Widget::getTextHeight(i2cDisplay* display, const char* text, uint8_t textSize)
+{
+    int16_t x1, y1;
+    uint16_t w, h;
+    display->display->setTextSize(textSize); // Set text size before calculating bounds
+    display->display->getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+    return h;
+}
+
+// Display text on the screen
+void Widget::displayDynamicText(i2cDisplay* display, const std::vector<lcdText*>& textLines)
+{
+    uint32_t currentTime = millis();
+
+    // Clear the display before updating lines
+    display->display->clearDisplay();
+    display->display->cp437(true); // Use CP437 character encoding
+
+    int16_t totalHeightTop = 0, totalHeightBottom = 0;
+    int middleLineCount = 0;
+    int16_t totalMiddleHeight = 0;
+
+    // First pass: Calculate the height of top, middle, and bottom sections
+    for (size_t i = 0; i < textLines.size(); ++i)
+    {
+        lcdText* line = textLines[i];
+        int16_t lineHeight = getTextHeight(display, "X", line->textSize);
+
+        if (line->alignPos & ALIGN_TOP)
+        {
+            totalHeightTop += lineHeight;
+        }
+        else if (line->alignPos & ALIGN_BOTTOM)
+        {
+            totalHeightBottom += lineHeight;
+        }
+        else if (line->alignPos & ALIGN_MIDDLE)
+        {
+            totalMiddleHeight += lineHeight;
+            ++middleLineCount;
+        }
+    }
+
+    // Calculate available height for middle-aligned lines
+    int16_t availableMiddleHeight = display->display->height() - (totalHeightTop + totalHeightBottom);
+    int16_t middleStartY = totalHeightTop + (availableMiddleHeight - totalMiddleHeight) / 2;
+
+    // Second pass: Calculate cursor positions and display each line
+    for (size_t i = 0; i < textLines.size(); ++i)
+    {
+        lcdText* line = textLines[i];
+        uint16_t textLength = strlen(line->text);
+
+        // Skip if the text is empty
+        if (textLength == 0) continue;
+
+        // Handle pause at the start of scrolling
+        if (line->pauseAtStart && line->scrollPos == 0)
+        {
+            if (millis() - line->lastPauseTime < 2000) line->scrollTextPaused = true;
+            else
+                line->scrollTextPaused = false;
+        }
+
+        // Calculate maximum characters per line
+        uint16_t maxCharsPerLine = display->display->width() / getTextWidth(display, "X", line->textSize);
+        int16_t cursorX = 0;
+
+        // Determine horizontal alignment
+        if (line->alignPos & ALIGN_CENTER)
+        {
+            cursorX = (display->display->width() - getTextWidth(display, line->text, line->textSize)) / 2;
+        }
+        else if (line->alignPos & ALIGN_RIGHT)
+        {
+            cursorX = display->display->width() - getTextWidth(display, line->text, line->textSize);
+        }
+
+        // Calculate Y position based on alignment
+        int16_t cursorY = 0;
+        int16_t lineHeight = getTextHeight(display, "X", line->textSize);
+
+        if (line->alignPos & ALIGN_TOP)
+        {
+            cursorY = totalHeightTop;
+            totalHeightTop += lineHeight;
+        }
+        else if (line->alignPos & ALIGN_BOTTOM)
+        {
+            totalHeightBottom += lineHeight;
+            cursorY = display->display->height() - totalHeightBottom;
+        }
+        else if (line->alignPos & ALIGN_MIDDLE && availableMiddleHeight >= totalMiddleHeight)
+        {
+            cursorY = middleStartY;
+            middleStartY += lineHeight;
+        }
+        else
+        {
+            // Default stacking if no alignment flag is set
+            cursorY = i * lineHeight;
+        }
+
+        // Check if scrolling is needed
+        if (line->scrollText && textLength > maxCharsPerLine && !line->scrollTextPaused)
+        {
+            // Update scroll position if enough time has passed
+            if (currentTime - line->lastScrollTime > SCROLL_DELAY)
+            {
+                line->scrollPos = (line->scrollPos + 1) % (textLength - maxCharsPerLine + 1);
+                line->lastScrollTime = currentTime;
+            }
+        }
+        else
+        {
+            // Reset scroll position if scrolling is disabled or text is shorter than the display width
+            line->scrollPos = 0;
+        }
+
+        // Set the cursor position and write the current text
+        display->display->setCursor(cursorX, cursorY);
+        display->display->setTextColor(line->textColor, line->bgColor);
+        writeScrolledText(display, line->text, line->scrollPos, maxCharsPerLine);
+    }
+
+    // Refresh display
+    display->display->display();
 }
 
 // Write a substring of the text for horizontal scrolling
