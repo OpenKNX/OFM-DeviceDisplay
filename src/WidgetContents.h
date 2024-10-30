@@ -4,7 +4,7 @@
 class WidgetContents : public Widget
 {
   public:
-    WidgetContents(DisplayMode mode = DisplayMode::FOUR_LINE);
+    WidgetContents(DisplayMode mode = DisplayMode::DYNAMIC_TEXT);
     ~WidgetContents();
     void draw(i2cDisplay* display);
 

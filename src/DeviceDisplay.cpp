@@ -5,7 +5,7 @@ i2cDisplay* displayModule = new i2cDisplay();
 
 // Initialize the display and widgets
 DeviceDisplay::DeviceDisplay()
-      : widget()                        // Initialize the widget
+    : widget() // Initialize the widget
 {
 }
 
@@ -62,7 +62,6 @@ void DeviceDisplay::loop(bool configured)
     }
 
     LoopWidgets(); // Switch widgets based on timing
-
 }
 
 // Show the help console commands
@@ -80,15 +79,20 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 
     if (command.compare(0, 4, "dis ") == 0)
     {
-        Widget* cmdWidget = new Widget(Widget::DisplayMode::FOUR_LINE);
+        Widget* cmdWidget = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
         addWidget(cmdWidget, 5000, "cmdWidget", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
                                                     DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
                                                     DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
 
         std::string text = command.substr(4);
-        cmdWidget->SetFourLines("Commandline", "", text.c_str(), "");
-        cmdWidget->TextHeader->textSize = 2;
-        cmdWidget->TextLine2->textSize = 2;
+        cmdWidget->SetDynamicTextLines(
+            {
+                "Commandline", // Header
+                text.c_str(),  // Line 1
+            });
+        cmdWidget->textLines[0].textSize = 1;
+        cmdWidget->textLines[1].textSize = 2;
+
         logInfoP("Send text to display! Will display for 5 seconds: %s", text.c_str());
     }
     else if (command.compare(0, 7, "logdis ") == 0)
@@ -108,12 +112,12 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         }
         else if (command.compare(7, 1, "m") == 0)
         {
-          // ScreenSaver Matrix
+            // ScreenSaver Matrix
             std::string text = command.substr(8);
             Widget* srvMatrix = new Widget(Widget::DisplayMode::SCREEN_SAVER);
             addWidget(srvMatrix, 10000, "srvMatrix", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                    DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                    DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
+                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                         DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
 
             logInfoP("Sending Matrix Screensaver for 10 seconds to display...");
         }

@@ -1,68 +1,40 @@
 #include "Widget.h"
 #include "DisplayIcons.h"
 
+/**
+ * @brief Construct a new Widget:: Widget object
+ *
+ * @param mode is the display mode for the widget
+ */
 Widget::Widget(DisplayMode mode) : currentDisplayMode(mode), iconBitmap(nullptr)
 {
     // Initialize some default values
     InitDynamicTextLines();
 }
+
+/**
+ * @brief Destroy the Widget:: Widget object
+ *
+ */
 Widget::~Widget()
 {
-    delete TextHeader;
-    delete TextLine1;
-    delete TextLine2;
-    delete TextLine3;
 }
 
-// Set text lines for the display
-void Widget::SetFourLines(const char* header, const char* line1, const char* line2, const char* line3)
-{
-    // Copy new strings into the current text variables
-    strncpy(TextHeader->text, header, sizeof(TextHeader->text) - 1); // Allow longer lines for scrolling
-    strncpy(TextLine1->text, line1, sizeof(TextLine1->text) - 1);
-    strncpy(TextLine2->text, line2, sizeof(TextLine2->text) - 1);
-    strncpy(TextLine3->text, line3, sizeof(TextLine3->text) - 1);
-
-    // Header
-    TextHeader->textColor = SSD1306_BLACK;
-    TextHeader->bgColor = SSD1306_WHITE;
-    TextHeader->align = CENTER;
-    TextHeader->textSize = 1;
-    TextHeader->startPosY = LCD_START_LINE_H; // 0; Start position for header
-    TextHeader->pauseAtStart = true;
-
-    TextLine1->textColor = SSD1306_WHITE;
-    TextLine1->bgColor = SSD1306_BLACK;
-    TextLine1->align = LEFT;
-    TextLine1->textSize = 1;
-    // TextLine1->startPosY = getTextHeight(display, "X"); // 8; Default Font! Depends on the font and text size
-    TextLine1->pauseAtStart = true;
-
-    // Line 2
-    TextLine2->textColor = SSD1306_WHITE;
-    TextLine2->bgColor = SSD1306_BLACK;
-    TextLine2->align = LEFT;
-    TextLine2->textSize = 1;
-    // TextLine2->startPosY = getTextHeight(display, "X") * 2; // 16; Default Font! Depends on the font and text size
-    TextLine2->pauseAtStart = true;
-
-    // Line 3
-    TextLine3->textColor = SSD1306_WHITE;
-    TextLine3->bgColor = SSD1306_BLACK;
-    TextLine3->align = LEFT;
-    TextLine3->textSize = 1;
-    // TextLine3->startPosY = getTextHeight(display, "X") * 3; // 24; Default Font! Depends on the font and text size
-    TextLine3->pauseAtStart = true;
-}
 void Widget::EmptyLines()
 {
-    TextHeader->text[0] = '\0'; // Clear header
-    TextLine1->text[0] = '\0';  // Clear line 1
-    TextLine2->text[0] = '\0';  // Clear line 2
-    TextLine3->text[0] = '\0';  // Clear line 3
+    for (int i = 0; i < MAX_TEXT_LINES; ++i)
+    {
+        textLines[i].text[0] = '\0'; // Empty the text buffer
+    }
 }
 
-// check if the text has changed
+/**
+ * @brief Check if the text has changed
+ *
+ * @param sText to check
+ * @return true if the text has changed
+ * @return false if the text has not changed
+ */
 bool Widget::checkAndUpdateLcdText(lcdText* sText)
 {
     if (strcmp(sText->text, sText->prevText) != 0)
@@ -74,7 +46,11 @@ bool Widget::checkAndUpdateLcdText(lcdText* sText)
     return false; // No change
 }
 
-// Update the display if anythign has changed
+/**
+ * @brief Update the the display with the current display mode. The display mode can be DYNAMIC_TEXT, OPENKNX_LOGO, BOOT_LOGO, PROG_MODE, SCREEN_SAVER, or ICON_WITH_TEXT.
+ * @param display is the display to update
+ *
+ */
 void Widget::draw(i2cDisplay* display)
 {
     if (display == nullptr) return;
@@ -82,9 +58,6 @@ void Widget::draw(i2cDisplay* display)
     {
         case DisplayMode::DYNAMIC_TEXT:
             UpdateDynamicTextLines(display);
-            break;
-        case DisplayMode::FOUR_LINE:
-            UpdateTextLines(display);
             break;
         case DisplayMode::OPENKNX_LOGO:
             OpenKNXLogo(display);
@@ -104,65 +77,21 @@ void Widget::draw(i2cDisplay* display)
     }
 }
 
-//
-bool Widget::UpdateTextLines(i2cDisplay* display)
-{
-
-    // Do nothing if all lines and the header are empty
-    if (strlen(TextHeader->text) == 0 && strlen(TextLine1->text) == 0 &&
-        strlen(TextLine2->text) == 0 && strlen(TextLine3->text) == 0)
-    {
-        return false; // Stop updating if all lines are empty
-    }
-
-    // Get the current time for scrolling purposes
-    ulong currentTime = millis();
-
-    // Check if any lines have changed or need scrolling
-    bool changed = false;
-
-    // Detect changes in the header and each line
-    changed |= checkAndUpdateLcdText(TextHeader);
-    changed |= checkAndUpdateLcdText(TextLine1);
-    changed |= checkAndUpdateLcdText(TextLine2);
-    changed |= checkAndUpdateLcdText(TextLine3);
-
-    // Only update the display if there's been a change or if it's time to scroll
-    if (changed || (currentTime - lastScrollTime > SCROLL_DELAY))
-    {
-        lastScrollTime = currentTime; // Update scroll timer
-
-        display->display->clearDisplay(); // Clear the display
-        display->display->cp437(true);    // Use correct CP437 character codes
-
-        // Header
-        display->display->setTextSize(TextHeader->textSize); // Set the text size here, before calculating the text width/height
-        TextLine1->startPosY = getTextHeight(display, "X");  // 8; Default Font! Depends on the font and text size
-        displayText(display, TextHeader);
-
-        // Line 1
-        display->display->setTextSize(TextLine1->textSize); // Set the text size here, before calculating the text width/height
-        TextLine1->startPosY = getTextHeight(display, "X"); // 8; Default Font! Depends on the font and text size
-        displayText(display, TextLine1);
-
-        // Line 2
-        display->display->setTextSize(TextLine2->textSize);     // Set the text size here, before calculating the text width/height
-        TextLine2->startPosY = getTextHeight(display, "X") * 2; // 16; Default Font! Depends on the font and text size
-        displayText(display, TextLine2);
-
-        // Line 3
-        display->display->setTextSize(TextLine3->textSize);     // Set the text size here, before calculating the text width/height
-        TextLine3->startPosY = getTextHeight(display, "X") * 3; // 24; Default Font! Depends on the font and text size
-        displayText(display, TextLine3);
-
-        display->display->display(); // Update the display
-    }
-    return true;
-}
-
 // Example so set a line of text
 // widget.SetLine(2, "Updated Line 3 Text");
 // widget.SetLine(3, "Updated Line 4 Text");
+
+/**
+ * @brief Set the text for a specific line in the widget. The line index is zero-based. and there is a maximum of 8 lines.
+ *        The text will be copied into the line's buffer, ensuring no overflow. YOu can set the text color, background color, alignment, and text size for each line.
+ *        Depending on the settings, the text can be scrolled, paused at the start, or paused at the end. The size of the text buffer is limited to 21 characters.
+ *        All text lines with more than 21 characters will be displayed as scrolling text, but only if the scrollText flag is set to true.
+ *        The line size depends on the display size and the text size. For a 128x64 display, the maximum number lines for 1 text size is 7, for text size 2 is 4, for text size 3 is 3, and for text size 4 is 2.
+ * @param lineIndex is the index of the line to set the text for. The index is zero-based.
+ * @param text is the text to set for the line. The text will be copied into the line's buffer, ensuring no overflow.
+ * @example SerLine(0, "Updated Header Text");
+ *          SetLine(1, "Updated Line 2 Text");
+ */
 void Widget::SetDynamicTextLine(size_t lineIndex, const char* text)
 {
     // Ensure the line index is within bounds
@@ -180,9 +109,12 @@ void Widget::SetDynamicTextLine(size_t lineIndex, const char* text)
     textLines[lineIndex].scrollTextPaused = false; // Unpause scroll if needed
 }
 
-// Example of setting dynamic text lines
-// Widget widget;
-// widget.SetLines({"Header Text", "Line 1 Text", "Line 2 Text"});
+/**
+ * @brief  Set the text for all lines in the widget. The text will be copied into the line's buffer, ensuring no overflow.
+ *
+ * @param lines is a vector of text lines to set for the widget. The text will be copied into the line's buffer, ensuring no overflow.
+ * @example SetLines({"Header Text", "Line 1 Text", "Line 2 Text"});
+ */
 void Widget::SetDynamicTextLines(const std::vector<const char*>& lines)
 {
     // Limit the number of lines to the pre-allocated textLines capacity
@@ -220,7 +152,11 @@ void Widget::SetDynamicTextLines(const std::vector<const char*>& lines)
         textLines[i].text[0] = '\0'; // Empty unused line
     }
 }
+
 // Dynamic text lines depending on the lines of the display and their position or settings
+/**
+ * @brief Initialize the dynamic text lines with default settings. This function is called in the constructor to set up the text lines with default values.
+ */
 void Widget::InitDynamicTextLines()
 {
     // Initialize all text lines
@@ -243,7 +179,14 @@ void Widget::InitDynamicTextLines()
         textLines[i].text[0] = '\0';
     }
 }
-// Update the display with dynamic text lines for the loop function to call
+
+/**
+ * @brief Update the dynamic text lines on the display. This function should be called in the loop function
+ *        to update the dynamic text lines on the display.
+ *
+ * @param display is a pointer to the i2cDisplay object to update the text on.
+ * @return true if any text lines have been updated or scrolled, false otherwise.
+ */
 bool Widget::UpdateDynamicTextLines(i2cDisplay* display)
 {
     // Check if all lines are empty; if so, exit early
@@ -271,6 +214,14 @@ bool Widget::UpdateDynamicTextLines(i2cDisplay* display)
 }
 
 // Get the width of the text in pixels, considering the text size.
+/**
+ * @brief get the width of the text in pixels, considering the text size for the default font.
+ * 
+ * @param display  object
+ * @param text a charecter to get the width of. e.g. "X"
+ * @param textSize the size of the text
+ * @return uint16_t the width of the text in pixels
+ */
 uint16_t Widget::getTextWidth(i2cDisplay* display, const char* text, uint8_t textSize)
 {
     int16_t x1, y1;
@@ -280,7 +231,14 @@ uint16_t Widget::getTextWidth(i2cDisplay* display, const char* text, uint8_t tex
     return w;
 }
 
-// Get the height of the text in pixels, considering the text size.
+/**
+ * @brief get the height of the text in pixels, considering the text size for the default font.
+ * 
+ * @param display object
+ * @param text a charecter to get the height of. e.g. "X"
+ * @param textSize the size of the text
+ * @return uint16_t the height of the text in pixels
+ */
 uint16_t Widget::getTextHeight(i2cDisplay* display, const char* text, uint8_t textSize)
 {
     int16_t x1, y1;
@@ -290,7 +248,12 @@ uint16_t Widget::getTextHeight(i2cDisplay* display, const char* text, uint8_t te
     return h;
 }
 
-// Display text on the screen
+/**
+ * @brief Display the dynamic text lines on the display. This function is called in the loop function to display the dynamic text lines on the display.
+ *
+ * @param display is a pointer to the i2cDisplay object to display the text on.
+ * @param textLines is a vector of lcdText objects representing the text lines to display.
+ */
 void Widget::displayDynamicText(i2cDisplay* display, const std::vector<lcdText*>& textLines)
 {
     uint32_t currentTime = millis();
@@ -410,7 +373,14 @@ void Widget::displayDynamicText(i2cDisplay* display, const std::vector<lcdText*>
     display->display->display();
 }
 
-// Write a substring of the text for horizontal scrolling
+/**
+ * @brief Write a substring of the text for horizontal scrolling. 
+ * 
+ * @param display object
+ * @param text to write using the display write method
+ * @param scrollPos the current scroll position
+ * @param maxChars size of the text to write
+ */
 void Widget::writeScrolledText(i2cDisplay* display, const char* text, int scrollPos, int maxChars)
 {
     // Find the actual length of the text
@@ -428,91 +398,12 @@ void Widget::writeScrolledText(i2cDisplay* display, const char* text, int scroll
     //}
 }
 
-// Get the width of the text in pixels.
-uint16_t Widget::getTextWidth(i2cDisplay* display, const char* text)
-{
-    int16_t x1, y1;
-    uint16_t w, h;
-    display->display->getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-    return w;
-}
-
-// Get the height of the text in pixels.
-uint16_t Widget::getTextHeight(i2cDisplay* display, const char* text)
-{
-    int16_t x1, y1;
-    uint16_t w, h;
-    display->display->getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-    return h;
-}
-
-// Display text on the screen with scrolling effect
-void Widget::displayText(i2cDisplay* display, lcdText* sText)
-{
-    // Get the length of the text
-    uint16_t textLength = strlen(sText->text);
-    // Do nothing if the text is empty
-    if (textLength == 0) return;
-
-    // Check if the text should be paused from scrolling
-    if (sText->pauseAtStart && sText->scrollPos == 0)
-    {
-        if (millis() - sText->lastPauseTime < 2000) sText->scrollTextPaused = true;
-        else
-            sText->scrollTextPaused = false;
-    }
-
-    // calculate the text width and chars can fit in one line. This depends on the text size and display width
-    uint16_t maxCharsPerLine = display->display->width() / getTextWidth(display, "X");
-
-    // Check if the text is longer than the display width
-    if (sText->scrollText && textLength > maxCharsPerLine && !sText->scrollTextPaused)
-    {
-        display->display->setTextColor(sText->textColor, sText->bgColor);
-        int16_t cursorX = 0;
-
-        if (sText->align == CENTER)
-        {
-            cursorX = (display->display->width() - getTextWidth(display, sText->text)) / 2;
-        }
-        else if (sText->align == RIGHT)
-        {
-            cursorX = display->display->width() - getTextWidth(display, sText->text);
-        }
-
-        // Set the cursor position, scroll position and write the current text
-        display->display->setCursor(cursorX, sText->startPosY);
-        writeScrolledText(display, sText->text, sText->scrollPos, maxCharsPerLine);     // Scroll text
-        sText->scrollPos = (sText->scrollPos + 1) % (textLength - maxCharsPerLine + 1); // Loop scroll position
-
-        // Pause at the start of the text
-        if (sText->scrollPos == 0)
-        {
-            sText->lastPauseTime = millis();
-        }
-    }
-    else
-    { // Display the text without scrolling
-        display->display->setTextColor(sText->textColor, sText->bgColor);
-        int16_t cursorX = 0;
-
-        // Set the cursor position based on the alignment. Default is LEFT
-        if (sText->align == CENTER)
-        {
-            cursorX = (display->display->width() - getTextWidth(display, sText->text)) / 2;
-        }
-        else if (sText->align == RIGHT)
-        {
-            cursorX = display->display->width() - getTextWidth(display, sText->text);
-        }
-
-        // Set the cursor position and write the current text
-        display->display->setCursor(cursorX, sText->startPosY);
-        writeScrolledText(display, sText->text, 0, maxCharsPerLine); // No scroll needed
-    }
-}
-
 // Display the OpenKNX logo on the screen
+/**
+ * @brief DIsplay the OpenKNX logo on the screen. The logo is displayed in the center of the screen. The
+ * 
+ * @param display 
+ */
 void Widget::OpenKNXLogo(i2cDisplay* display)
 {
     display->display->cp437(true); // Use correct CP437 character codes
@@ -564,7 +455,11 @@ void Widget::OpenKNXLogo(i2cDisplay* display)
     display->display->display();
 }
 
-// Display the OpenKNX logo as boot logo!
+/**
+ * @brief Shows the OpenKNX logo on the display. 
+ * 
+ * @param display object
+ */
 void Widget::ShowBootLogo(i2cDisplay* display)
 {
     display->display->clearDisplay();
@@ -573,7 +468,11 @@ void Widget::ShowBootLogo(i2cDisplay* display)
     display->display->display();
 }
 
-// Function to display "Prog Mode active" with blinking effect
+/**
+ * @brief Will show the "Prog Mode active" message on the display with a blinking effect. The message will blink every 500ms.
+ * 
+ * @param display object
+ */
 void Widget::showProgrammingMode(i2cDisplay* display)
 {
     ulong currentTime = millis();
@@ -602,7 +501,11 @@ void Widget::showProgrammingMode(i2cDisplay* display)
     display->display->display();
 }
 
-// Get a random CP437 character
+/**
+ * @brief Generates a random CP437 character from the CP437 character set.
+ * 
+ * @return char 
+ */
 char Widget::getRandomCP437Character()
 {
     // CP437 character set
@@ -619,7 +522,11 @@ char Widget::getRandomCP437Character()
     return cp437[index];
 }
 
-// Display a matrix-style screensaver on the screen
+/**
+ * @brief Display a matrix-style screensaver on the screen. The screensaver consists of falling characters that move down the screen.
+ * 
+ * @param display object
+ */
 void Widget::showMatrixScreensaver(i2cDisplay* display)
 {
     randomSeed(analogRead(0));
