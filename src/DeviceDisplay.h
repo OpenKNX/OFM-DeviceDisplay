@@ -51,7 +51,7 @@ class DeviceDisplay : public OpenKNX::Module
     struct WidgetInfo
     {
         Widget* widget;
-        uint32_t duration;         // Duration to display this widget in milliseconds
+        uint32_t duration = WIDGET_INACTIVE;         // Duration to display this widget in milliseconds. 0 = inactive
         std::string name;          // Optional name for the widget
         uint8_t action = NoAction; // Action flags for the widget
         uint32_t startDisplayTime = 0;

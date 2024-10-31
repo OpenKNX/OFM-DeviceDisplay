@@ -121,6 +121,41 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 
             logInfoP("Sending Matrix Screensaver for 10 seconds to display...");
         }
+        else if (command.compare(7, 1, "c") == 0)
+        {
+            // Get the console widget
+            WidgetInfo* consoleWidgetInfo = getWidgetInfo("consoleWidget");
+            if (consoleWidgetInfo->widget != nullptr)
+            {
+                consoleWidgetInfo->duration = 30000;                                       // Set the duration to 30 seconds
+                consoleWidgetInfo->action = DeviceDisplay::WidgetAction::StatusFlag |      // This is a status widget
+                                            DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                            DeviceDisplay::WidgetAction::AutoRemoveFlag;   // Remove this widget after display
+
+                logInfoP("Existing Console Widget updated and is running for 30 seconds...");
+            }
+            else
+            {
+                Widget* consoleWidget = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+                addWidget(consoleWidget, 30000, "consoleWidget", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                                     DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                                     DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
+
+                logInfoP("NEW Console Widget created and is running for 30 seconds...");
+            }
+        }
+        else if (command.compare(7, 1, "a") == 0)
+        {
+            std::string text = command.substr(8);
+            Widget* consoleWidget = getWidgetInfo("consoleWidget")->widget;
+            if (consoleWidget != nullptr) {
+                consoleWidget->appendLine(consoleWidget, text);
+                logInfoP("Appending text to console widget: %s", text.c_str());
+            }
+            else {
+                logErrorP("Console Widget not found!");
+            }
+        }
         else if (command.compare(7, 1, "l") == 0)
         {
             std::string text = command.substr(8);
@@ -371,7 +406,7 @@ void DeviceDisplay::LoopWidgets()
             }
 
 #ifdef ENABLE_DISPLAY_DEBUG_LOGS
-            logInfoP("Displaying status widget: %s", showWidget->name.c_str());
+            //logInfoP("Displaying status widget: %s", showWidget->name.c_str());
 #endif
             // Auto-remove status widget after display duration
             bool durationPassed = (currentTime - showWidget->startDisplayTime >= showWidget->duration);
@@ -449,7 +484,7 @@ void DeviceDisplay::LoopWidgets()
     }
 
     // Final draw logic outside of conditionals for `showWidget`
-    if (showWidget != nullptr)
+    if (showWidget != nullptr && showWidget->duration > WIDGET_INACTIVE) // Skip inactive widgets.
     {
         if (isWidgetFlagSet(showWidget->action, WidgetAction::StatusFlag) &&
             isWidgetFlagSet(showWidget->action, WidgetAction::ExternalManaged) &&

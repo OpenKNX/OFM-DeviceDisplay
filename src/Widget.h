@@ -27,6 +27,8 @@
 #define FALL_SPEED 50 // Geschwindigkeit des Falls in Millisekunden
 #define MAX_DROPS 5   // Maximale Anzahl an fallenden Zeichen pro Spalte
 
+#define WIDGET_INACTIVE 0 // Widget is inactive
+
 enum TextAlign
 {
     LEFT,
@@ -104,6 +106,8 @@ class Widget
     char getRandomCP437Character();
 
   public:
+    void appendLine( Widget* Widget, std::string newLine);
+
     // Constructor to initialize the widget with a display mode
     Widget(DisplayMode mode = DisplayMode::DYNAMIC_TEXT);
     ~Widget();

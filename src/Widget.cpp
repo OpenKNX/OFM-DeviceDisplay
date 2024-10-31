@@ -213,10 +213,43 @@ bool Widget::UpdateDynamicTextLines(i2cDisplay* display)
     return true;
 }
 
+/**
+ * @brief Append a new line of text to the widget. If the widget already has the maximum number of text lines, 
+ *        the oldest line will be removed. Use case: Displaying log messages or other dynamic text. 
+ *        IMPORTANT: This function is not checking the text size. It assumes that the text font is default and the size is 1.
+ *  
+ * @param display object
+ * @param newLine is the new line of text to append to the widget.
+ * @example appendLine(display, "New Line of Text");
+ 
+ */
+void Widget::appendLine(Widget* Widget, std::string newLine)
+{
+    if (Widget->textLines[MAX_TEXT_LINES-1].text[0] != '\0')
+    {
+        for (int i = 0; i < MAX_TEXT_LINES; i++)
+        {
+            strncpy(Widget->textLines[i].text, Widget->textLines[i + 1].text, sizeof(Widget->textLines[i].text) - 1);
+        }
+        strncpy(Widget->textLines[MAX_TEXT_LINES-1].text, newLine.c_str(), sizeof(Widget->textLines[MAX_TEXT_LINES-1].text) - 1);
+    }
+    else
+    {
+        for (int i = 0; i < MAX_TEXT_LINES; i++)
+        {
+            if (Widget->textLines[i].text[0] == '\0')
+            {
+                SetDynamicTextLine(i, newLine.c_str());
+                break;
+            }
+        }
+    }
+}
+
 // Get the width of the text in pixels, considering the text size.
 /**
  * @brief get the width of the text in pixels, considering the text size for the default font.
- * 
+ *
  * @param display  object
  * @param text a charecter to get the width of. e.g. "X"
  * @param textSize the size of the text
@@ -233,7 +266,7 @@ uint16_t Widget::getTextWidth(i2cDisplay* display, const char* text, uint8_t tex
 
 /**
  * @brief get the height of the text in pixels, considering the text size for the default font.
- * 
+ *
  * @param display object
  * @param text a charecter to get the height of. e.g. "X"
  * @param textSize the size of the text
@@ -374,8 +407,8 @@ void Widget::displayDynamicText(i2cDisplay* display, const std::vector<lcdText*>
 }
 
 /**
- * @brief Write a substring of the text for horizontal scrolling. 
- * 
+ * @brief Write a substring of the text for horizontal scrolling.
+ *
  * @param display object
  * @param text to write using the display write method
  * @param scrollPos the current scroll position
@@ -401,8 +434,8 @@ void Widget::writeScrolledText(i2cDisplay* display, const char* text, int scroll
 // Display the OpenKNX logo on the screen
 /**
  * @brief DIsplay the OpenKNX logo on the screen. The logo is displayed in the center of the screen. The
- * 
- * @param display 
+ *
+ * @param display
  */
 void Widget::OpenKNXLogo(i2cDisplay* display)
 {
@@ -456,8 +489,8 @@ void Widget::OpenKNXLogo(i2cDisplay* display)
 }
 
 /**
- * @brief Shows the OpenKNX logo on the display. 
- * 
+ * @brief Shows the OpenKNX logo on the display.
+ *
  * @param display object
  */
 void Widget::ShowBootLogo(i2cDisplay* display)
@@ -470,7 +503,7 @@ void Widget::ShowBootLogo(i2cDisplay* display)
 
 /**
  * @brief Will show the "Prog Mode active" message on the display with a blinking effect. The message will blink every 500ms.
- * 
+ *
  * @param display object
  */
 void Widget::showProgrammingMode(i2cDisplay* display)
@@ -503,8 +536,8 @@ void Widget::showProgrammingMode(i2cDisplay* display)
 
 /**
  * @brief Generates a random CP437 character from the CP437 character set.
- * 
- * @return char 
+ *
+ * @return char
  */
 char Widget::getRandomCP437Character()
 {
@@ -524,7 +557,7 @@ char Widget::getRandomCP437Character()
 
 /**
  * @brief Display a matrix-style screensaver on the screen. The screensaver consists of falling characters that move down the screen.
- * 
+ *
  * @param display object
  */
 void Widget::showMatrixScreensaver(i2cDisplay* display)
@@ -570,23 +603,4 @@ void Widget::showMatrixScreensaver(i2cDisplay* display)
         }
         display->display->display();
     }
-}
-
-/**
- * @brief display the console text on the screen. The console text is displayed in the center of the screen.
- * 
- */
-void Widget::displayConsoleText() {
-    display->clearDisplay();
-    display->cp437(true); // Use CP437 character encoding
-
-    int16_t cursorY = 0;
-    for (const auto& line : textLines) {
-        display->setCursor(0, cursorY);
-        display->setTextSize(1);  // Set text size to 1, only
-        display->print(line.c_str());
-        cursorY += display->getTextHeight("X", 1);  // Y-Position für die nächste Zeile
-    }
-
-    display->display();  // Zeige aktualisierten Konsolentext
 }
