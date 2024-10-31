@@ -1,5 +1,8 @@
 # OFM-DevideDisplay
 
+
+
+
 DeviceDisplay is a flexible library for managing an OLED display on an embedded device. This library supports multiple widgets, scrolling text, and (ToDo) animated transitions . It integrates with the OpenKNX framework and includes modular components to define custom display widgets.
 
 ## Features
@@ -38,19 +41,3 @@ DeviceDisplay is a flexible library for managing an OLED display on an embedded 
       - `sda` / `scl`: SDA and SCL pins for I2C communication.
    
 ## Example Usage
-
-### Initialization and Setup
-
-```cpp
-#include "DeviceDisplay.h"
-
-openknx.addModule(1, openknxDisplayModule);
-
-Widget* WidgetNetInfo = new Widget(Widget::DisplayMode::FOUR_LINE);
-WidgetNetInfo->SetFourLines("Network", "IP: 11.11.0.123", "Subnet: 255.255.255.0", "Gateway: 11.11.0.1");
-WidgetNetInfo->TextHeader->textSize = 2;
-WidgetNetInfo->TextLine1->textSize = 2;
-WidgetNetInfo->TextLine2->textSize = 2;
-WidgetNetInfo->TextLine3->textSize = 2;
-
-openknxDisplayModule.addWidget(WidgetNetInfo,  2000, "NetworkInfo", DeviceDisplay::WidgetAction::NoAction);

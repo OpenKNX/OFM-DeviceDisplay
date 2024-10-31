@@ -530,7 +530,7 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
     display->display->print(uptimeStr.c_str());
     // display->print("   www.OpenKNX.de   ");
 
-#define OPENKNX_LOGO_PRINT
+//#define OPENKNX_LOGO_PRINT
 #ifdef OPENKNX_LOGO_PRINT
     // Line 1: "Open" text and first block (■)
     display->display->setCursor(40, 10);
@@ -556,8 +556,8 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
 #else
     #define SHIFT_TO_BOTTOM 10
     display->display->drawBitmap(
-        (display->width() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2,
-        (display->height() - LOGO_HEIGHT_ICON_SMALL_OKNX + SHIFT_TO_BOTTOM) / 2,
+        (display->GetDisplayWidth() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2,
+        (display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + SHIFT_TO_BOTTOM) / 2,
         logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,
         LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
 #endif
@@ -579,8 +579,8 @@ void Widget::ShowBootLogo(i2cDisplay *display)
 {
     display->display->clearDisplay();
     display->display->drawBitmap(
-        (display->display->width() - logo_OpenKNX_WIDTH) / 2,
-        (display->display->height() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
+        (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
+        (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
         logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
     display->display->display();
 }
@@ -619,8 +619,14 @@ void Widget::showProgrammingMode(i2cDisplay *display)
     display->display->setCursor(0, 20);    // Position the cursor for the message
     display->display->print(" ProgMode!"); // Print "Prog Mode"
 
+    display->display->setTextColor(SSD1306_WHITE);
+    display->display->setTextSize(1);      // Set font size to large for the message
+    display->display->setCursor(0, 45);    // Position the cursor for the message
+    display->display->println(" Ready to use ETS to  program the Device!  "); // Print "Prog Mode"
+
     // Update the display with the new content
     display->display->display();
+
 }
 
 /**
@@ -632,19 +638,19 @@ char Widget::getRandomCP437Character()
 {
     // CP437 character set
     const char cp437[] = {
-        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 
+        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
         // ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/'
-        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 
+        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
         // '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?'
-        0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 
+        0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
         // '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'
-        0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 
+        0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
         // 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_', '`'
-        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x70, 
+        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x70,
         // 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'
-        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0xC4, 0xB1, 
+        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0xC4, 0xB1,
         // 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '█', '▓'
-        0xB0, 0xB1, 0xB2, 0xB3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9,                                     
+        0xB0, 0xB1, 0xB2, 0xB3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9,
         // '▒', '░', '▌', '▐', '▄', '▔', '▕', '▁', '▏', '▎'
     };
     int index = random(0, sizeof(cp437));
