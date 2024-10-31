@@ -148,11 +148,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         {
             std::string text = command.substr(8);
             Widget* consoleWidget = getWidgetInfo("consoleWidget")->widget;
-            if (consoleWidget != nullptr) {
+            if (consoleWidget != nullptr)
+            {
                 consoleWidget->appendLine(consoleWidget, text);
                 logInfoP("Appending text to console widget: %s", text.c_str());
             }
-            else {
+            else
+            {
                 logErrorP("Console Widget not found!");
             }
         }
@@ -406,7 +408,7 @@ void DeviceDisplay::LoopWidgets()
             }
 
 #ifdef ENABLE_DISPLAY_DEBUG_LOGS
-            //logInfoP("Displaying status widget: %s", showWidget->name.c_str());
+            // logInfoP("Displaying status widget: %s", showWidget->name.c_str());
 #endif
             // Auto-remove status widget after display duration
             bool durationPassed = (currentTime - showWidget->startDisplayTime >= showWidget->duration);

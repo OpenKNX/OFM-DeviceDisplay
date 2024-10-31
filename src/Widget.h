@@ -8,26 +8,22 @@
 #define SCROLL_DELAY 250 // Scrolling speed (in milliseconds)
 #define BLINK_DELAY 500  // Blinking speed (in milliseconds)
 
-// Y positions for each line, starting from the top of the screen, in pixels
-// (0-63) to be used with setCursor() function for each line
-#define LCD_START_LINE_H 0  // Y Start position for header
-#define LCD_START_LINE_1 9  // Y Start position for line 1
-#define LCD_START_LINE_2 16 // Y Start position for line 2
-#define LCD_START_LINE_3 23 // Y Start position for line 3
-
 #define SSD1306_NO_SPLASH // Suppress the internal display splash screen
 
 #define PROG_MODE_BLINK_DELAY 500 // Blink delay for "Prog Mode active" text
-#define BOOT_LOGO_TIMEOUT 3000    // Timeout for showing the boot logo
-#define MAX_TEXT_LINES 8          // 8 Maximum number of text lines on a 128x64 display. This Setting can be
-                                  // adjusted for other display sizes
-#define SVR_SCREEN_WIDTH 128
-#define SVR_SCREEN_HEIGHT 64
-#define COLUMN_WIDTH 8
+#define BOOT_LOGO_TIMEOUT 5000    // Timeout for showing the boot logo
+
+#define MAX_TEXT_LINES 8 // 8 Maximum number of text lines on a 128x64 display. This Setting can be
+                         // This depends on the dispplay, fonts, and text size. This is for a 128x64 display with default font.
+#define COLUMN_WIDTH 8   // Width of a column in pixels
+
 #define FALL_SPEED 50 // Geschwindigkeit des Falls in Millisekunden
 #define MAX_DROPS 5   // Maximale Anzahl an fallenden Zeichen pro Spalte
 
 #define WIDGET_INACTIVE 0 // Widget is inactive
+
+// FONTS could be supported by the display, but currently only the default font is used
+// https://github.com/olikraus/u8g2/wiki/fntlistall
 
 enum TextAlign
 {
@@ -83,12 +79,14 @@ class Widget
     };
 
   private:
-    DisplayMode currentDisplayMode; // Current display mode for the widgets. Default is dynamic text mode
-    const uint8_t *iconBitmap;      // Bitmap for icon with text mode
+    DisplayMode currentDisplayMode;  // Current display mode for the widgets. Default is dynamic text mode
+    const uint8_t *iconBitmap;       // Bitmap for icon with text mode
+    //static uint16_t maxTextLines = 8; // Maximum number of text lines
 
     // Text lines for dynamic text mode
     uint16_t getTextWidth(i2cDisplay *display, const char *text, uint8_t textSize);             // Get the width of the text in pixels
     uint16_t getTextHeight(i2cDisplay *display, const char *text, uint8_t textSize);            // Get the height of the text in pixels
+    uint16_t calculateMaxTextLines(i2cDisplay *display, const GFXfont *font = nullptr);         // Calculate the maximum number of text lines
     void writeScrolledText(i2cDisplay *display, const char *text, int scrollPos, int maxChars); // Write the scrolled text to the display
     bool checkAndUpdateLcdText(lcdText *sText);                                                 // Check and update the text on the display
     void displayDynamicText(i2cDisplay *display, const std::vector<lcdText *> &lines);          // Display the dynamic text on the display
@@ -109,6 +107,26 @@ class Widget
     void showMatrixScreensaver(i2cDisplay *display); // Show the matrix screensaver on the display
     void setUpMatrixScreensaver();                   // Set up the matrix screensaver
     char getRandomCP437Character();                  // Get a random CP437 character
+
+    // Convert special characters to CP437
+    inline uint8_t convertCharToCP437(uint8_t ch)
+    {
+        switch (ch)
+        {
+            case 0xC4: return 0x8E; // Ä
+            case 0xD6: return 0x99; // Ö
+            case 0xDC: return 0x9A; // Ü
+            case 0xE4: return 0x84; // ä
+            case 0xF6: return 0x94; // ö
+            case 0xFC: return 0x81; // ü
+            case 0xDF: return 0xE1; // ß
+            case 0xC7: return 0x80; // Ç
+            case 0xE7:
+                return 0x87; // ç
+            // All other characters are returned as is
+            default: return ch;
+        }
+    }
 
   public:
     void appendLine(Widget *Widget, std::string newLine); // Append a new line to the widget. Only works for dynamic text mode and use case is console output

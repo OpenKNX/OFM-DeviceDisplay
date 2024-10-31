@@ -14,7 +14,7 @@ class i2cDisplay
   private:
     struct ScreenSettings // Struct to hold the display settings
     {
-        u8_t width = 128;         // 128 or 64 screen pixels wide
+        uint8_t width = 128;         // 128 or 64 screen pixels wide
         uint8_t height = 64;      // 64 or 32 screen pixels high
         uint8_t i2cadress = 0x3C; // 0x3D for 128x64, 0x3C for 128x32 - See datasheet for Address
         int8_t reset = -1;        // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -32,6 +32,9 @@ class i2cDisplay
     bool InitDisplay(); // Initialize the display
     void SetDisplayWidth(uint8_t width); // Set the display width
     void SetDisplayHeight(uint8_t height); // Set the display height
+    uint8_t GetDisplayWidth(); // Return the display width
+    uint8_t GetDisplayHeight(); // Return the display height
+    
     void SetDisplayI2CAddress(uint8_t i2cadress); // Set the display i2c address
     void SetDisplayReset(int8_t reset); // Set the display reset pin
     void SetDisplayI2C(bool bIsi2c1); // Set the display i2c bus

@@ -75,6 +75,16 @@ void i2cDisplay::SetDisplayWidth(uint8_t width)
 }
 
 /**
+ * @brief Get the display width in pixels.
+ *
+ * @return uint8_t width of the display in pixels
+ */
+uint8_t i2cDisplay::GetDisplayWidth()
+{
+    return lcdSettings.width;
+}
+
+/**
  * @brief Set the display height in pixels. Default is 64.
  *
  * @param height of the display in pixels
@@ -82,6 +92,16 @@ void i2cDisplay::SetDisplayWidth(uint8_t width)
 void i2cDisplay::SetDisplayHeight(uint8_t height)
 {
     lcdSettings.height = height;
+}
+
+/**
+ * @brief Get the display height in pixels.
+ *
+ * @return uint8_t height of the display in pixels
+ */
+uint8_t i2cDisplay::GetDisplayHeight() 
+{
+    return lcdSettings.height;
 }
 
 /**
