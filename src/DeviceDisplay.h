@@ -46,31 +46,28 @@ class DeviceDisplay : public OpenKNX::Module
     void showHelp() override; // Show help for console commands
     bool processCommand(const std::string command, bool diagnose) override;
 
-//  private:
-    // Definition der verschiedenen Zustände als enum-Klasse
     struct WidgetInfo
     {
         Widget* widget;
-        uint32_t duration = WIDGET_INACTIVE;         // Duration to display this widget in milliseconds. 0 = inactive
-        std::string name;          // Optional name for the widget
-        uint8_t action = NoAction; // Action flags for the widget
+        uint32_t duration = WIDGET_INACTIVE; // Duration to display this widget in milliseconds. 0 = inactive
+        std::string name;                    // Optional name for the widget
+        uint8_t action = NoAction;           // Action flags for the widget
         uint32_t startDisplayTime = 0;
     };
-    i2cDisplay displayModule;     // The hardware display instance
+    i2cDisplay displayModule; // The hardware display instance
 
     std::vector<WidgetInfo> widgetsQueue; // Queue of widgets to display
-    uint32_t lastWidgetSwitchTime = 0;          // Last time the widget was switched
-    size_t currentWidgetIndex = 0; // Current widget index in the queue
-    
+    uint32_t lastWidgetSwitchTime = 0;    // Last time the widget was switched
+    size_t currentWidgetIndex = 0;        // Current widget index in the queue
 
     bool progModeActive = false; // Tracks Programming Mode status
 
     Widget widget; // Widget instance
 
-    void initializeWidgets();
-    void LoopWidgets(); // Switches widgets based on timing
+    void initializeWidgets(); // Initialize widgets with default settings or add widgets to queue
+    void LoopWidgets();       // Switches widgets based on timing
 
-    WidgetInfo* getWidgetInfo(const std::string& name);
+    WidgetInfo* getWidgetInfo(const std::string& name); // Get widget info by name
 };
 
 extern DeviceDisplay openknxDisplayModule;

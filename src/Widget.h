@@ -57,8 +57,6 @@ struct lcdText
     uint16_t startPosX = 0;             // X Start position for header
     uint16_t textColor = SSD1306_WHITE; // Text color is either white or black
     uint16_t bgColor = SSD1306_BLACK;   // Background color is either white or black
-    TextAlign align =
-        LEFT; // Text alignment. Default is left. Can be LEFT, CENTER, RIGHT
     TextDynamicAlign alignPos = ALIGN_LEFT;
     uint8_t textSize = 1;      // Text size. Default is 1. Can be 1, 2, 3, 4
     bool scrollText = true;    // Flag to enable scrolling text
@@ -74,46 +72,52 @@ struct lcdText
 class Widget
 {
   public:
-    enum class DisplayMode
-    { // Modes for displaying the widget
-        DYNAMIC_TEXT,
-        ICON_WITH_TEXT,
-        OPENKNX_LOGO,
-        BOOT_LOGO,
-        PROG_MODE,
-        SCREEN_SAVER
+    enum class DisplayMode // Modes for displaying the widget.
+    {
+        DYNAMIC_TEXT,   // Dynamic text lines depending on the lines of the display and their position or settings
+        ICON_WITH_TEXT, // Icon with text mode
+        OPENKNX_LOGO,   // OpenKNX logo
+        BOOT_LOGO,      // Boot logo
+        PROG_MODE,      // Programming mode
+        SCREEN_SAVER    // Matrix screensaver
     };
 
   private:
-    DisplayMode currentDisplayMode; // Current display mode
-    const uint8_t *iconBitmap;       // Bitmap for icon with text mode
-    ulong _lastUpdate = 0;
-    ulong _showProgrammingMode_last_Blink = 0; // Last time the blink state was updated
-    bool _showProgrammingMode_showProgMode = true; // Toggle between showing/hiding "Prog Mode active"
+    DisplayMode currentDisplayMode; // Current display mode for the widgets. Default is dynamic text mode
+    const uint8_t *iconBitmap;      // Bitmap for icon with text mode
 
-    uint16_t getTextWidth(i2cDisplay *display, const char *text, uint8_t textSize);
-    uint16_t getTextHeight(i2cDisplay *display, const char *text, uint8_t textSize);
-    void writeScrolledText(i2cDisplay *display, const char *text, int scrollPos, int maxChars);
-    bool checkAndUpdateLcdText(lcdText *sText);
-    void displayDynamicText(i2cDisplay *display, const std::vector<lcdText *> &lines);
-    void InitDynamicTextLines();
-    bool UpdateDynamicTextLines(i2cDisplay *display);
-    void OpenKNXLogo(i2cDisplay *display);
-    void ShowBootLogo(i2cDisplay *display);
-    void showProgrammingMode(i2cDisplay *display);
-    void showMatrixScreensaver(i2cDisplay *display);
-    void setUpMatrixScreensaver();
-    char getRandomCP437Character();
+    // Text lines for dynamic text mode
+    uint16_t getTextWidth(i2cDisplay *display, const char *text, uint8_t textSize);             // Get the width of the text in pixels
+    uint16_t getTextHeight(i2cDisplay *display, const char *text, uint8_t textSize);            // Get the height of the text in pixels
+    void writeScrolledText(i2cDisplay *display, const char *text, int scrollPos, int maxChars); // Write the scrolled text to the display
+    bool checkAndUpdateLcdText(lcdText *sText);                                                 // Check and update the text on the display
+    void displayDynamicText(i2cDisplay *display, const std::vector<lcdText *> &lines);          // Display the dynamic text on the display
+    void InitDynamicTextLines();                                                                // Initialize the dynamic text lines with default settings
+    bool UpdateDynamicTextLines(i2cDisplay *display);                                           // Update the dynamic text lines on the display
+
+    // Boot logo and OpenKNX logo
+    void OpenKNXLogo(i2cDisplay *display);  // Show the OpenKNX logo on the display
+    void ShowBootLogo(i2cDisplay *display); // Show the boot logo on the display
+
+    // Programming mode
+    ulong _showProgrammingMode_last_Blink = 0;     // Last time the blink state was updated
+    bool _showProgrammingMode_showProgMode = true; // Toggle between showing/hiding "Prog Mode active"
+    void showProgrammingMode(i2cDisplay *display); // Show the programming mode on the display
+
+    // Matrix screensaver
+    ulong _lastUpdateScreenSaver = 0;                // Last time the screensaver was updated
+    void showMatrixScreensaver(i2cDisplay *display); // Show the matrix screensaver on the display
+    void setUpMatrixScreensaver();                   // Set up the matrix screensaver
+    char getRandomCP437Character();                  // Get a random CP437 character
 
   public:
-    void appendLine( Widget* Widget, std::string newLine);
+    void appendLine(Widget *Widget, std::string newLine); // Append a new line to the widget. Only works for dynamic text mode and use case is console output
 
-    // Constructor to initialize the widget with a display mode
-    Widget(DisplayMode mode = DisplayMode::DYNAMIC_TEXT);
-    ~Widget();
-    void draw(i2cDisplay *display);
-    void SetDynamicTextLines(const std::vector<const char *> &lines);
-    void SetDynamicTextLine(size_t lineIndex, const char *text);
-    lcdText textLines[MAX_TEXT_LINES]; // Fixed array for text lines
-    void EmptyLines(); // Clear all lines
-};
+    Widget(DisplayMode mode = DisplayMode::DYNAMIC_TEXT);             // Constructor
+    ~Widget();                                                        // Destructor
+    void draw(i2cDisplay *display);                                   // Update the display with the current display mode
+    void SetDynamicTextLines(const std::vector<const char *> &lines); // Set the text for multiple lines in the widget
+    void SetDynamicTextLine(size_t lineIndex, const char *text);      // Set the text for a specific line in the widget
+    lcdText textLines[MAX_TEXT_LINES];                                // Fixed array for text lines
+    void EmptyLines();                                                // Clear all lines
+}; // End of class Widget

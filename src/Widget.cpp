@@ -131,7 +131,6 @@ void Widget::SetDynamicTextLines(const std::vector<const char*>& lines)
         {
             textLines[i].textColor = SSD1306_BLACK;
             textLines[i].bgColor = SSD1306_WHITE;
-            textLines[i].align = CENTER;
             textLines[i].alignPos = ALIGN_CENTER;
             // textLines[i].textSize = 1;
             // textLines[i].pauseAtStart = true;
@@ -167,7 +166,6 @@ void Widget::InitDynamicTextLines()
         textLines[i].startPosX = 0;
         textLines[i].textColor = SSD1306_WHITE;
         textLines[i].bgColor = SSD1306_BLACK;
-        textLines[i].align = LEFT;
         textLines[i].alignPos = ALIGN_LEFT;
         textLines[i].textSize = 1;
         textLines[i].scrollText = true;
@@ -578,9 +576,9 @@ void Widget::showMatrixScreensaver(i2cDisplay* display)
     }
 
     unsigned long currentTime = millis();
-    if (currentTime - _lastUpdate >= FALL_SPEED)
+    if (currentTime - _lastUpdateScreenSaver >= FALL_SPEED)
     {
-        _lastUpdate = currentTime;
+        _lastUpdateScreenSaver = currentTime;
         display->display->clearDisplay();
 
         for (uint16_t x = 0; x < (SVR_SCREEN_WIDTH / COLUMN_WIDTH); x++)
