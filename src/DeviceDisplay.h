@@ -54,12 +54,14 @@ class DeviceDisplay : public OpenKNX::Module
         uint32_t duration;         // Duration to display this widget in milliseconds
         std::string name;          // Optional name for the widget
         uint8_t action = NoAction; // Action flags for the widget
+        uint32_t startDisplayTime = 0;
     };
     i2cDisplay displayModule;     // The hardware display instance
 
     std::vector<WidgetInfo> widgetsQueue; // Queue of widgets to display
     uint32_t lastWidgetSwitchTime = 0;          // Last time the widget was switched
     size_t currentWidgetIndex = 0; // Current widget index in the queue
+    
 
     bool progModeActive = false; // Tracks Programming Mode status
 

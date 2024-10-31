@@ -571,3 +571,22 @@ void Widget::showMatrixScreensaver(i2cDisplay* display)
         display->display->display();
     }
 }
+
+/**
+ * @brief display the console text on the screen. The console text is displayed in the center of the screen.
+ * 
+ */
+void Widget::displayConsoleText() {
+    display->clearDisplay();
+    display->cp437(true); // Use CP437 character encoding
+
+    int16_t cursorY = 0;
+    for (const auto& line : textLines) {
+        display->setCursor(0, cursorY);
+        display->setTextSize(1);  // Set text size to 1, only
+        display->print(line.c_str());
+        cursorY += display->getTextHeight("X", 1);  // Y-Position für die nächste Zeile
+    }
+
+    display->display();  // Zeige aktualisierten Konsolentext
+}
