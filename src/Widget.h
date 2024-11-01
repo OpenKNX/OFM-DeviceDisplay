@@ -1,6 +1,8 @@
 #pragma once
 
 #include "i2c-Display.h" // Assuming i2c-Display has display object definitions
+#include "QRCodeGen.hpp"
+#include "DisplayIcons.h"
 
 #define MAX_CHARS_PER_LINE 20 // Maximum 20 characters per line
 #define MAX_CHARS_PER_LINE_SCROLL \
@@ -65,6 +67,13 @@ struct lcdText
     char text[MAX_CHARS_PER_LINE_SCROLL + 1] = "";
 };
 
+struct lcdQRCode
+{
+    std::string qrText;  // Text for the QR code
+    bool useIcon = true; // Flag to use an icon for the QR code
+    QRCodeWidget::Icon icon = {logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,LOGO_HEIGHT_ICON_SMALL_OKNX}; // Default icon for the QR code
+};
+
 class Widget
 {
   public:
@@ -75,6 +84,7 @@ class Widget
         OPENKNX_LOGO,   // OpenKNX logo
         BOOT_LOGO,      // Boot logo
         PROG_MODE,      // Programming mode
+        QR_CODE,        // QR Code
         SCREEN_SAVER    // Matrix screensaver
     };
 
@@ -127,8 +137,11 @@ class Widget
             default: return ch;
         }
     }
-
+    
+    QRCodeWidget qrCodeWidget; // QR Code Widget
+    void showQRCode(i2cDisplay *display);
   public:
+    lcdQRCode qrCode;          // QR Code settings
     void appendLine(Widget *Widget, std::string newLine); // Append a new line to the widget. Only works for dynamic text mode and use case is console output
 
     Widget(DisplayMode mode = DisplayMode::DYNAMIC_TEXT);             // Constructor

@@ -1,5 +1,4 @@
 #include "Widget.h"
-#include "DisplayIcons.h"
 #ifndef NOT_SUPPORT_UMALAUTS
 // #include <Fonts/FreeMonoBold9pt7b
 #endif
@@ -10,7 +9,7 @@
  * @param mode is the display mode for the widget
  */
 Widget::Widget(DisplayMode mode)
-    : currentDisplayMode(mode), iconBitmap(nullptr)
+    : currentDisplayMode(mode), iconBitmap(nullptr), qrCodeWidget(nullptr, "", {nullptr, 0, 0}, false)
 {
     // Initialize some default values
     InitDynamicTextLines();
@@ -76,6 +75,9 @@ void Widget::draw(i2cDisplay *display)
             break;
         case DisplayMode::SCREEN_SAVER:
             showMatrixScreensaver(display);
+            break;
+        case DisplayMode::QR_CODE:
+            showQRCode(display);
             break;
         case DisplayMode::ICON_WITH_TEXT:
             // displayIconWithText(display);
@@ -530,7 +532,7 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
     display->display->print(uptimeStr.c_str());
     // display->print("   www.OpenKNX.de   ");
 
-//#define OPENKNX_LOGO_PRINT
+// #define OPENKNX_LOGO_PRINT
 #ifdef OPENKNX_LOGO_PRINT
     // Line 1: "Open" text and first block (■)
     display->display->setCursor(40, 10);
@@ -620,13 +622,12 @@ void Widget::showProgrammingMode(i2cDisplay *display)
     display->display->print(" ProgMode!"); // Print "Prog Mode"
 
     display->display->setTextColor(SSD1306_WHITE);
-    display->display->setTextSize(1);      // Set font size to large for the message
-    display->display->setCursor(0, 45);    // Position the cursor for the message
+    display->display->setTextSize(1);                                         // Set font size to large for the message
+    display->display->setCursor(0, 45);                                       // Position the cursor for the message
     display->display->println(" Ready to use ETS to  program the Device!  "); // Print "Prog Mode"
 
     // Update the display with the new content
     display->display->display();
-
 }
 
 /**
@@ -706,4 +707,28 @@ void Widget::showMatrixScreensaver(i2cDisplay *display)
         }
         display->display->display();
     }
+}
+
+void Widget::showQRCode(i2cDisplay *display)
+{
+    if (display == nullptr) return;
+
+    // Fallbacks for the QR code URL and icon
+    if (qrCode.qrText == "") qrCode.qrText = "https://www.openknx.de"; // fallback to the OpenKNX website!
+    
+    /* 
+    // No icon for the QR code, since there is no space for it!
+    // We could use the OpenKNX icon on the left or right side of the QR code
+    if (qrCode.useIcon && qrCode.icon.bitmapData == nullptr)
+    {
+        qrCode.icon.bitmapData = logoICON_OKNX_16;
+        qrCode.icon.width = LOGO_WIDTH_ICON_OKNX_16;
+        qrCode.icon.height = LOGO_HEIGHT_ICON_OKNX_16;
+    }
+    qrCodeWidget.setIcon(qrCode.icon); // No icon for the QR code, since there is no space for it!
+    */
+    qrCodeWidget.alignLeft(true);
+    qrCodeWidget.setDisplay(display);
+    qrCodeWidget.setUrl(qrCode.qrText);
+    qrCodeWidget.draw();
 }
