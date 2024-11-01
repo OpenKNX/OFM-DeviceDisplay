@@ -416,14 +416,11 @@ void Widget::displayDynamicText(i2cDisplay *display,
         // Determine horizontal alignment
         if (line->alignPos & ALIGN_CENTER)
         {
-            cursorX = (display->display->width() -
-                       getTextWidth(display, line->text, line->textSize)) /
-                      2;
+            cursorX = (display->display->width() - getTextWidth(display, line->text, line->textSize)) / 2; // Centered
         }
         else if (line->alignPos & ALIGN_RIGHT)
         {
-            cursorX = display->display->width() -
-                      getTextWidth(display, line->text, line->textSize);
+            cursorX = display->display->width() - getTextWidth(display, line->text, line->textSize); // Right-aligned
         }
 
         // Calculate Y position based on alignment
@@ -715,8 +712,8 @@ void Widget::showQRCode(i2cDisplay *display)
 
     // Fallbacks for the QR code URL and icon
     if (qrCode.qrText == "") qrCode.qrText = "https://www.openknx.de"; // fallback to the OpenKNX website!
-    
-    /* 
+
+    /*
     // No icon for the QR code, since there is no space for it!
     // We could use the OpenKNX icon on the left or right side of the QR code
     if (qrCode.useIcon && qrCode.icon.bitmapData == nullptr)
