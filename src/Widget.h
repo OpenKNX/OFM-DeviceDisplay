@@ -4,21 +4,20 @@
 #include "QRCodeGen.hpp"
 #include "DisplayIcons.h"
 
-#define MAX_CHARS_PER_LINE 20 // Maximum 20 characters per line
-#define MAX_CHARS_PER_LINE_SCROLL \
-    100                  // Maximum 100 characters per line for scrolling
+// Maximum 100 characters per line for scrolling text
+#define MAX_CHARS_PER_LINE_SCROLL 100
 #define SCROLL_DELAY 250 // Scrolling speed (in milliseconds)
-#define BLINK_DELAY 500  // Blinking speed (in milliseconds)
 
-#define SSD1306_NO_SPLASH // Suppress the internal display splash screen
-
+// Default widget settings. 
 #define PROG_MODE_BLINK_DELAY 500 // Blink delay for "Prog Mode active" text
 #define BOOT_LOGO_TIMEOUT 5000    // Timeout for showing the boot logo
 
+// Default settings for the display
 #define MAX_TEXT_LINES 8 // 8 Maximum number of text lines on a 128x64 display. This Setting can be
                          // This depends on the dispplay, fonts, and text size. This is for a 128x64 display with default font.
-#define COLUMN_WIDTH 8   // Width of a column in pixels
 
+// Matrix screensaver settings
+#define COLUMN_WIDTH 8   // Width of a column in pixels
 #define FALL_SPEED 50 // Geschwindigkeit des Falls in Millisekunden
 #define MAX_DROPS 5   // Maximale Anzahl an fallenden Zeichen pro Spalte
 
@@ -27,12 +26,14 @@
 // FONTS could be supported by the display, but currently only the default font is used
 // https://github.com/olikraus/u8g2/wiki/fntlistall
 
+// Text alignment options
 enum TextAlign
 {
     LEFT,
     CENTER,
     RIGHT
 }; // Top, Middle, Bottom to be added later
+
 enum TextDynamicAlign : uint8_t
 {
     ALIGN_LEFT = 0x01,
@@ -42,12 +43,15 @@ enum TextDynamicAlign : uint8_t
     ALIGN_MIDDLE = 0x20,
     ALIGN_BOTTOM = 0x40
 };
+
 // Overload | operator for TextDynamicAlign
 inline TextDynamicAlign operator|(TextDynamicAlign lhs, TextDynamicAlign rhs)
 {
     return static_cast<TextDynamicAlign>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
 
+
+// lcdText struct for dynamic text lines
 struct lcdText
 {
     int16_t scrollPos = 0;              // Current scroll position
@@ -57,14 +61,19 @@ struct lcdText
     uint16_t bgColor = SSD1306_BLACK;   // Background color is either white or black
     TextDynamicAlign alignPos = ALIGN_LEFT;
     uint8_t textSize = 1;      // Text size. Default is 1. Can be 1, 2, 3, 4
+    bool skipLineIfEmpty = false; // skip line if empty. next non-empty line will be displayed in the same position!!!
+
+    // Scrolling text settings
     bool scrollText = true;    // Flag to enable scrolling text
     bool pauseAtStart = false; // Flag to pause scrolling text at start
-    ulong lastPauseTime = 0;   // Time tracking for scrolling
-    ulong lastScrollTime = 0;  // Time tracking for scrolling
-
-    bool scrollTextPaused = false; // Flag to pause scrolling text
-    char prevText[MAX_CHARS_PER_LINE_SCROLL + 1] = "";
-    char text[MAX_CHARS_PER_LINE_SCROLL + 1] = "";
+    uint16_t scrollPauseTime = 2000; // Time to pause scrolling text at start
+    bool _scrollTextPaused = false; // Flag to pause scrolling text
+    ulong _lastPauseTime = 0;   // Time tracking for scrolling
+    ulong _lastScrollTime = 0;  // Time tracking for scrolling
+    
+    // Text for scrolling
+    char _prevText[MAX_CHARS_PER_LINE_SCROLL + 1] = ""; // Previous text for scrolling
+    char text[MAX_CHARS_PER_LINE_SCROLL + 1] = "";  // default text for the line
 };
 
 struct lcdQRCode
@@ -102,6 +111,13 @@ class Widget
     void displayDynamicText(i2cDisplay *display, const std::vector<lcdText *> &lines);          // Display the dynamic text on the display
     void InitDynamicTextLines();                                                                // Initialize the dynamic text lines with default settings
     bool UpdateDynamicTextLines(i2cDisplay *display);                                           // Update the dynamic text lines on the display
+
+    // Helper functions for displayDynamicText
+    void calculateTextHeights(i2cDisplay *display, const std::vector<lcdText *> &textLines, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &totalMiddleHeight, uint16_t &middleLineCount); // Calculate the heights of the text sections
+    void drawTextLines(i2cDisplay *display, const std::vector<lcdText *> &textLines, int16_t totalHeightTop, int16_t totalHeightBottom, int16_t middleStartY, int16_t availableMiddleHeight, uint32_t currentTime); // Draw each line of text
+    void handleScrolling(i2cDisplay *display, lcdText *line, uint32_t currentTime); // Handle the scrolling of a text line
+    int16_t calculateCursorX(i2cDisplay *display, const lcdText *line); // Calculate the X position of the cursor for a text line
+    int16_t calculateCursorY(i2cDisplay *display, const lcdText *line, int16_t &totalHeightTop, int16_t &totalHeightBottom, int16_t &middleStartY, int16_t availableMiddleHeight); // Calculate the Y position of the cursor for a text line
 
     // Boot logo and OpenKNX logo
     void OpenKNXLogo(i2cDisplay *display);  // Show the OpenKNX logo on the display

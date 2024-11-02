@@ -477,7 +477,7 @@ void DeviceDisplay::LoopWidgets()
                     showWidget = &widgetsQueue[currentWidgetIndex];
                     currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
 #ifdef ENABLE_DISPLAY_DEBUG_LOGS
-                    logInfoP("Displaying regular widget: %s", showWidget->name.c_str());
+                    logInfoP("Displaying regular widget: %s (Duration: %d ms)", showWidget->name.c_str(), showWidget->duration);
 #endif
                 }
             }
