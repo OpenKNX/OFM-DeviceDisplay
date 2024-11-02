@@ -1,7 +1,10 @@
 #pragma once
 
 #include "i2c-display.h"
-#include "qrcodegen.h" // QR-Code library (https://github.com/nayuki/QR-Code-generator)
+#include "qrcodegen.h"
+//extern "C" {
+//  #include "qrcodegen.h" // QR-Code library (https://github.com/nayuki/QR-Code-generator)
+//} // Not using here the #include <qrcodegen.hpp>
 
 class QRCodeWidget
 {
