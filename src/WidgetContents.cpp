@@ -1,5 +1,4 @@
 #include "WidgetContents.h"
-#include "i2c-Display.h"
 
 // WidgetContents::WidgetContents() {
 //   // Constructor implementation
