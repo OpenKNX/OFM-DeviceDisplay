@@ -1,14 +1,3 @@
-/**
- * @file i2c-display.cpp
- * @author Erkan Çolak (erkanc@gmx.de)
- * @brief   This is the implementation file for the i2c display object for the OpenKNX display devices.
- * @version 0.1
- * @date 2024-10-30
- *
- * @copyright Copyright (c) 2024
- * @License   This library is licensed under the MIT License
- */
-
 #include "i2c-display.h"
 
 #define SSD1306_NO_SPLASH // Suppress the internal display splash screen

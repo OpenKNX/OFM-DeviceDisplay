@@ -3,51 +3,64 @@
 DeviceDisplay openknxDisplayModule;
 i2cDisplay* displayModule = new i2cDisplay();
 
-// Initialize the display and widgets
+/**
+ * @brief Construct a new Device Display:: Device Display object
+ *
+ */
 DeviceDisplay::DeviceDisplay()
     : widget() // Initialize the widget
 {
 }
 
 /**
- * @brief Initialize the display module
+ * @brief Initialize the display module.
+ * This function is called within the OpenKNX
  */
 void DeviceDisplay::init()
 {
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-    logInfoP("Init DeviceDisplay started...");
-#endif
-    if (displayModule.InitDisplay() && displayModule.display)
+    logInfoP("Init started...");
+    if (displayModule.InitDisplay() && displayModule.display != nullptr)
     {
-        logInfoP("Display initialized!");
+        logInfoP("initialized!");
     }
     else
     {
-        logErrorP("Display not initialized");
+        logErrorP("not initialized!");
     }
 }
 
-// Setup method for initialization
+/**
+ * @brief Setup the default widgets for the display.
+ *
+ * @param configured, will not be used
+ */
 void DeviceDisplay::setup(bool configured)
 {
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-    logInfoP("setup...");
-#endif
+
+    logDebugP("setup...");
     initializeWidgets(); // Setup default widget queue
 }
 
-// Process the input GroupObject
+/**
+ * @brief Process GroupObjects for the display module.
+ *
+ * @param obj, the GroupObject to process
+ */
 void DeviceDisplay::processInputKo(GroupObject& obj)
 {
     // Could be a challenge to implement ;-)
 }
 
-// Main loop for display updates
+/**
+ * @brief Update the display in the loop. Will show the widgets based on their configuration.
+ *
+ * @param configured, will not be used
+ */
 void DeviceDisplay::loop(bool configured)
 {
     if (displayModule.display == nullptr)
     {
-        logErrorP("displayModule - Display not initialized");
+        logErrorP("Display not initialized");
         return;
     }
 
@@ -64,56 +77,39 @@ void DeviceDisplay::loop(bool configured)
     LoopWidgets(); // Switch widgets based on timing
 }
 
-// Show the help console commands
+/**
+ * @brief Console commands to show the help for the display module.
+ */
 void DeviceDisplay::showHelp()
 {
-    openknx.console.printHelpLine("dis", "display text on display");
-    openknx.console.printHelpLine("dist", "Several tests on the display. ? to show more");
-    openknx.console.printHelpLine("logdis", "print text to given lines. ? to show more");
+    openknx.console.printHelpLine("ddc", "Device Display Controll. Use 'disp ?' for more.");
 }
-// Process the console command
+
+/**
+ * @brief Process the console commands for the display module.
+ *
+ * @param command, the command to process
+ * @param diagnose, if true, will not process the command
+ * @return true if the command was processed, false otherwise
+ */
 bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 {
     if (diagnose) return false;
     // if (!knx.configured()) return true;
-
-    if (command.compare(0, 4, "dis ") == 0)
+    if (command.compare(0, 4, "ddc ") == 0) // Display text on the display
     {
-        Widget* cmdWidget = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
-        addWidget(cmdWidget, 5000, "cmdWidget", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                    DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                    DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
-
-        std::string text = command.substr(4);
-        cmdWidget->SetDynamicTextLines(
-            {
-                "Commandline", // Header
-                text.c_str(),  // Line 1
-            });
-        cmdWidget->textLines[0].textSize = 1;
-        cmdWidget->textLines[1].textSize = 2;
-
-        logInfoP("Send text to display! Will display for 5 seconds: %s", text.c_str());
-    }
-    else if (command.compare(0, 7, "logdis ") == 0)
-    {
-        if (command.compare(7, 1, "?") == 0)
+        if (command.compare(4, 4, "logo") == 0) // Show the boot logo
         {
-            logInfoP("---------------------------------------");
-            logInfoP("Commands | Description");
-            logInfoP("---------------------------------------");
-            logInfoP("logdis h | Print Text to Header       ");
-            logInfoP("logdis 1 | Line 1 Print/Update Text   ");
-            logInfoP("logdis 2 | Line 2 Print/Update Text   ");
-            logInfoP("logdis 3 | Line 3 Print/Update Text   ");
-            logInfoP("logdis l | Print logo to all lines    ");
-            logInfoP("logdis r | Reset display              ");
-            logInfoP("logdis s | Scroll text on display     ");
+            logInfoP("BootLogo requested and will be displayed for %d seconds...", BOOT_LOGO_TIMEOUT / 1000);
+            Widget* bootLogo = new Widget(Widget::DisplayMode::BOOT_LOGO);
+            addWidget(bootLogo, BOOT_LOGO_TIMEOUT, "BootLogo",
+                      DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                          DeviceDisplay::WidgetAction::AutoRemoveFlag |  // Remove this widget after display
+                          DeviceDisplay::WidgetAction::InternalEnabled); // This widget is enabled
         }
-        else if (command.compare(7, 1, "m") == 0)
+#ifdef MATRIX_SCREENSAVER
+        else if (command.compare(4, 1, "m") == 0) // Matrix Screensaver
         {
-            // ScreenSaver Matrix
-            std::string text = command.substr(8);
             Widget* srvMatrix = new Widget(Widget::DisplayMode::SCREEN_SAVER);
             addWidget(srvMatrix, 10000, "srvMatrix", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
                                                          DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
@@ -121,168 +117,86 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 
             logInfoP("Sending Matrix Screensaver for 10 seconds to display...");
         }
-        else if (command.compare(7, 1, "c") == 0)
+#endif
+        else if (command.compare(4, 1, "c") == 0) // Console simulation output widget
         {
             // Get the console widget
-            WidgetInfo* consoleWidgetInfo = getWidgetInfo("consoleWidget");
-            if (consoleWidgetInfo->widget != nullptr)
+            WidgetInfo* consoleWidgetInfo_ = getWidgetInfo("consoleWidgetInfo_");
+            Widget* consoleWidget_ = nullptr;
+            if (consoleWidgetInfo_ != nullptr && consoleWidgetInfo_->widget != nullptr)
             {
-                consoleWidgetInfo->duration = 30000;                                       // Set the duration to 30 seconds
-                consoleWidgetInfo->action = DeviceDisplay::WidgetAction::StatusFlag |      // This is a status widget
-                                            DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                            DeviceDisplay::WidgetAction::AutoRemoveFlag;   // Remove this widget after display
-
-                logInfoP("Existing Console Widget updated and is running for 30 seconds...");
+                consoleWidget_ = consoleWidgetInfo_->widget;
+                consoleWidgetInfo_->duration = 30000;                                       // Set the duration to 30 seconds
+                consoleWidgetInfo_->action = DeviceDisplay::WidgetAction::StatusFlag |      // This is a status widget
+                                             DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                             DeviceDisplay::WidgetAction::AutoRemoveFlag;   // Remove this widget after display
+                logInfoP("Console Widget updated: avaiable for 30 seconds...");
             }
             else
             {
-                Widget* consoleWidget = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
-                addWidget(consoleWidget, 30000, "consoleWidget", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                                     DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                                     DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
-
-                logInfoP("NEW Console Widget created and is running for 30 seconds...");
+                consoleWidget_ = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+                addWidget(consoleWidget_, 30000, "consoleWidgetInfo_", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                                           DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                                           DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
+                logInfoP("NEW Console Widget created: Avaiable for for 30 seconds...");
             }
-        }
-        else if (command.compare(7, 1, "a") == 0)
-        {
-            std::string text = command.substr(8);
-            Widget* consoleWidget = getWidgetInfo("consoleWidget")->widget;
-            if (consoleWidget != nullptr)
+            if (consoleWidget_ != nullptr)
             {
-                consoleWidget->appendLine(text);
-                logInfoP("Appending text to console widget: %s", text.c_str());
+                logInfoP("Got the console WidgetInfo and widget...");
+                std::string text = command.substr(6);
+                if (!text.empty())
+                {
+                    consoleWidget_->appendLine(text);
+                    // logInfoP("Appending text to console widget: %s", text.c_str());
+                    return true;
+                }
             }
-            else
+        }
+        else if (command.compare(4, 1, "l") == 0 && command.compare(4, 4, "logo") != 0) // List all widgets
+        {
+            logInfoP("Total Widgets: %d:", widgetsQueue.size());
+            for (size_t i = 0; i < widgetsQueue.size(); ++i)
             {
-                logErrorP("Console Widget not found!");
+                WidgetInfo& widgetInfo = widgetsQueue[i];
+                // Try to create a table with the widget information. The columns must be aligned.
+                logInfoP("Order: %d | Name: %s | Action: %d | Duration: %d", i, widgetInfo.name.c_str(), widgetInfo.action, widgetInfo.duration);
             }
+            logInfoP("---------------------------------------------------------");
         }
-        else if (command.compare(7, 1, "l") == 0)
+#ifdef QRCODE_WIDGET
+        else if (command.compare(4, 2, "qr") == 0) // Show QR-Code
         {
-            std::string text = command.substr(8);
-            // LogLCD("www.OpenKNX.de", "Open ■", "┬────┴", "■ KNX");
-            logInfoP("Sending display OpenKNX Logo. %s", text.c_str());
+            // grab the string after the qr command: e.g. "logdis qr https://www.openknx.de"
+            std::string url = command.substr(7);
+            if (url.empty())
+            {
+                logErrorP("No URL provided for QR-Code generation! Use 'logdis qr <URL>'");
+                return false;
+            }
+            logInfoP("QR-Code requested and will be displayed and removed after %d seconds...", 15000 / 1000);
+            Widget* QRCodeWidget = new Widget(Widget::DisplayMode::QR_CODE);                 // Create a new QR code widget
+            QRCodeWidget->qrCodeWidget.setUrl(url);                                          // Set the URL for the QR code
+            QRCodeWidget->qrCodeWidget.setAlign(QRCodeWidget::QRCodeAlignPos::ALIGN_CENTER); // Set the alignment for the QR code
+            addWidget(QRCodeWidget, 15000, "Console-QRCode",
+                      DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget. The status flag will be displayed immediately
+                          DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                          DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display of the set duration time. Here 10sec.
         }
-        else if (command.compare(7, 1, "h") == 0)
+#endif
+        else
         {
-            std::string text = command.substr(8);
-            // LogLCDHeader(text.c_str());
-            logInfoP("Sending text to display Header: %s", text.c_str());
-        }
-        else if (command.compare(7, 1, "1") == 0)
-        {
-            std::string text = command.substr(8);
-            // LogLCDLine1(text.c_str());
-            logInfoP("Sending text to display line 1: %s", text.c_str());
-        }
-        else if (command.compare(7, 1, "2") == 0)
-        {
-            std::string text = command.substr(8);
-            // LogLCDLine2(text.c_str());
-            logInfoP("Sending text to display line 2: %s", text.c_str());
-        }
-        else if (command.compare(7, 1, "3") == 0)
-        {
-            std::string text = command.substr(8);
-            // LogLCDLine3(text.c_str());
-            logInfoP("Sending text to display line 3: %s", text.c_str());
-        }
-        else if (command.compare(7, 1, "r") == 0)
-        {
-            // LogLCDCLear();
-            logInfoP("Resetting display...");
-        }
-        else if (command.compare(7, 1, "s") == 0)
-        {
-            // LogLCD("WWW.OPENKNX.DE",
-            //        "LINE 1: THIS IS A SCROLLING TEXT. CHARACTERS WILL MOVE FROM RIGHT TO LEFT.",
-            //        "LINE 2: THIS IS A SCROLLING TEXT. CHARACTERS WILL MOVE FROM RIGHT TO LEFT.",
-            //        "LINE 3: THIS IS A SCROLLING TEXT. CHARACTERS WILL MOVE FROM RIGHT TO LEFT.");
-            logInfoP("Sending scrolling text to display...");
+            openknx.console.printHelpLine("ddc c <text>", "Print/Update Console Widget");
+            openknx.console.printHelpLine("ddc l", "List all widgets");
+            openknx.console.printHelpLine("ddc logo", "Show the boot logo");
+#ifdef MATRIX_SCREENSAVER
+            openknx.console.printHelpLine("ddc m", "Print Matrix Screensaver");
+#endif
+#ifdef QRCODE_WIDGET
+            openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
+#endif
+            return true;
         }
     }
-    else if (command.compare(0, 5, "dist ") == 0)
-    {
-        if (command.compare(5, 1, "?") == 0)
-        {
-            logInfoP("Command   | Description");
-            logInfoP("---------------------------------------");
-            logInfoP("dist line | Draw lines                 ");
-            logInfoP("dist rect | Draw rectangles            ");
-            logInfoP("dist filr | Fill rectangles            ");
-            logInfoP("dist circ | Draw circles               ");
-            logInfoP("dist filc | Fill circles               ");
-            logInfoP("dist rrec | Draw rounded rectangles    ");
-            logInfoP("dist frec | Fill rounded rectangles    ");
-            logInfoP("dist tria | Draw triangles             ");
-            logInfoP("dist ftri | Fill triangles             ");
-            logInfoP("dist char | Draw characters            ");
-            logInfoP("dist styl | Draw styles                ");
-            logInfoP("dist scro | Scroll text                ");
-            logInfoP("dist bitm | Draw OpenKNX bitmap logo   ");
-            logInfoP("dist logo | Show OpenKNX logo          ");
-            logInfoP("---------------------------------------");
-        }
-        if (command.compare(5, 4, "line") == 0)
-        {
-            // testdrawline();
-        }
-        else if (command.compare(5, 4, "rect") == 0)
-        {
-            // testdrawrect();
-        }
-        else if (command.compare(5, 4, "filr") == 0)
-        {
-            // testfillrect();
-        }
-        else if (command.compare(5, 4, "circ") == 0)
-        {
-            // testdrawcircle();
-        }
-        else if (command.compare(5, 4, "filc") == 0)
-        {
-            // testfillcircle();
-        }
-        else if (command.compare(5, 4, "rrec") == 0)
-        {
-            // testdrawroundrect();
-        }
-        else if (command.compare(5, 4, "frec") == 0)
-        {
-            // testfillroundrect();
-        }
-        else if (command.compare(5, 4, "tria") == 0)
-        {
-            // testdrawtriangle();
-        }
-        else if (command.compare(5, 4, "ftri") == 0)
-        {
-            // testfilltriangle();
-        }
-        else if (command.compare(5, 4, "char") == 0)
-        {
-            // testdrawchar();
-        }
-        else if (command.compare(5, 4, "styl") == 0)
-        {
-            // testdrawstyles();
-        }
-        else if (command.compare(5, 4, "scro") == 0)
-        {
-            // testscrolltext();
-        }
-        else if (command.compare(5, 4, "bitm") == 0)
-        {
-            // testdrawbitmap();
-        }
-        else if (command.compare(5, 4, "logo") == 0)
-        {
-            // OpenKNXLogo();
-        }
-    }
-    else
-        return false;
     return true;
 }
 
@@ -291,16 +205,15 @@ void DeviceDisplay::initializeWidgets()
 {
     // Add here the bootlogo widget
     Widget* bootLogo = new Widget(Widget::DisplayMode::BOOT_LOGO);
-    addWidget(bootLogo, BOOT_LOGO_TIMEOUT, "BootLogo", DeviceDisplay::WidgetAction::StatusFlag | DeviceDisplay::WidgetAction::InternalEnabled | DeviceDisplay::WidgetAction::AutoRemoveFlag);
+    addWidget(bootLogo, BOOT_LOGO_TIMEOUT, "BootLogo", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                           DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                           DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
 
     Widget* progMode = new Widget(Widget::DisplayMode::PROG_MODE);
     addWidget(progMode, PROG_MODE_BLINK_DELAY, "ProgMode", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
                                                                DeviceDisplay::WidgetAction::ExternalManaged); // This widget is initially disabled
                                                                                                               // Add here more default widgets
 }
-
-// Adds a widget to the queue with specified display duration
-// Widget name must be unique!
 
 /**
  * @brief Adds a widget to the queue with specified display duration.
@@ -327,27 +240,26 @@ void DeviceDisplay::addWidget(Widget* widget, uint32_t duration, std::string nam
         {
             // Add unique suffix to the name to ensure it is unique. Just use a random kombination of numbers and letters
             name += "_" + std::to_string(random(0, 9)) + (char)random(65, 90);
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-            logInfoP("Widget name already in use. Added suffix to name: %s", name.c_str());
-#endif
+            logDebugP("Widget name already in use. Added suffix to name: %s", name.c_str());
         }
     }
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-    logInfoP("Added widget to queue: %s", name.c_str());
-#endif
+    logDebugP("Added widget to queue: %s", name.c_str());
     widgetsQueue.push_back({widget, duration, name, action});
 }
 
-// Remove a widget from the queue by name
+/**
+ * @brief Remove a widget from the queue by name. This will also free the memory of the widget.
+ *
+ * @param name the name of the widget to remove, must be unique
+ * @return true if the widget was removed, false otherwise
+ */
 bool DeviceDisplay::removeWidget(const std::string& name)
 {
     for (std::vector<WidgetInfo>::iterator it = widgetsQueue.begin(); it != widgetsQueue.end(); ++it)
     {
         if (it->name == name)
         {
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-            logInfoP("Removed widget from queue: %s", name.c_str());
-#endif
+            logDebugP("Removed widget from queue: %s", name.c_str());
             delete it->widget;      // Free memory, since the widget is created with new!
             widgetsQueue.erase(it); // Remove the widget from the queue list by name
 
@@ -357,7 +269,12 @@ bool DeviceDisplay::removeWidget(const std::string& name)
     return false;
 }
 
-// Get a widget by name
+/**
+ * @brief Will search for a widget by name and return the pointer to the widget.
+ *
+ * @param name of the widget to search for
+ * @return DeviceDisplay::WidgetInfo* pointer to the widget or nullptr if not found
+ */
 DeviceDisplay::WidgetInfo* DeviceDisplay::getWidgetInfo(const std::string& name)
 {
     for (WidgetInfo& widgetInfo : widgetsQueue)
@@ -367,13 +284,7 @@ DeviceDisplay::WidgetInfo* DeviceDisplay::getWidgetInfo(const std::string& name)
             return &widgetInfo;
         }
     }
-    return {};
-}
-
-// Clear all widgets from the queue
-void DeviceDisplay::clearWidgets()
-{
-    widgetsQueue.clear();
+    return nullptr;
 }
 
 // Switches to the next widget in the queue based on duration and priority
@@ -409,9 +320,7 @@ void DeviceDisplay::LoopWidgets()
                 showWidget->startDisplayTime = currentTime; // Initialize start time for the widget
             }
 
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-            // logInfoP("Displaying status widget: %s", showWidget->name.c_str());
-#endif
+            // logDebugP("Displaying status widget: %s", showWidget->name.c_str());
             // Auto-remove status widget after display duration
             bool durationPassed = (currentTime - showWidget->startDisplayTime >= showWidget->duration);
 
@@ -422,9 +331,7 @@ void DeviceDisplay::LoopWidgets()
 
             if (showWidget->isActionSet(WidgetAction::MarkedForRemove) && durationPassed)
             {
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-                logInfoP("Removing status widget: %s", showWidget->name.c_str());
-#endif
+                logDebugP("Removing status widget: %s", showWidget->name.c_str());
                 removeWidget(showWidget->name);
                 break; // Exit after removing the widget
             }
@@ -434,9 +341,7 @@ void DeviceDisplay::LoopWidgets()
             {
                 // Clear start time after disabling the widget to reset for next activation
                 showWidget->startDisplayTime = 0;
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-                logInfoP("Disabling status widget: %s", showWidget->name.c_str());
-#endif
+                logDebugP("Disabling status widget: %s", showWidget->name.c_str());
                 showWidget->removeAction(WidgetAction::InternalEnabled);
                 break;
             }
@@ -478,9 +383,7 @@ void DeviceDisplay::LoopWidgets()
                     // Display the widget
                     showWidget = &widgetsQueue[currentWidgetIndex];
                     currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
-#ifdef ENABLE_DISPLAY_DEBUG_LOGS
-                    logInfoP("Displaying regular widget: %s (Duration: %d ms)", showWidget->name.c_str(), showWidget->duration);
-#endif
+                    logDebugP("Displayed regular widget: %s (Duration: %d ms)", showWidget->name.c_str(), showWidget->duration);
                 }
             }
             lastWidgetSwitchTime = currentTime; // Only update switch time here to prevent pre-emptive skips

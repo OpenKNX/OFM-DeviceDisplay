@@ -5,13 +5,13 @@
 
 /**
  * @brief Construct a new Widget:: Widget object
- *
  * @param mode is the display mode for the widget
  */
 Widget::Widget(DisplayMode mode)
     : currentDisplayMode(mode), iconBitmap(nullptr)
 #ifdef QRCODE_WIDGET
-      , qrCodeWidget(nullptr, "", {nullptr, 0, 0}, false)
+      ,
+      qrCodeWidget(nullptr, "", {0, 0, 0}, false)
 #endif
 {
     // Initialize some default values
@@ -20,10 +20,12 @@ Widget::Widget(DisplayMode mode)
 
 /**
  * @brief Destroy the Widget:: Widget object
- *
  */
 Widget::~Widget() {}
 
+/**
+ * @brief Empty all text lines. This function will empty all text lines.
+ */
 void Widget::EmptyLines()
 {
     for (int i = 0; i < MAX_TEXT_LINES; ++i)
@@ -91,10 +93,6 @@ void Widget::draw(i2cDisplay *display)
             break;
     }
 }
-
-// Example so set a line of text
-// widget.SetLine(2, "Updated Line 3 Text");
-// widget.SetLine(3, "Updated Line 4 Text");
 
 /**
  * @brief Set the text for a specific line in the widget. The line index is
@@ -207,14 +205,19 @@ void Widget::UpdateDynamicTextLines(i2cDisplay *display)
 {
     // Check if all lines are empty; if so, exit early
     bool allEmpty = true;
-    for (int i = 0; i < MAX_TEXT_LINES; ++i)
+    if (_AllowEmtyTextLines) allEmpty = false; // Do not skip empty lines at the beginning
+    else                                       // Check if all lines are empty then exit early and do not display anything!
     {
-        if (strlen(textLines[i].text) != 0)
+        for (uint8_t i = 0; i < MAX_TEXT_LINES; ++i)
         {
-            allEmpty = false;
-            break;
+            if (strlen(textLines[i].text) != 0)
+            {
+                allEmpty = false;
+                break;
+            }
         }
     }
+
     if (!allEmpty) // Proceed only if at least one line is non-empty
     {
         bool changed = false;
@@ -272,8 +275,7 @@ void Widget::appendLine(std::string newLine)
  * @param textSize the size of the text
  * @return uint16_t the width of the text in pixels
  */
-uint16_t Widget::getTextWidth(i2cDisplay *display, const char *text,
-                              uint8_t textSize)
+uint16_t Widget::getTextWidth(i2cDisplay *display, const char *text, uint8_t textSize)
 {
     int16_t x1, y1;
     uint16_t w, h;
@@ -292,8 +294,7 @@ uint16_t Widget::getTextWidth(i2cDisplay *display, const char *text,
  * @param textSize the size of the text
  * @return uint16_t the height of the text in pixels
  */
-uint16_t Widget::getTextHeight(i2cDisplay *display, const char *text,
-                               uint8_t textSize)
+uint16_t Widget::getTextHeight(i2cDisplay *display, const char *text, uint8_t textSize)
 {
     int16_t x1, y1;
     uint16_t w, h;
@@ -532,8 +533,7 @@ uint16_t Widget::calculateCursorY(i2cDisplay *display, const lcdText *line, uint
  * @param scrollPos the current scroll position
  * @param maxChars size of the text to write
  */
-void Widget::writeScrolledText(i2cDisplay *display, const char *text,
-                               int scrollPos, int maxChars)
+void Widget::writeScrolledText(i2cDisplay *display, const char *text, int scrollPos, int maxChars)
 {
     // Find the actual length of the text
     uint16_t textLen = strlen(text);
@@ -549,7 +549,6 @@ void Widget::writeScrolledText(i2cDisplay *display, const char *text,
     }
 }
 
-// Display the OpenKNX logo on the screen
 /**
  * @brief DIsplay the OpenKNX logo on the screen. The logo is displayed in the
  * center of the screen. The
@@ -719,22 +718,18 @@ void Widget::showQRCode(i2cDisplay *display)
     if (display == nullptr) return;
 
     // Fallbacks for the QR code URL and icon
-    if (qrCode.qrText == "") qrCode.qrText = "https://www.openknx.de"; // fallback to the OpenKNX website!
+    if (qrCodeWidget.getUrl().empty()) qrCodeWidget.setUrl("https://www.openknx.de"); // fallback to the OpenKNX website!
 
     /*
     // No icon for the QR code, since there is no space for it!
     // We could use the OpenKNX icon on the left or right side of the QR code
-    if (qrCode.useIcon && qrCode.icon.bitmapData == nullptr)
-    {
-        qrCode.icon.bitmapData = logoICON_OKNX_16;
-        qrCode.icon.width = LOGO_WIDTH_ICON_OKNX_16;
-        qrCode.icon.height = LOGO_HEIGHT_ICON_OKNX_16;
-    }
     qrCodeWidget.setIcon(qrCode.icon); // No icon for the QR code, since there is no space for it!
     */
-    qrCodeWidget.alignLeft(true);
+
+    // QRCodeWidget::Icon icon = {logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX, LOGO_HEIGHT_ICON_SMALL_OKNX}; // Default icon for the QR code
+    // qrCodeWidget.setIcon(icon); // Set the icon for the QR code
+
     qrCodeWidget.setDisplay(display);
-    qrCodeWidget.setUrl(qrCode.qrText);
     qrCodeWidget.draw();
 }
 #endif // QRCODE_WIDGET
