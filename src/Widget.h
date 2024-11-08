@@ -161,7 +161,7 @@ class Widget
 
   public:
     lcdQRCode qrCode;                                     // QR Code settings
-    void appendLine(Widget *Widget, std::string newLine); // Append a new line to the widget. Only works for dynamic text mode and use case is console output
+    void appendLine(std::string newLine); // Append a new line to the widget. Only works for dynamic text mode and use case is console output
 
     Widget(DisplayMode mode = DisplayMode::DYNAMIC_TEXT);             // Constructor
     ~Widget();                                                        // Destructor

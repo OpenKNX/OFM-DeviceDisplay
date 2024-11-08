@@ -235,27 +235,26 @@ void Widget::UpdateDynamicTextLines(i2cDisplay *display)
  * the oldest line will be removed. Use case: Displaying log messages or other dynamic text.
  * IMPORTANT: This function is not checking the text size. It assumes
  *            that the text font is default and the size is 1.
- *@param display pointer to the i2cDisplay object.
  * @param newLine is the new line at the end of the text widget.
- * @example appendLine(display, "New Line of Text");
+ * @example appendLine( "New Line of Text");
  */
-void Widget::appendLine(Widget *Widget, std::string newLine)
+void Widget::appendLine(std::string newLine)
 {
-    if (Widget->textLines[MAX_TEXT_LINES - 1].text[0] != '\0')
+    if (textLines[MAX_TEXT_LINES - 1].text[0] != '\0')
     {
         for (uint8_t i = 0; i < MAX_TEXT_LINES; i++)
         {
-            strncpy(Widget->textLines[i].text, Widget->textLines[i + 1].text,
-                    sizeof(Widget->textLines[i].text) - 1);
+            strncpy(textLines[i].text, textLines[i + 1].text,
+                    sizeof(textLines[i].text) - 1);
         }
-        strncpy(Widget->textLines[MAX_TEXT_LINES - 1].text, newLine.c_str(),
-                sizeof(Widget->textLines[MAX_TEXT_LINES - 1].text) - 1);
+        strncpy(textLines[MAX_TEXT_LINES - 1].text, newLine.c_str(),
+                sizeof(textLines[MAX_TEXT_LINES - 1].text) - 1);
     }
     else
     {
         for (uint8_t i = 0; i < MAX_TEXT_LINES; i++)
         {
-            if (Widget->textLines[i].text[0] == '\0')
+            if (textLines[i].text[0] == '\0')
             {
                 SetDynamicTextLine(i, newLine.c_str());
                 break;

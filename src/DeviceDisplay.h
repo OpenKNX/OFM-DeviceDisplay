@@ -39,9 +39,6 @@ class DeviceDisplay : public OpenKNX::Module
     void addWidget(Widget* widget, uint32_t duration, std::string name = "", uint8_t action = NoAction); // Add a widget to the queue
     bool removeWidget(const std::string& name);                                                          // Remove a widget from the queue
     void clearWidgets();                                                                                 // Clear all widgets from the queue
-    inline void setWidgetFlag(uint8_t& state, uint8_t flag) { state |= flag; }                           // Set a flag on the widget state
-    inline void clearWidgetFlag(uint8_t& state, uint8_t flag) { state &= ~flag; }                        // Clear a flag on the widget state
-    inline bool isWidgetFlagSet(const uint8_t& state, uint8_t flag) { return (state & flag) != 0; }      // Check if a specific flag is set
 
     void showHelp() override; // Show help for console commands
     bool processCommand(const std::string command, bool diagnose) override;
@@ -53,8 +50,27 @@ class DeviceDisplay : public OpenKNX::Module
         std::string name;                    // Optional name for the widget
         uint8_t action = NoAction;           // Action flags for the widget
         uint32_t startDisplayTime = 0;
+
+        inline void setDuration(uint32_t duration_ms) { duration = duration_ms; }  // Set the duration of the widget
+        inline uint32_t getDuration() { return duration; }                              // Get the duration of the widget
+        inline void addDuration(uint32_t duration_ms) { duration += duration_ms; } // Add the duration to the widget
+        inline void disable() { duration = WIDGET_INACTIVE; }                // Disable the widget by setting the duration to 0
+
+        inline void setName(const std::string& WidgetName) { name = WidgetName; }   // Set the new name for the widget. Must be unique!
+        inline std::string getName() { return name; }                                 // Get the name of the widget
+        inline void setAction(uint8_t newAction) { action = newAction; }      // Set new action to the widget
+        inline uint8_t getAction() { return action; }                             // Get the action of the widget
+        inline bool isActionSet(uint8_t actionToCheck) { return (action & actionToCheck) != 0; } // Check if the action is set
+        inline void addAction(uint8_t actionToAdd) { action |= actionToAdd; }     // Add an additional action to the widget
+        inline void removeAction(uint8_t actiontoRemove) { action &= ~actiontoRemove; } // Remove the action from the widget
+        inline void clearAction() { action = NoAction; }                // Clear all actions of the widget
     };
     i2cDisplay displayModule; // The hardware display instance
+
+    inline bool isWidgetCurrentlyDisplayed(const std::string& name) { // Returns true if the widget is currently displayed on display
+      return !widgetsQueue.empty() && widgetsQueue[currentWidgetIndex].name == name;
+    }
+
 
     std::vector<WidgetInfo> widgetsQueue; // Queue of widgets to display
     uint32_t lastWidgetSwitchTime = 0;    // Last time the widget was switched

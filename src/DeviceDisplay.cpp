@@ -54,11 +54,11 @@ void DeviceDisplay::loop(bool configured)
     WidgetInfo* ProgMode = getWidgetInfo("ProgMode");
     if (knx.progMode() && (ProgMode->widget != nullptr))
     {
-        setWidgetFlag(ProgMode->action, WidgetAction::InternalEnabled);
+        ProgMode->addAction(WidgetAction::InternalEnabled);
     }
     else
     {
-        clearWidgetFlag(ProgMode->action, WidgetAction::InternalEnabled);
+        ProgMode->removeAction(WidgetAction::InternalEnabled);
     }
 
     LoopWidgets(); // Switch widgets based on timing
@@ -150,7 +150,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             Widget* consoleWidget = getWidgetInfo("consoleWidget")->widget;
             if (consoleWidget != nullptr)
             {
-                consoleWidget->appendLine(consoleWidget, text);
+                consoleWidget->appendLine(text);
                 logInfoP("Appending text to console widget: %s", text.c_str());
             }
             else
@@ -348,7 +348,9 @@ bool DeviceDisplay::removeWidget(const std::string& name)
 #ifdef ENABLE_DISPLAY_DEBUG_LOGS
             logInfoP("Removed widget from queue: %s", name.c_str());
 #endif
-            widgetsQueue.erase(it);
+            delete it->widget;      // Free memory, since the widget is created with new!
+            widgetsQueue.erase(it); // Remove the widget from the queue list by name
+
             return true;
         }
     }
@@ -399,8 +401,8 @@ void DeviceDisplay::LoopWidgets()
         showWidget = &widget;
 
         // Check if widget is a status widget with `InternalEnabled`
-        if (isWidgetFlagSet(showWidget->action, WidgetAction::StatusFlag) &&
-            isWidgetFlagSet(showWidget->action, WidgetAction::InternalEnabled))
+        if (showWidget->isActionSet(WidgetAction::StatusFlag) &&
+            showWidget->isActionSet(WidgetAction::InternalEnabled))
         {
             if (showWidget->startDisplayTime == 0)
             {
@@ -413,12 +415,12 @@ void DeviceDisplay::LoopWidgets()
             // Auto-remove status widget after display duration
             bool durationPassed = (currentTime - showWidget->startDisplayTime >= showWidget->duration);
 
-            if (isWidgetFlagSet(showWidget->action, WidgetAction::AutoRemoveFlag))
+            if (showWidget->isActionSet(WidgetAction::AutoRemoveFlag))
             {
-                setWidgetFlag(showWidget->action, WidgetAction::MarkedForRemove);
+                showWidget->addAction(WidgetAction::MarkedForRemove);
             }
 
-            if (isWidgetFlagSet(showWidget->action, WidgetAction::MarkedForRemove) && durationPassed)
+            if (showWidget->isActionSet(WidgetAction::MarkedForRemove) && durationPassed)
             {
 #ifdef ENABLE_DISPLAY_DEBUG_LOGS
                 logInfoP("Removing status widget: %s", showWidget->name.c_str());
@@ -428,14 +430,14 @@ void DeviceDisplay::LoopWidgets()
             }
 
             // Disable status widget after its display duration if `ExternalManaged` is not set
-            if (!isWidgetFlagSet(showWidget->action, WidgetAction::ExternalManaged) && durationPassed)
+            if (!showWidget->isActionSet(WidgetAction::ExternalManaged) && durationPassed)
             {
                 // Clear start time after disabling the widget to reset for next activation
                 showWidget->startDisplayTime = 0;
 #ifdef ENABLE_DISPLAY_DEBUG_LOGS
                 logInfoP("Disabling status widget: %s", showWidget->name.c_str());
 #endif
-                clearWidgetFlag(showWidget->action, WidgetAction::InternalEnabled);
+                showWidget->removeAction(WidgetAction::InternalEnabled);
                 break;
             }
             statusWidgetsInProgress = true;
@@ -450,8 +452,8 @@ void DeviceDisplay::LoopWidgets()
 
         if (durationPassed)
         {
-            if (isWidgetFlagSet((&widgetsQueue[currentWidgetIndex])->action, WidgetAction::StatusFlag) &&
-                isWidgetFlagSet((&widgetsQueue[currentWidgetIndex])->action, WidgetAction::ExternalManaged))
+            if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::StatusFlag) &&
+                (&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::ExternalManaged))
             {
                 // Skip `ExternalManaged` status widget without switching
                 currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
@@ -460,7 +462,7 @@ void DeviceDisplay::LoopWidgets()
             else
             {
                 // Remove widget if marked for removal
-                if (isWidgetFlagSet((&widgetsQueue[currentWidgetIndex])->action, WidgetAction::MarkedForRemove))
+                if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::MarkedForRemove))
                 {
                     removeWidget((&widgetsQueue[currentWidgetIndex])->name);
                     if (currentWidgetIndex >= widgetsQueue.size()) currentWidgetIndex = 0;
@@ -469,9 +471,9 @@ void DeviceDisplay::LoopWidgets()
                 else
                 {
                     // Auto-remove non-status widget
-                    if (isWidgetFlagSet((&widgetsQueue[currentWidgetIndex])->action, WidgetAction::AutoRemoveFlag))
+                    if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::AutoRemoveFlag))
                     {
-                        setWidgetFlag((&widgetsQueue[currentWidgetIndex])->action, WidgetAction::MarkedForRemove);
+                        (&widgetsQueue[currentWidgetIndex])->addAction(WidgetAction::MarkedForRemove);
                     }
                     // Display the widget
                     showWidget = &widgetsQueue[currentWidgetIndex];
@@ -488,9 +490,9 @@ void DeviceDisplay::LoopWidgets()
     // Final draw logic outside of conditionals for `showWidget`
     if (showWidget != nullptr && showWidget->duration > WIDGET_INACTIVE) // Skip inactive widgets.
     {
-        if (isWidgetFlagSet(showWidget->action, WidgetAction::StatusFlag) &&
-            isWidgetFlagSet(showWidget->action, WidgetAction::ExternalManaged) &&
-            !isWidgetFlagSet(showWidget->action, WidgetAction::InternalEnabled))
+        if (showWidget->isActionSet(WidgetAction::StatusFlag) &&
+            showWidget->isActionSet(WidgetAction::ExternalManaged) &&
+            !showWidget->isActionSet(WidgetAction::InternalEnabled))
         {
             showWidget = nullptr; // Skip widget with conflicting flags
         }
