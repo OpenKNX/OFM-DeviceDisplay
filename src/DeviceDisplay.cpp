@@ -184,7 +184,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         }
 #endif
         else
-        {
+        { 
+            openknx.logger.begin();
+            openknx.logger.log("");
+            openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+            openknx.logger.log("======================= Help: Device Display Control ===========================");
+            openknx.logger.color(0);
+            openknx.logger.log("Command(s)               Description");
             openknx.console.printHelpLine("ddc c <text>", "Print/Update Console Widget");
             openknx.console.printHelpLine("ddc l", "List all widgets");
             openknx.console.printHelpLine("ddc logo", "Show the boot logo");
@@ -194,6 +200,11 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 #ifdef QRCODE_WIDGET
             openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
 #endif
+            openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+            openknx.logger.log("Info: To test the progMode widget toogle the prog mode on the device.");
+            openknx.logger.log("--------------------------------------------------------------------------------");
+            openknx.logger.color(0);
+            openknx.logger.end();
             return true;
         }
     }
