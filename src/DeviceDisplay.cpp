@@ -19,7 +19,19 @@ DeviceDisplay::DeviceDisplay()
 void DeviceDisplay::init()
 {
     logInfoP("Init started...");
-    if (displayModule.InitDisplay() && displayModule.display != nullptr)
+    
+    // Setup the display module with the default settings from the selected hardware
+    displayModule.lcdSettings.bIsi2c1 = OKNXHW_DEVICE_DISPLAY_I2C_0_1; // Set here the i2c bus to use. true:i2c1 false:i2c0
+    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA; // Set the Hardware specific SDA pin for the display
+    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL; // Set the Hardware specific SCL pin for the display
+    
+    displayModule.lcdSettings.i2cadress = OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS; // Set here the i2c address of the display. I.e. 0x3C
+    displayModule.lcdSettings.width =  OKNXHW_DEVICE_DISPLAY_WIDTH; // Set here the width of the display. I.e. 128
+    displayModule.lcdSettings.height = OKNXHW_DEVICE_DISPLAY_HEIGHT; // Set here the height of the display. I.e. 64
+    
+    displayModule.lcdSettings.reset = -1; // We are not using a reset pin and set it to -1, which use the internal reset
+    
+    if (displayModule.InitDisplay(displayModule.lcdSettings) && displayModule.display != nullptr)
     {
         logInfoP("initialized!");
     }
@@ -166,16 +178,16 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 #ifdef QRCODE_WIDGET
         else if (command.compare(4, 2, "qr") == 0) // Show QR-Code
         {
-            // grab the string after the qr command: e.g. "logdis qr https://www.openknx.de"
-            std::string url = command.substr(7);
-            if (url.empty())
+            // grab the string after the qr command: e.g. "ddc qr https://www.openknx.de"
+            if (command.length() <= 7 || command.substr(7).empty())
             {
-                logErrorP("No URL provided for QR-Code generation! Use 'logdis qr <URL>'");
-                return false;
+              logErrorP("No URL provided for QR-Code generation! Use 'ddc qr <URL>'");
+              return false;
             }
+
             logInfoP("QR-Code requested and will be displayed and removed after %d seconds...", 15000 / 1000);
             Widget* QRCodeWidget = new Widget(Widget::DisplayMode::QR_CODE);                 // Create a new QR code widget
-            QRCodeWidget->qrCodeWidget.setUrl(url);                                          // Set the URL for the QR code
+            QRCodeWidget->qrCodeWidget.setUrl(command.substr(7));                    // Set the URL for the QR code
             QRCodeWidget->qrCodeWidget.setAlign(QRCodeWidget::QRCodeAlignPos::ALIGN_CENTER); // Set the alignment for the QR code
             addWidget(QRCodeWidget, 15000, "Console-QRCode",
                       DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget. The status flag will be displayed immediately
@@ -184,7 +196,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         }
 #endif
         else
-        { 
+        {
             openknx.logger.begin();
             openknx.logger.log("");
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);

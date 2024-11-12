@@ -4,34 +4,33 @@
 
 /**
  * @brief Construct a new i2c Display::i2c Display object and initialize the display settings.
- * 
+ *
  */
 i2cDisplay::i2cDisplay() : lcdSettings()
 {
-    lcdSettings.width = 128;      // 128 or 64 screen pixels wide
-    lcdSettings.height = 64;      // 64 or 32 screen pixels high
-    lcdSettings.i2cadress = 0x3C; // 0x3D for 128x64, 0x3C for 128x32 - See datasheet for Address
+    lcdSettings.width = -1;      // 128 or 64 screen pixels wide
+    lcdSettings.height = -1;      // 64 or 32 screen pixels high
+    lcdSettings.i2cadress = 0x0; // 0x3D for 128x64, 0x3C for 128x32 - See datasheet for Address
     lcdSettings.reset = -1;       // Reset pin # (or -1 if sharing Arduino reset pin)
-    lcdSettings.bIsi2c1 = true;   // true:i2c1 false:i2c0
-    lcdSettings.sda = 26;         // SDA pin on RP2040 for i2c1
-    lcdSettings.scl = 27;         // SCL pin on RP2040 for i2c1
+    lcdSettings.bIsi2c1 = false;   // true:i2c1 false:i2c0
+    lcdSettings.sda = -1;         // SDA pin on RP2040 for i2c1
+    lcdSettings.scl = -1;         // SCL pin on RP2040 for i2c1
 }
 
 /**
  * @brief Destroy the i2c Display::i2c Display object from the memory.
- * 
+ *
  */
 i2cDisplay::~i2cDisplay()
 {
-    display.reset(); // Remove the display object from the memory (Adafruit_SSD1306)
+    display.reset();   // Remove the display object from the memory (Adafruit_SSD1306)
     CustomI2C.reset(); // Remove the i2c object from the memory (TwoWire)
 }
 
 /**
- * @brief Initialize the i2c display object with the given settings. using the Adafruit_SSD1306 library. CustomI2C and display are unique pointers.
- *
- * @return true
- * @return false
+ * @brief Initialize the i2c display object with the default settings.
+ *        Using the Adafruit_SSD1306 library. CustomI2C and display are unique pointers.
+ * @return true if the display was initialized successfully
  */
 bool i2cDisplay::InitDisplay()
 {
@@ -44,9 +43,20 @@ bool i2cDisplay::InitDisplay()
 
     if (!display->begin(SSD1306_SWITCHCAPVCC, lcdSettings.i2cadress, true, true))
     {
-        return false;
+        return false; // Display not found or not initialized. Check the wiring and i2c address
     }
     return true;
+}
+/**
+ * @brief Initialize the i2c display object with the custom settings.
+ *        Using the Adafruit_SSD1306 library. CustomI2C and display are unique pointers.
+ * @param LCDsettings the display settings
+ * @return true if the display was initialized successfully
+ */
+bool i2cDisplay::InitDisplay(ScreenSettings DeviceDisplaySettings)
+{
+    lcdSettings = DeviceDisplaySettings;
+    return InitDisplay();
 }
 
 // Setup method for initialization
@@ -90,7 +100,7 @@ void i2cDisplay::SetDisplayHeight(uint8_t height)
  *
  * @return uint8_t height of the display in pixels
  */
-uint8_t i2cDisplay::GetDisplayHeight() 
+uint8_t i2cDisplay::GetDisplayHeight()
 {
     return lcdSettings.height;
 }
