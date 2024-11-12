@@ -11,7 +11,7 @@ Widget::Widget(DisplayMode mode)
     : currentDisplayMode(mode), iconBitmap(nullptr)
 #ifdef QRCODE_WIDGET
       ,
-      qrCodeWidget(nullptr, "", {0, 0, 0}, false)
+      qrCodeWidget(nullptr, "", false /*, {nullptr, 0, 0}*/) // Initialize the QR code widget
 #endif
 {
     // Initialize some default values
@@ -720,14 +720,12 @@ void Widget::showQRCode(i2cDisplay *display)
     // Fallbacks for the QR code URL and icon
     if (qrCodeWidget.getUrl().empty()) qrCodeWidget.setUrl("https://www.openknx.de"); // fallback to the OpenKNX website!
 
-    /*
-    // No icon for the QR code, since there is no space for it!
-    // We could use the OpenKNX icon on the left or right side of the QR code
-    qrCodeWidget.setIcon(qrCode.icon); // No icon for the QR code, since there is no space for it!
-    */
-
-    // QRCodeWidget::Icon icon = {logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX, LOGO_HEIGHT_ICON_SMALL_OKNX}; // Default icon for the QR code
-    // qrCodeWidget.setIcon(icon); // Set the icon for the QR code
+    #ifdef QRCODE_WIDGET_ICON
+    // No icon for the QR code, since there is no space for it! For testing, we could use the OpenKNX icon on the left or right side of the QR code
+    // qrCodeWidget.setIcon(qrCode.icon); // No icon for the QR code, since there is no space for it!
+    QRCodeWidget::Icon icon = {logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX, LOGO_HEIGHT_ICON_SMALL_OKNX}; // Default icon for the QR code
+    qrCodeWidget.setIcon(icon);                                                                               // Set the icon for the QR code
+    #endif
 
     qrCodeWidget.setDisplay(display);
     qrCodeWidget.draw();
