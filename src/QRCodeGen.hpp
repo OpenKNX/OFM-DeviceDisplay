@@ -83,30 +83,30 @@ class QRCodeWidget
 
     // Constructor for QRCodeWidget
     QRCodeWidget(i2cDisplay* display, const std::string& url, bool backgroundWhite)
-        : display_(display), url_(url), backgroundWhite_(backgroundWhite), qrCodeGenerated_(false) {}
+        : _display(display), _url(url), _backgroundWhite(backgroundWhite), _qrCodeGenerated(false) {}
 
 #ifdef QRCODE_WIDGET_ICON
     // Constructor for QRCodeWidget with icon
     QRCodeWidget(i2cDisplay* display, const std::string& url, bool backgroundWhite, Icon iconBitmap)
-        : display_(display), url_(url), iconBitmap_(iconBitmap), backgroundWhite_(backgroundWhite), qrCodeGenerated_(false) {}
+        : _display(display), _url(url), _iconBitmap(iconBitmap), _backgroundWhite(backgroundWhite), _qrCodeGenerated(false) {}
 #endif
     // Set the URL for the QR code
-    void setUrl(const std::string& url) { url_ = url; }
+    void setUrl(const std::string& url) { _url = url; }
     // Get the URL for the QR code
-    const std::string getUrl() { return url_; }
+    const std::string getUrl() { return _url; }
 
 #ifdef QRCODE_WIDGET_ICON
     // Set the icon for the QR code
-    void setIcon(const uint8_t* iconBitmap, int width, int height) { iconBitmap_ = {iconBitmap, width, height}; }
+    void setIcon(const uint8_t* iconBitmap, int width, int height) { _iconBitmap = {iconBitmap, width, height}; }
     // Set the icon for the QR code
-    void setIcon(const Icon& iconBitmap) { iconBitmap_ = iconBitmap; }
+    void setIcon(const Icon& iconBitmap) { _iconBitmap = iconBitmap; }
 #endif
     // Set the background color for the QR code
-    void setBackgroundWhite(bool backgroundWhite) { backgroundWhite_ = backgroundWhite; }
+    void setBackgroundWhite(bool backgroundWhite) { _backgroundWhite = backgroundWhite; }
     // Set the display for the QR code
-    void setDisplay(i2cDisplay* display) { display_ = display; }
+    void setDisplay(i2cDisplay* display) { _display = display; }
     // Set the alignment for the QR code
-    void setAlign(QRCodeAlignPos alignPos) { qrAlignment_.alignment = alignPos; }
+    void setAlign(QRCodeAlignPos alignPos) { _qrAlignment.alignment = alignPos; }
 
     // Draw the QR code on the display and optionally place the icon
     // The display and icon are centered on the display. The icon is optional. The background color can be set to white or black.
@@ -117,7 +117,7 @@ class QRCodeWidget
         uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
 
         // Generate QR code data
-        if (!qrcodegen_encodeText(url_.c_str(), tempBuffer, qrcode,
+        if (!qrcodegen_encodeText(_url.c_str(), tempBuffer, qrcode,
                                   qrcodegen_Ecc_LOW, // Error correction level
                                   // qrcodegen_Ecc_HIGH,  // Error correction level
                                   3,                   // We will Fix is to 3! Minimum QR Code Version (Min: 1)
@@ -133,47 +133,47 @@ class QRCodeWidget
         const int qrSize = qrcodegen_getSize(qrcode); // QR code size in modules (e.g., 21x21 moduiles for Version 1)
 
         // Calculate QR code size and pixel size based on display size
-        const int pixelSize = std::min(display_->GetDisplayWidth() / qrSize, display_->GetDisplayHeight() / qrSize);
+        const uint8_t pixelSize = std::min(_display->GetDisplayWidth() / qrSize, _display->GetDisplayHeight() / qrSize);
         const int qrPixelSize = qrSize * pixelSize; // Calculate QR code size in pixels
 
         // QR code alignment x offset left
-        if (qrAlignment_.alignment & ALIGN_LEFT) // QR code alignment x offset left
+        if (_qrAlignment.alignment & ALIGN_LEFT) // QR code alignment x offset left
         {
-            qrAlignment_.offsetX = 0;
+            _qrAlignment.offsetX = 0;
         }
-        else if (qrAlignment_.alignment & ALIGN_RIGHT) // QR code alignment x offset right
+        else if (_qrAlignment.alignment & ALIGN_RIGHT) // QR code alignment x offset right
         {
-            qrAlignment_.offsetX = display_->GetDisplayWidth() - qrPixelSize; // QR code alignment x offset right
+            _qrAlignment.offsetX = _display->GetDisplayWidth() - qrPixelSize; // QR code alignment x offset right
         }
         else
         {
-            qrAlignment_.offsetX = (display_->GetDisplayWidth() - qrPixelSize) / 2; // QR code alignment centered. Default!
+            _qrAlignment.offsetX = (_display->GetDisplayWidth() - qrPixelSize) / 2; // QR code alignment centered. Default!
         }
 
-        qrAlignment_.offsetY = (display_->GetDisplayHeight() - qrPixelSize) / 2; // QR code alignment y always centered
+        _qrAlignment.offsetY = (_display->GetDisplayHeight() - qrPixelSize) / 2; // QR code alignment y always centered
 
-        display_->display->clearDisplay();                                                                   // Clear display buffer
-        display_->display->setTextColor(backgroundWhite_ ? BLACK : WHITE, backgroundWhite_ ? WHITE : BLACK); // Set text color based on background color
+        _display->display->clearDisplay();                                                                   // Clear display buffer
+        _display->display->setTextColor(_backgroundWhite ? BLACK : WHITE, _backgroundWhite ? WHITE : BLACK); // Set text color based on background color
 
         // Draw every QR code pixel on the display
         for (int y = 0; y < qrSize; y++)
         {
             for (int x = 0; x < qrSize; x++)
             {
-                display_->display->drawRect(qrAlignment_.offsetX + x * pixelSize,               // X position
-                                            qrAlignment_.offsetY + y * pixelSize,               // Y position
+                _display->display->drawRect(_qrAlignment.offsetX + x * pixelSize,               // X position
+                                            _qrAlignment.offsetY + y * pixelSize,               // Y position
                                             pixelSize, pixelSize,                               // Width and height
                                             qrcodegen_getModule(qrcode, x, y) ? BLACK : WHITE); // Color of the pixel
             }
         }
 #ifdef QRCODE_WIDGET_ICON
         // Draw the icon in the center of the QR code. The icon is optional. And not recommended for small displays!
-        if (iconBitmap_.bitmapData != nullptr)
+        if (_iconBitmap.bitmapData != nullptr)
         {
             // Display the icon in the center of the QR code
-            display_->display->drawBitmap((qrAlignment_.offsetX + (qrPixelSize - iconBitmap_.width) / 2),  // icon Offset X
-                                          (qrAlignment_.offsetY + (qrPixelSize - iconBitmap_.height) / 2), // icon Offset Y,
-                                          iconBitmap_.bitmapData, iconBitmap_.width, iconBitmap_.height, backgroundWhite_ ? BLACK : WHITE);
+            _display->display->drawBitmap((_qrAlignment.offsetX + (qrPixelSize - _iconBitmap.width) / 2),  // icon Offset X
+                                          (_qrAlignment.offsetY + (qrPixelSize - _iconBitmap.height) / 2), // icon Offset Y,
+                                          _iconBitmap.bitmapData, _iconBitmap.width, _iconBitmap.height, _backgroundWhite ? BLACK : WHITE);
         }
 #endif
 
@@ -182,28 +182,28 @@ class QRCodeWidget
         //      there is space for additional text. The text could be added below on the left or right or above or below the QR code.
 
         // Show the QR code on the display
-        display_->display->display();
+        _display->display->display();
 
         // Set the flag that the QR code was generated and is displayed
-        qrCodeGenerated_ = true;
+        _qrCodeGenerated = true;
     } // End of generateQRCode
 
     void draw()
     {
-        if (!qrCodeGenerated_) generateQRCode(); // Generate the QR code only once, to avoid unnecessary processing
+        if (!_qrCodeGenerated) generateQRCode(); // Generate the QR code only once, to avoid unnecessary processing
         else
         {
-            display_->display->display(); // Show the QR code on the display
+            _display->display->display(); // Show the QR code on the display
         }
     }
 
   private:
-    QRcodeAlignment qrAlignment_ = {ALIGN_CENTER, 0, 0}; // QR code alignment settings
-    i2cDisplay* display_;                                // Display object
-    std::string url_;                                    // URL for the QR code
-    bool backgroundWhite_;                               // Background color for the QR code
-    bool qrCodeGenerated_;                               // Flag to indicate if the QR code was generated and displayed
+    QRcodeAlignment _qrAlignment = {ALIGN_CENTER, 0, 0}; // QR code alignment settings
+    i2cDisplay* _display;                                // Display object
+    std::string _url;                                    // URL for the QR code
+    bool _backgroundWhite;                               // Background color for the QR code
+    bool _qrCodeGenerated;                               // Flag to indicate if the QR code was generated and displayed
 #ifdef QRCODE_WIDGET_ICON
-    Icon iconBitmap_ = {nullptr, 0, 0}; // Icon for the QR code
+    Icon _iconBitmap = {nullptr, 0, 0}; // Icon for the QR code
 #endif
 };
