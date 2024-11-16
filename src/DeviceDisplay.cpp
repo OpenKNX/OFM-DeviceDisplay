@@ -15,22 +15,48 @@ DeviceDisplay::DeviceDisplay()
 /**
  * @brief Initialize the display module.
  * This function is called within the OpenKNX
+ * 
  */
 void DeviceDisplay::init()
 {
     logInfoP("Init started...");
     
     // Setup the display module with the default settings from the selected hardware
+    // Ensure all necessary hardware configuration macros are defined
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_0_1
+      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_0_1);
+    #endif
+
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
+      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
+    #endif
+
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL
+      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SCL);
+    #endif
+
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS
+      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS);
+    #endif
+
+    #ifndef OKNXHW_DEVICE_DISPLAY_WIDTH
+      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_WIDTH);
+    #endif
+
+    #ifndef OKNXHW_DEVICE_DISPLAY_HEIGHT
+      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_HEIGHT);
+    #endif
+
     displayModule.lcdSettings.bIsi2c1 = OKNXHW_DEVICE_DISPLAY_I2C_0_1; // Set here the i2c bus to use. true:i2c1 false:i2c0
-    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA; // Set the Hardware specific SDA pin for the display
-    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL; // Set the Hardware specific SCL pin for the display
-    
+    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;     // Set the Hardware specific SDA pin for the display
+    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL;     // Set the Hardware specific SCL pin for the display
+
     displayModule.lcdSettings.i2cadress = OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS; // Set here the i2c address of the display. I.e. 0x3C
-    displayModule.lcdSettings.width =  OKNXHW_DEVICE_DISPLAY_WIDTH; // Set here the width of the display. I.e. 128
-    displayModule.lcdSettings.height = OKNXHW_DEVICE_DISPLAY_HEIGHT; // Set here the height of the display. I.e. 64
-    
+    displayModule.lcdSettings.width = OKNXHW_DEVICE_DISPLAY_WIDTH;           // Set here the width of the display. I.e. 128
+    displayModule.lcdSettings.height = OKNXHW_DEVICE_DISPLAY_HEIGHT;         // Set here the height of the display. I.e. 64
+
     displayModule.lcdSettings.reset = -1; // We are not using a reset pin and set it to -1, which use the internal reset
-    
+
     if (displayModule.InitDisplay(displayModule.lcdSettings) && displayModule.display != nullptr)
     {
         logInfoP("initialized!");
@@ -106,9 +132,8 @@ void DeviceDisplay::showHelp()
  */
 bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 {
-    if (diagnose) return false;
-    // if (!knx.configured()) return true;
-    if (command.compare(0, 4, "ddc ") == 0) // Display text on the display
+    bool bRet= false;
+    if ((!diagnose) && command.compare(0, 4, "ddc ") == 0) // Display text on the display
     {
         if (command.compare(4, 4, "logo") == 0) // Show the boot logo
         {
@@ -118,6 +143,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                       DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
                           DeviceDisplay::WidgetAction::AutoRemoveFlag |  // Remove this widget after display
                           DeviceDisplay::WidgetAction::InternalEnabled); // This widget is enabled
+            bRet= true;
         }
 #ifdef MATRIX_SCREENSAVER
         else if (command.compare(4, 1, "m") == 0) // Matrix Screensaver
@@ -128,6 +154,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                                                          DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
 
             logInfoP("Sending Matrix Screensaver for 10 seconds to display...");
+            bRet = true;
         }
 #endif
         else if (command.compare(4, 1, "c") == 0) // Console simulation output widget
@@ -160,7 +187,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 {
                     consoleWidget_->appendLine(text);
                     // logInfoP("Appending text to console widget: %s", text.c_str());
-                    return true;
+                    bRet = true;
                 }
             }
         }
@@ -174,6 +201,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Order: %d | Name: %s | Action: %d | Duration: %d", i, widgetInfo.name.c_str(), widgetInfo.action, widgetInfo.duration);
             }
             logInfoP("---------------------------------------------------------");
+            bRet = true;
         }
 #ifdef QRCODE_WIDGET
         else if (command.compare(4, 2, "qr") == 0) // Show QR-Code
@@ -181,18 +209,19 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             // grab the string after the qr command: e.g. "ddc qr https://www.openknx.de"
             if (command.length() <= 7 || command.substr(7).empty())
             {
-              logErrorP("No URL provided for QR-Code generation! Use 'ddc qr <URL>'");
-              return false;
+                logErrorP("No URL provided for QR-Code generation! Use 'ddc qr <URL>'");
+                bRet = false;
             }
 
             logInfoP("QR-Code requested and will be displayed and removed after %d seconds...", 15000 / 1000);
             Widget* QRCodeWidget = new Widget(Widget::DisplayMode::QR_CODE);                 // Create a new QR code widget
-            QRCodeWidget->qrCodeWidget.setUrl(command.substr(7));                    // Set the URL for the QR code
+            QRCodeWidget->qrCodeWidget.setUrl(command.substr(7));                            // Set the URL for the QR code
             QRCodeWidget->qrCodeWidget.setAlign(QRCodeWidget::QRCodeAlignPos::ALIGN_CENTER); // Set the alignment for the QR code
             addWidget(QRCodeWidget, 15000, "Console-QRCode",
                       DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget. The status flag will be displayed immediately
                           DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
                           DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display of the set duration time. Here 10sec.
+            bRet = true;
         }
 #endif
         else
@@ -217,10 +246,10 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.logger.log("--------------------------------------------------------------------------------");
             openknx.logger.color(0);
             openknx.logger.end();
-            return true;
+            bRet = false;
         }
     }
-    return true;
+    return bRet;
 }
 
 // Initialize widgets with default settings or add widgets to queue
