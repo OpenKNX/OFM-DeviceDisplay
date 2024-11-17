@@ -562,13 +562,12 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
     display->display->setCursor(0, 0);
     display->display->setTextSize(1);
     display->display->setTextColor(WHITE);
-    std::string uptimeStr = openknx.logger.buildUptime();
-
-    uptimeStr = "Uptime: " + uptimeStr;
-    display->display->print(uptimeStr.c_str());
-    // display->print("   www.OpenKNX.de   ");
-
-#define SHIFT_TO_BOTTOM 10
+    
+    display->display->println( String("Uptime: " + String(openknx.logger.buildUptime().c_str())).c_str()); // Line 1
+    display->display->println( String("Dev.: " + String(MAIN_OrderNumber)).c_str()); // Line 2
+    display->display->println( String("Addr.: " + String(openknx.info.humanIndividualAddress().c_str())).c_str());
+    
+#define SHIFT_TO_BOTTOM 20
     display->display->drawBitmap(
         (display->GetDisplayWidth() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2,
         (display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + SHIFT_TO_BOTTOM) / 2,

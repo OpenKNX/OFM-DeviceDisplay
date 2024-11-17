@@ -255,16 +255,19 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 // Initialize widgets with default settings or add widgets to queue
 void DeviceDisplay::initializeWidgets()
 {
-    // Add here the bootlogo widget
+    // Bootlogo widget! The boot logo will be displayed immediately and removed after the set duration
     Widget* bootLogo = new Widget(Widget::DisplayMode::BOOT_LOGO);
     addWidget(bootLogo, BOOT_LOGO_TIMEOUT, "BootLogo", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
                                                            DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
                                                            DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
 
+    // ProgMode widget! The ProgMode widget will be displayed if the device is in programming mode.
     Widget* progMode = new Widget(Widget::DisplayMode::PROG_MODE);
     addWidget(progMode, PROG_MODE_BLINK_DELAY, "ProgMode", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
                                                                DeviceDisplay::WidgetAction::ExternalManaged); // This widget is initially disabled
                                                                                                               // Add here more default widgets
+    Widget* defaultWidget = new Widget(Widget::DisplayMode::OPENKNX_LOGO);
+    openknxDisplayModule.addWidget(defaultWidget, 3000, "defaultWidget");
 }
 
 /**
