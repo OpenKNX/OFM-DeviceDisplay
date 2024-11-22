@@ -438,7 +438,7 @@ void DeviceDisplay::LoopWidgets()
                     // Display the widget
                     showWidget = &widgetsQueue[currentWidgetIndex];
                     currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
-                    logDebugP("Displayed regular widget: %s (Duration: %d ms)", showWidget->name.c_str(), showWidget->duration);
+                    //logDebugP("Displayed regular widget: %s (Duration: %d ms)", showWidget->name.c_str(), showWidget->duration);
                 }
             }
             lastWidgetSwitchTime = currentTime; // Only update switch time here to prevent pre-emptive skips
