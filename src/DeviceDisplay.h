@@ -1,4 +1,12 @@
 #pragma once
+/**
+ * @file        DeviceDisplay.h
+ * @brief       This module offers a i2c display for the OpenKNX ecosystem
+ * @version     0.0.1
+ * @date        2024-11-27
+ * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@çolak.de)
+ *              Licensed under GNU GPL v3.0
+ */
 #include "Widget.h"
 #include "i2c-Display.h"
 

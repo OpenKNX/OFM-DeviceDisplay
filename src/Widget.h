@@ -1,4 +1,12 @@
 #pragma once
+/**
+ * @file        Widget.h
+ * @brief       This module offers a widget manager for I2c displays on the OpenKNX ecosystem
+ * @version     0.0.1
+ * @date        2024-11-27
+ * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@çolak.de)
+ *              Licensed under GNU GPL v3.0
+ */
 
 // WIDGETS
 #define QRCODE_WIDGET      // Enable the QR code widget
