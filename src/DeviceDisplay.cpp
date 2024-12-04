@@ -15,41 +15,41 @@ DeviceDisplay::DeviceDisplay()
 /**
  * @brief Initialize the display module.
  * This function is called within the OpenKNX
- * 
+ *
  */
 void DeviceDisplay::init()
 {
     logInfoP("Init started...");
-    
-    // Setup the display module with the default settings from the selected hardware
-    // Ensure all necessary hardware configuration macros are defined
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_0_1
-      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_0_1);
-    #endif
 
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
-      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
-    #endif
+// Setup the display module with the default settings from the selected hardware
+// Ensure all necessary hardware configuration macros are defined
+#ifndef OKNXHW_DEVICE_DISPLAY_I2C_0_1
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_0_1);
+#endif
 
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL
-      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SCL);
-    #endif
+#ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
+#endif
 
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS
-      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS);
-    #endif
+#ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SCL);
+#endif
 
-    #ifndef OKNXHW_DEVICE_DISPLAY_WIDTH
-      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_WIDTH);
-    #endif
+#ifndef OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS);
+#endif
 
-    #ifndef OKNXHW_DEVICE_DISPLAY_HEIGHT
-      ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_HEIGHT);
-    #endif
+#ifndef OKNXHW_DEVICE_DISPLAY_WIDTH
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_WIDTH);
+#endif
 
-    displayModule.lcdSettings.bIsi2c1 = OKNXHW_DEVICE_DISPLAY_I2C_0_1; // Set here the i2c bus to use. true:i2c1 false:i2c0
-    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;     // Set the Hardware specific SDA pin for the display
-    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL;     // Set the Hardware specific SCL pin for the display
+#ifndef OKNXHW_DEVICE_DISPLAY_HEIGHT
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_HEIGHT);
+#endif
+
+    displayModule.lcdSettings.i2cInst = OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
+    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;      // Set the Hardware specific SDA pin for the display
+    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL;      // Set the Hardware specific SCL pin for the display
 
     displayModule.lcdSettings.i2cadress = OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS; // Set here the i2c address of the display. I.e. 0x3C
     displayModule.lcdSettings.width = OKNXHW_DEVICE_DISPLAY_WIDTH;           // Set here the width of the display. I.e. 128
@@ -59,11 +59,14 @@ void DeviceDisplay::init()
 
     if (displayModule.InitDisplay(displayModule.lcdSettings) && displayModule.display != nullptr)
     {
-        logInfoP("initialized!");
+        logInfoP("Display initialized.");
+        logDebugP("Display i2c Settings - i2cInt: %p, SDA: %d, SCL: %d, Address: 0x%02X, Width: %d, Height: %d",
+                  displayModule.lcdSettings.i2cInst, displayModule.lcdSettings.sda, displayModule.lcdSettings.scl,
+                  displayModule.lcdSettings.i2cadress, displayModule.lcdSettings.width, displayModule.lcdSettings.height);
     }
     else
     {
-        logErrorP("not initialized!");
+        logErrorP("Display initialization failed!");
     }
 }
 
@@ -76,7 +79,9 @@ void DeviceDisplay::setup(bool configured)
 {
 
     logDebugP("setup...");
-    initializeWidgets(); // Setup default widget queue
+    displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
+    displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display
+    initializeWidgets();                      // Setup default widget queue
 }
 
 /**
@@ -101,17 +106,51 @@ void DeviceDisplay::loop(bool configured)
         logErrorP("Display not initialized");
         return;
     }
+    static uint32_t lastDisplayDimTimer_ = millis();
+    static bool isDimmed = false;
 
-    WidgetInfo* ProgMode = getWidgetInfo("ProgMode");
-    if (knx.progMode() && (ProgMode->widget != nullptr))
+    if (millis() - lastDisplayDimTimer_ > DISPLAY_DIM_TIMER)
     {
-        ProgMode->addAction(WidgetAction::InternalEnabled);
+        if (!isDimmed)
+        {
+            displayModule.SetDisplayContrast(0x00);   // Set the contrast of the display
+            displayModule.SetDisplayVCOMDetect(0x00); // Set the VCOMH regulator output
+            isDimmed = true;
+        }
     }
     else
     {
-        ProgMode->removeAction(WidgetAction::InternalEnabled);
+        if (isDimmed)
+        {
+            displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display
+            displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
+            isDimmed = false;
+        }
     }
 
+    static bool wasInProgMode = false;
+    if (knx.progMode())
+    {
+        wasInProgMode = true;
+
+        lastDisplayDimTimer_ = millis(); // Reset the display dim timer if prog mode is active
+
+        WidgetInfo* ProgMode = getWidgetInfo("ProgMode");
+        if (ProgMode && ProgMode->widget != nullptr)
+        {
+            ProgMode->addAction(WidgetAction::InternalEnabled);
+        }
+    }
+    else if (wasInProgMode)
+    {
+        WidgetInfo* ProgMode = getWidgetInfo("ProgMode");
+        if (ProgMode && ProgMode->widget != nullptr)
+        {
+            ProgMode->removeAction(WidgetAction::InternalEnabled);
+            wasInProgMode = false;
+        }
+    }
+    
     LoopWidgets(); // Switch widgets based on timing
 }
 
@@ -132,7 +171,7 @@ void DeviceDisplay::showHelp()
  */
 bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 {
-    bool bRet= false;
+    bool bRet = false;
     if ((!diagnose) && command.compare(0, 4, "ddc ") == 0) // Display text on the display
     {
         if (command.compare(4, 4, "logo") == 0) // Show the boot logo
@@ -143,7 +182,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                       DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
                           DeviceDisplay::WidgetAction::AutoRemoveFlag |  // Remove this widget after display
                           DeviceDisplay::WidgetAction::InternalEnabled); // This widget is enabled
-            bRet= true;
+            bRet = true;
         }
 #ifdef MATRIX_SCREENSAVER
         else if (command.compare(4, 1, "m") == 0) // Matrix Screensaver
@@ -203,6 +242,216 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             logInfoP("---------------------------------------------------------");
             bRet = true;
         }
+#ifdef DD_CONSOLE_CMDS
+        else if (command.compare(4, 4, "dim ") == 0) // ddc dim <on|off|0-255>
+        {
+            if (command.compare(8, 2, "on") == 0)
+            {
+                // Display dimmen aktivieren
+                displayModule.display->dim(true);
+                logInfoP("Display dimmed (ON)");
+            }
+            else if (command.compare(8, 3, "off") == 0)
+            {
+                // Display dimmen deaktivieren
+                displayModule.display->dim(false);
+                logInfoP("Display not dimmed (OFF)");
+            }
+            else
+            {
+                int contrastValue = std::stoi(command.substr(8));
+                if (contrastValue >= 0 && contrastValue <= 255)
+                {
+                    displayModule.SetDisplayContrast(contrastValue);
+                    logInfoP("Display contrast set to " + std::to_string(contrastValue));
+                }
+                else
+                {
+                    logErrorP("Invalid contrast value. Please provide a value between 0 and 255.");
+                }
+            }
+            bRet = true;
+        }
+        else if (command.compare(4, 5, "vcom ") == 0) // ddc vcom <on|off|value> VCOM detect
+        {
+            if (command.compare(9, 2, "on") == 0)
+            {
+                // Aktiviert VCOM Detect
+                displayModule.SetDisplayVCOMDetect(0x00);
+                logInfoP("VCOM detect enabled");
+            }
+            else if (command.compare(9, 3, "off") == 0)
+            {
+                // Deaktiviert VCOM Detect
+                displayModule.SetDisplayVCOMDetect(0x20); // Set VCOMH to the default value
+                logInfoP("VCOM detect disabled");
+            }
+            else
+            {
+                // Extract the possible VCOM value from the command
+                int vcomValue = std::stoi(command.substr(9), nullptr, 16); // Convert to hex
+
+                // Check if the VCOM value is in the valid range (0x00 to 0xFF)
+                if (vcomValue >= 0 && vcomValue <= 0xFF)
+                {
+                    // Set VCOM detect value
+                    displayModule.SetDisplayVCOMDetect(vcomValue);
+                    logInfoP("VCOM detect set to value 0x" + std::to_string(vcomValue));
+                }
+                else
+                {
+                    logErrorP("Invalid VCOM detect value. Please provide a value between 0x00 and 0xFF.");
+                }
+            }
+            bRet = true;
+        }
+        else if (command.compare(4, 4, "inv ") == 0) // ddc inv <0|1> Invert the display
+        {
+            if (command.compare(8, 1, "1") == 0)
+            {
+                displayModule.SetInvertDisplay(true);
+                logInfoP("Display inverted");
+            }
+            else
+            {
+                displayModule.SetInvertDisplay(false);
+                logInfoP("Display not inverted");
+            }
+            bRet = true;
+        }
+        else if (command.compare(4, 7, "scroll ") == 0) // ddc scroll <right|left|diag_right|diag_left|start|stop|set_area>
+        {
+            if (command.compare(11, 1, "r") == 0) // Scrollen nach rechts
+            {
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_RIGHT_HORIZONTAL_SCROLL);
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                logInfoP("Right horizontal scroll started");
+            }
+            else if (command.compare(11, 1, "l") == 0) // Scrollen nach links
+            {
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_LEFT_HORIZONTAL_SCROLL);
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer (7 Frames)
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                logInfoP("Left horizontal scroll started");
+            }
+            else if (command.compare(11, 2, "dr") == 0) // Diagonales Scrollen nach rechts
+            {
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL);
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                logInfoP("Diagonal scroll (right) started");
+            }
+            else if (command.compare(11, 2, "dl") == 0) // Diagonales Scrollen nach links
+            {
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL);
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                logInfoP("Diagonal scroll (left) started");
+            }
+            else if (command.compare(11, 5, "start") == 0) // Scrollen starten
+            {
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                logInfoP("Scrolling activated");
+            }
+            else if (command.compare(11, 4, "stop") == 0) // Scrollen stoppen
+            {
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_DEACTIVATE_SCROLL);
+                logInfoP("Scrolling stopped");
+            }
+            else if (command.compare(11, 2, "sa") == 0) // Scrollbereich setzen
+            {
+                // Hier können wir den Bereich für das vertikale Scrollen definieren
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_SET_VERTICAL_SCROLL_AREA);
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
+                openknxDisplayModule.displayModule.display->ssd1306_command(0x3F); // Endseite (64px für 64px Display)
+                logInfoP("Vertical scroll area set");
+            }
+            else
+            {
+                logErrorP("Invalid scroll command.");
+            }
+            bRet = true;
+        }
+        else if (command.compare(4, 9, "contrast ") == 0) // ddc contrast <value>
+        {
+            // Extrahiere den Wert für den Kontrast (0x00 bis 0xFF)
+            int contrastValue = std::stoi(command.substr(13), nullptr, 16); // Wandelt Hex-Wert um
+
+            // Prüfe, ob der Wert im gültigen Bereich (0x00 bis 0xFF) liegt
+            if (contrastValue >= 0 && contrastValue <= 0xFF)
+            {
+                displayModule.SetDisplayContrast(contrastValue);
+                logInfoP("Display contrast set to 0x" + std::to_string(contrastValue));
+            }
+            else
+            {
+                logErrorP("Invalid contrast value. Please provide a value between 0x00 and 0xFF.");
+            }
+        }
+        else if (command.compare(4, 11, "chargepump ") == 0) // ddc chargepump <on|off>
+        {
+            if (command.compare(15, 2, "on") == 0)
+            {
+                // Aktiviert die Ladepumpe
+                displayModule.SetDisplayPreCharge(0xF1);
+                logInfoP("Charge pump enabled");
+            }
+            else if (command.compare(15, 3, "off") == 0)
+            {
+                displayModule.SetDisplayPreCharge(0x10);
+                logInfoP("Charge pump disabled");
+            }
+        }
+        else if (command.compare(4, 9, "segremap ") == 0) // ddc segremap <on|off>
+        {
+            if (command.compare(13, 2, "on") == 0)
+            {
+                // Segmentzuordnung umkehren (Segment Mapping)
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
+                openknxDisplayModule.displayModule.display->ssd1306_command(0xA1); // Umkehrung der Segmentzuordnung
+                logInfoP("Segment remapping enabled");
+            }
+            else if (command.compare(13, 3, "off") == 0)
+            {
+                // Segmentzuordnung zurücksetzen
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
+                openknxDisplayModule.displayModule.display->ssd1306_command(0xA0); // Standard Segmentzuordnung
+                logInfoP("Segment remapping disabled");
+            }
+        }
+        else if (command.compare(4, 11, "displayall ") == 0) // ddc displayall <on|off>
+        {
+            if (command.compare(15, 2, "on") == 0)
+            {
+                // Alle Pixel auf dem Display einschalten
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON);
+                logInfoP("Display all-on mode enabled");
+            }
+            else if (command.compare(15, 3, "off") == 0)
+            {
+                // Alle Pixel wieder normal anzeigen
+                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON_RESUME);
+                logInfoP("Display all-on mode disabled, resumed normal display");
+            }
+        }
+#endif
 #ifdef QRCODE_WIDGET
         else if (command.compare(4, 2, "qr") == 0) // Show QR-Code
         {
@@ -233,6 +482,12 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.logger.color(0);
             openknx.logger.log("Command(s)               Description");
             openknx.console.printHelpLine("ddc c <text>", "Print/Update Console Widget");
+#ifdef DD_CONSOLE_CMDS
+            openknx.console.printHelpLine("ddc scroll <cmd>", "<r|l|dr|dl|start|stop|sa> Scroll the display");
+            openknx.console.printHelpLine("ddc vcom <on|off|value>", "Enable or disable VCOM detect or set the value");
+            openknx.console.printHelpLine("ddc dim <on|off|0-255>", "Dim the display to on, off or set the contrast value");
+            openknx.console.printHelpLine("ddc inv <0|1>", "Invert the display to 0 or 1");
+#endif
             openknx.console.printHelpLine("ddc l", "List all widgets");
             openknx.console.printHelpLine("ddc logo", "Show the boot logo");
 #ifdef MATRIX_SCREENSAVER
@@ -355,108 +610,95 @@ DeviceDisplay::WidgetInfo* DeviceDisplay::getWidgetInfo(const std::string& name)
 
 void DeviceDisplay::LoopWidgets()
 {
-    if (widgetsQueue.empty()) return; // Stop if no widgets are in the queue
+    if (widgetsQueue.empty()) return; // Keine Widgets -> frühzeitiger Abbruch
 
     uint32_t currentTime = millis();
     WidgetInfo* showWidget = nullptr;
     bool statusWidgetsInProgress = false;
 
-    // First loop to prioritize and manage status widgets
+    // Status-Widgets priorisieren
     for (WidgetInfo& widget : widgetsQueue)
     {
-        showWidget = &widget;
-
-        // Check if widget is a status widget with `InternalEnabled`
-        if (showWidget->isActionSet(WidgetAction::StatusFlag) &&
-            showWidget->isActionSet(WidgetAction::InternalEnabled))
+        if (widget.isActionSet(WidgetAction::StatusFlag) &&
+            widget.isActionSet(WidgetAction::InternalEnabled))
         {
-            if (showWidget->startDisplayTime == 0)
+            if (widget.startDisplayTime == 0)
+                widget.startDisplayTime = currentTime; // Startzeit setzen
+
+            uint32_t elapsedTime = currentTime - widget.startDisplayTime;
+            bool durationPassed = elapsedTime >= widget.duration;
+
+            if (widget.isActionSet(WidgetAction::AutoRemoveFlag))
+                widget.addAction(WidgetAction::MarkedForRemove);
+
+            if (widget.isActionSet(WidgetAction::MarkedForRemove) && durationPassed)
             {
-                showWidget->startDisplayTime = currentTime; // Initialize start time for the widget
+                logDebugP("Removing status widget: %s", widget.name.c_str());
+                removeWidget(widget.name);
+                return; // Nach dem Entfernen sofort zurückkehren
             }
 
-            // logDebugP("Displaying status widget: %s", showWidget->name.c_str());
-            // Auto-remove status widget after display duration
-            bool durationPassed = (currentTime - showWidget->startDisplayTime >= showWidget->duration);
-
-            if (showWidget->isActionSet(WidgetAction::AutoRemoveFlag))
+            if (!widget.isActionSet(WidgetAction::ExternalManaged) && durationPassed)
             {
-                showWidget->addAction(WidgetAction::MarkedForRemove);
+                logDebugP("Disabling status widget: %s", widget.name.c_str());
+                widget.startDisplayTime = 0; // Reset der Startzeit
+                widget.removeAction(WidgetAction::InternalEnabled);
+                return; // Widget-Status geändert, zurückkehren
             }
 
-            if (showWidget->isActionSet(WidgetAction::MarkedForRemove) && durationPassed)
-            {
-                logDebugP("Removing status widget: %s", showWidget->name.c_str());
-                removeWidget(showWidget->name);
-                break; // Exit after removing the widget
-            }
-
-            // Disable status widget after its display duration if `ExternalManaged` is not set
-            if (!showWidget->isActionSet(WidgetAction::ExternalManaged) && durationPassed)
-            {
-                // Clear start time after disabling the widget to reset for next activation
-                showWidget->startDisplayTime = 0;
-                logDebugP("Disabling status widget: %s", showWidget->name.c_str());
-                showWidget->removeAction(WidgetAction::InternalEnabled);
-                break;
-            }
             statusWidgetsInProgress = true;
-            break; // Status widget is active; skip to avoid switching to regular widgets
+            showWidget = &widget; // Status-Widget gefunden
+            break;                // Status-Widgets blockieren reguläre Widgets
         }
     }
 
-    if (!statusWidgetsInProgress) // Only proceed if no active status widget
+    // Normale Widgets nur verarbeiten, wenn keine aktiven Status-Widgets
+    if (!statusWidgetsInProgress)
     {
-        showWidget = (&widgetsQueue[currentWidgetIndex]);
-        bool durationPassed = (currentTime - lastWidgetSwitchTime >= widgetsQueue[currentWidgetIndex].duration);
+        WidgetInfo& currentWidget = widgetsQueue[currentWidgetIndex];
+        uint32_t elapsedTime = currentTime - lastWidgetSwitchTime;
 
-        if (durationPassed)
+        if (elapsedTime >= currentWidget.duration)
         {
-            if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::StatusFlag) &&
-                (&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::ExternalManaged))
+            if (currentWidget.isActionSet(WidgetAction::StatusFlag) &&
+                currentWidget.isActionSet(WidgetAction::ExternalManaged))
             {
-                // Skip `ExternalManaged` status widget without switching
+                // Überspringen, wenn ExternalManaged
                 currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
-                showWidget = nullptr;
             }
             else
             {
-                // Remove widget if marked for removal
-                if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::MarkedForRemove))
+                if (currentWidget.isActionSet(WidgetAction::MarkedForRemove))
                 {
-                    removeWidget((&widgetsQueue[currentWidgetIndex])->name);
-                    if (currentWidgetIndex >= widgetsQueue.size()) currentWidgetIndex = 0;
-                    showWidget = &widgetsQueue[currentWidgetIndex];
+                    removeWidget(currentWidget.name);
+                    if (currentWidgetIndex >= widgetsQueue.size())
+                        currentWidgetIndex = 0; // Index neu setzen, falls notwendig
                 }
                 else
                 {
-                    // Auto-remove non-status widget
-                    if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::AutoRemoveFlag))
-                    {
-                        (&widgetsQueue[currentWidgetIndex])->addAction(WidgetAction::MarkedForRemove);
-                    }
-                    // Display the widget
-                    showWidget = &widgetsQueue[currentWidgetIndex];
-                    currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
-                    //logDebugP("Displayed regular widget: %s (Duration: %d ms)", showWidget->name.c_str(), showWidget->duration);
-                }
-            }
-            lastWidgetSwitchTime = currentTime; // Only update switch time here to prevent pre-emptive skips
-        }
-    }
+                    if (currentWidget.isActionSet(WidgetAction::AutoRemoveFlag))
+                        currentWidget.addAction(WidgetAction::MarkedForRemove);
 
-    // Final draw logic outside of conditionals for `showWidget`
-    if (showWidget != nullptr && showWidget->duration > WIDGET_INACTIVE) // Skip inactive widgets.
-    {
-        if (showWidget->isActionSet(WidgetAction::StatusFlag) &&
-            showWidget->isActionSet(WidgetAction::ExternalManaged) &&
-            !showWidget->isActionSet(WidgetAction::InternalEnabled))
-        {
-            showWidget = nullptr; // Skip widget with conflicting flags
+                    showWidget = &currentWidget; // Aktuelles Widget anzeigen
+                    currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
+                }
+                lastWidgetSwitchTime = currentTime; // Switch-Zeit aktualisieren
+            }
         }
         else
         {
-            showWidget->widget->draw(&displayModule);
+            showWidget = &currentWidget; // Fortfahren mit aktuellem Widget
+        }
+    }
+
+    // Endgültiges Zeichnen des Widgets
+    if (showWidget && showWidget->duration > WIDGET_INACTIVE)
+    {
+        if (!(showWidget->isActionSet(WidgetAction::StatusFlag) &&
+              showWidget->isActionSet(WidgetAction::ExternalManaged) &&
+              !showWidget->isActionSet(WidgetAction::InternalEnabled)))
+        {
+            showWidget->widget->draw(&displayModule); // Zeichnen, wenn keine Konflikte
         }
     }
 }

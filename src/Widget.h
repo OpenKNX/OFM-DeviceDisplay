@@ -11,6 +11,7 @@
 // WIDGETS
 #define QRCODE_WIDGET      // Enable the QR code widget
 #define MATRIX_SCREENSAVER // Enable the matrix screensaver
+#define DD_CONSOLE_CMDS    // Enable the console commands for the display module
 
 #include "i2c-Display.h"  // Include 1st
 #include "DisplayIcons.h" // Include 2nd

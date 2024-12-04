@@ -13,6 +13,8 @@
 #define DeviceDisplay_Display_Name "DeviceDisplay"
 #define DeviceDisplay_Display_Version "0.0.1"
 
+#define DISPLAY_DIM_TIMER 60000 // DIm the display after 60 seconds of inactivity
+
 class DeviceDisplay : public OpenKNX::Module
 {
   public:

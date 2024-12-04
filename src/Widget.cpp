@@ -91,6 +91,9 @@ void Widget::draw(i2cDisplay *display)
         case DisplayMode::ICON_WITH_TEXT:
             // displayIconWithText(display);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -557,23 +560,31 @@ void Widget::writeScrolledText(i2cDisplay *display, const char *text, int scroll
  */
 void Widget::OpenKNXLogo(i2cDisplay *display)
 {
-    display->display->cp437(true); // Use correct CP437 character codes
-    display->display->clearDisplay();
-    display->display->setCursor(0, 0);
-    display->display->setTextSize(1);
-    display->display->setTextColor(WHITE);
+    static String lastUptime = ""; // Cache for the last rendered uptime
+    String currentUptime = openknx.logger.buildUptime().c_str(); // Get the current uptime
     
-    display->display->println( String("Uptime: " + String(openknx.logger.buildUptime().c_str())).c_str()); // Line 1
-    display->display->println( String("Dev.: " + String(MAIN_OrderNumber)).c_str()); // Line 2
-    display->display->println( String("Addr.: " + String(openknx.info.humanIndividualAddress().c_str())).c_str());
-    
-#define SHIFT_TO_BOTTOM 20
-    display->display->drawBitmap(
-        (display->GetDisplayWidth() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2,
-        (display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + SHIFT_TO_BOTTOM) / 2,
-        logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,
-        LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
-    display->display->display();
+    if (lastUptime != currentUptime) // Check if the uptime has changed
+    {
+        display->display->cp437(true); // Use CP437 character encoding
+        display->display->clearDisplay(); // Clear the display for fresh rendering
+
+        display->display->setCursor(0, 0);
+        display->display->setTextSize(1);
+        display->display->setTextColor(WHITE);
+
+        display->display->println("Uptime: " + currentUptime);
+        lastUptime = currentUptime; // Update the cache
+
+        display->display->println("Dev.: " MAIN_OrderNumber);
+        display->display->println(String("Addr.: ") + openknx.info.humanIndividualAddress().c_str());
+
+        display->display->drawBitmap(
+            (display->GetDisplayWidth() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2,
+            (display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + 20 /*SHIFT_TO_BOTTOM*/) / 2,
+            logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,
+            LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
+    }
+    display->display->display(); // Update the display with the rendered content
 }
 
 /**
@@ -583,12 +594,17 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
  */
 void Widget::ShowBootLogo(i2cDisplay *display)
 {
-    display->display->clearDisplay();
-    display->display->drawBitmap(
-        (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
-        (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
-        logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
-    display->display->display();
+    static bool showLogo = false; // Flag to ensure the logo is drawn only once
+    if(!showLogo)
+    {
+        display->display->clearDisplay();
+        display->display->drawBitmap(
+            (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
+            (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
+            logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
+        display->display->display();
+        showLogo = true;
+    }
 }
 
 /**
