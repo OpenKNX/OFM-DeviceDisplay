@@ -42,8 +42,10 @@ Here is the list of the Widget Management Features:
 
 Make sure you have the following dependencies installed (which normly be installed using the library.json file):
 
-- Adafruit_SSD1306: Library for OLED display control.
-- qrcodegen: QR code generator library.
+- "Adafruit_SSD1306": "https://github.com/adafruit/Adafruit_SSD1306",
+- "Adafruit-GFX-Library": "https://github.com/adafruit/Adafruit-GFX-Library",
+- "Adafruit_BusIO": "https://github.com/adafruit/Adafruit_BusIO",
+- "liux-pro/qrcode generator" :"^1.7.0"
 
 ## Example Code
 

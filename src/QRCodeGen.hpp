@@ -182,7 +182,8 @@ class QRCodeWidget
         //      there is space for additional text. The text could be added below on the left or right or above or below the QR code.
 
         // Show the QR code on the display
-        _display->display->display();
+        //_display->display->display();
+        _display->displayBuff(); // Display the buffer on the display
 
         // Set the flag that the QR code was generated and is displayed
         _qrCodeGenerated = true;
@@ -193,7 +194,8 @@ class QRCodeWidget
         if (!_qrCodeGenerated) generateQRCode(); // Generate the QR code only once, to avoid unnecessary processing
         else
         {
-            _display->display->display(); // Show the QR code on the display
+            _display->displayBuff(); // Display the buffer on the display
+            //_display->display->display(); // Show the QR code on the display
         }
     }
 

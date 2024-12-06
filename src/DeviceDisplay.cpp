@@ -77,7 +77,6 @@ void DeviceDisplay::init()
  */
 void DeviceDisplay::setup(bool configured)
 {
-
     logDebugP("setup...");
     displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
     displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display

@@ -361,7 +361,8 @@ void Widget::displayDynamicText(i2cDisplay *display, const std::vector<lcdText *
     drawTextLines(display, textLines, totalHeightTop, totalHeightBottom, middleStartY, availableMiddleHeight, currentTime);
 
     // Refresh display
-    display->display->display();
+    //display->display->display();
+    display->displayBuff();
 }
 
 /**
@@ -584,7 +585,8 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
             logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,
             LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
     }
-    display->display->display(); // Update the display with the rendered content
+    display->displayBuff(); // Update the display with the rendered content
+    //display->display->display(); // Update the display with the rendered content
 }
 
 /**
@@ -602,7 +604,8 @@ void Widget::ShowBootLogo(i2cDisplay *display)
             (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
             (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
             logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
-        display->display->display();
+        //display->display->display();
+        display->displayBuff();
         showLogo = true;
     }
 }
@@ -646,7 +649,8 @@ void Widget::showProgrammingMode(i2cDisplay *display)
     display->display->println(" Ready to use ETS to  program the Device!  "); // Print "Prog Mode"
 
     // Update the display with the new content
-    display->display->display();
+    //display->display->display();
+    display->displayBuff();
 }
 
 #ifdef MATRIX_SCREENSAVER
@@ -715,7 +719,8 @@ void Widget::showMatrixScreensaver(i2cDisplay *display)
                 display->display->write(cp437[random(0, sizeof(cp437))]);
             }
         }
-        display->display->display();
+        //display->display->display();
+        display->displayBuff();
     }
 }
 #endif // MATRIX_SCREENSAVER

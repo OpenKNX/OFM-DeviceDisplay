@@ -9,7 +9,6 @@
  */
 #include "OpenKNX.h"
 
-#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
@@ -32,8 +31,8 @@ class i2cDisplay
         pin_size_t scl = -1;           // SCL pin on RP2040 for i2c1
     } lcdSettings;                     // Start with default settings
 
-    std::unique_ptr<Adafruit_SSD1306> display; // Display object. Must be a pointer to be able to make it a unique_ptr
-    std::unique_ptr<TwoWire> CustomI2C;        // I2C object. Must be a pointer to be able to use unique_ptr for it as well
+    Adafruit_SSD1306* display; // Display object. Must be a pointer to be able to make it a unique_ptr
+    TwoWire* CustomI2C;        // I2C object. Must be a pointer to be able to use unique_ptr for it as well
 
     void setup();                                           // Setup method for initialization
     bool InitDisplay();                                     // Initialize the display
@@ -50,13 +49,25 @@ class i2cDisplay
     void SetDisplaySCL(pin_size_t scl);           // Set the display SCL pin
     void SetDisplaySettings(uint8_t width, uint8_t height, uint8_t i2cadress,
                             int8_t reset, i2c_inst_t* i2cInst,
-                            pin_size_t sda, pin_size_t scl); // Set all display settings
-    void SetDisplayContrast(uint8_t contrast);               // Set the display contrast
-    void SetDisplayVCOMDetect(uint8_t vcomh);                // Set the display VCOMH regulator output
+                            pin_size_t sda, pin_size_t scl);   // Set all display settings
+    void SetDisplayContrast(uint8_t contrast);                 // Set the display contrast
+    void SetDisplayVCOMDetect(uint8_t vcomh);                  // Set the display VCOMH regulator output
     inline void SetDim(bool dim) { return display->dim(dim); } // Dim the display
-    void SetInvertDisplay(bool invert);                      // Invert the display
-    void SetDisplayStartLine(uint8_t startline);             // Set the display start line
-    void SetDisplayOffset(uint8_t offset);                   // Set the display offset
-    void SetDisplayClockDiv(uint8_t clockdiv);               // Set the display clock division
-    void SetDisplayPreCharge(uint8_t precharge);             // Set the display precharge
+    void SetInvertDisplay(bool invert);                        // Invert the display
+    void SetDisplayStartLine(uint8_t startline);               // Set the display start line
+    void SetDisplayOffset(uint8_t offset);                     // Set the display offset
+    void SetDisplayClockDiv(uint8_t clockdiv);                 // Set the display clock division
+    void SetDisplayPreCharge(uint8_t precharge);               // Set the display precharge
+    void displayBuff();                                        // Funktion, die den Puffer mit dem aktuellen Zustand vergleicht und nur geänderte Bereiche sendet
+
+  private:
+    // #define BUFFER_SIZE (128 * ((64 + 7 ) / 8))
+    uint16_t _sizeDispBuff;   
+    uint8_t* _curDispBuffer;  // Buffer size!
+    uint8_t* _prevDispBuffer; // Buffer size!
+    bool initDisplayBuffer();
+    void updateArea(int x, int y, int byteIndex);
+    void sendCommand(uint8_t command);
+    void displayFullBuffer();
+    void updatePage(int page, int startCol, int endCol);
 };
