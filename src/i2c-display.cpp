@@ -76,13 +76,18 @@ void i2cDisplay::setup()
     // ToDo: Setup OpenKNX Hardware Specific i2c settings, like SDA, SCL, i2c address, etc.
 }
 
-// update
+/**
+ * @brief Partial content-transfer to display, when loop time is available.
+ */
 void i2cDisplay::loop()
 {
-    if (_loopColumn < lcdSettings.width && openknx.freeLoopTime())
+    if (_loopColumn <= (lcdSettings.width - _loopColumnCount))
     {
-        updateCols(_loopColumn, _loopColumn+4-1);
-        _loopColumn += 4;
+        if (openknx.freeLoopTime())
+        {
+            updateCols(_loopColumn, _loopColumn + _loopColumnCount - 1);
+            _loopColumn += _loopColumnCount;
+        }
     }
     else if (_loopColumn == 0xff)
     {

@@ -66,7 +66,20 @@ class i2cDisplay
     uint16_t _sizeDispBuff;   
     uint8_t* _curDispBuffer;  // Buffer size!
     uint8_t* _prevDispBuffer; // Buffer size!
+
+    /**
+     * Number of Columns to partial transfer to display
+     * Values 2^n only, value >32 will not update all pages!
+     */
+    const uint8_t _loopColumnCount = 4;
+
+    /** 
+     * Define next start-column for partial transfer to display.
+     * `0xff` for scheduling restart of transfer *after* next `loop()`, to reduce overall display loop-time on change
+     * Allowed values `0` to `lcdSettings.width - _loopColumnCount`, all other values will be ignored.
+     */
     uint8_t _loopColumn = 0xfe;
+    
     bool initDisplayBuffer();
     void updateArea(int x, int y, int byteIndex);
     void sendCommand(uint8_t command);
