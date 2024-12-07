@@ -91,6 +91,14 @@ class DeviceDisplay : public OpenKNX::Module
     void LoopWidgets();       // Switches widgets based on timing
 
     WidgetInfo* getWidgetInfo(const std::string& name); // Get widget info by name
+#ifdef DEMO_WIDGET_CMD_TESTS
+    // Example console conversation lines
+    bool _demoWidgetCmdTests = false; // Flag to enable the demo widget commands
+    void demoTestWidgetsSetup(); // Demo test widgets
+    void demoTestWidgetsLoop();  // Demo test widgets loop
+    void demoTestWidgetsStop(); // Demo test widgets remove
+#endif
+
 };
 
 extern DeviceDisplay openknxDisplayModule; // Display module instance

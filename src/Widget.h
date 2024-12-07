@@ -15,6 +15,7 @@
 
 #include "i2c-Display.h"  // Include 1st
 #include "DisplayIcons.h" // Include 2nd
+
 #ifdef QRCODE_WIDGET
     #include "QRCodeGen.hpp" // Include 3rd
 #endif
@@ -103,6 +104,14 @@ class Widget
 #endif
 #ifdef MATRIX_SCREENSAVER
         SCREEN_SAVER, // Matrix screensaver
+        SCREEN_SAVER_MATRIX,
+        SCREEN_SAVER_CLOCK,
+        SCREEN_SAVER_PONG,
+        SCREEN_SAVER_RAIN,
+        SCREEN_SAVER_STARFIELD,
+        SCREEN_SAVER_3DCUBE,
+        SCREEN_SAVER_LIFE,
+        OPENKNX_TEAM_INTRO,
 #endif
         BOOT_LOGO // Boot logo
     };
@@ -114,39 +123,51 @@ class Widget
     // Text lines for dynamic text mode
     bool _AllowEmtyTextLines = false; // Flag to enable initial start with empty lines. Default is false. I.e. to fill lines later
 
-    uint16_t getTextWidth(i2cDisplay * display, const char *text, uint8_t textSize);             // Get the width of the text in pixels
-    uint16_t getTextHeight(i2cDisplay * display, const char *text, uint8_t textSize);            // Get the height of the text in pixels
-    uint16_t calculateMaxTextLines(i2cDisplay * display, const GFXfont *font = nullptr);         // Calculate the maximum number of text lines
-    void writeScrolledText(i2cDisplay * display, const char *text, int scrollPos, int maxChars); // Write the scrolled text to the display
-    bool checkAndUpdateLcdText(lcdText * sText);                                                 // Check and update the text on the display
-    void displayDynamicText(i2cDisplay * display, const std::vector<lcdText *> &lines);          // Display the dynamic text on the display
-    void InitDynamicTextLines();                                                                 // Initialize the dynamic text lines with default settings
-    void UpdateDynamicTextLines(i2cDisplay * display);                                           // Update the dynamic text lines on the display
+    uint16_t getTextWidth(i2cDisplay *display, const char *text, uint8_t textSize);             // Get the width of the text in pixels
+    uint16_t getTextHeight(i2cDisplay *display, const char *text, uint8_t textSize);            // Get the height of the text in pixels
+    uint16_t calculateMaxTextLines(i2cDisplay *display, const GFXfont *font = nullptr);         // Calculate the maximum number of text lines
+    void writeScrolledText(i2cDisplay *display, const char *text, int scrollPos, int maxChars); // Write the scrolled text to the display
+    bool checkAndUpdateLcdText(lcdText *sText);                                                 // Check and update the text on the display
+    void displayDynamicText(i2cDisplay *display, const std::vector<lcdText *> &lines);          // Display the dynamic text on the display
+    void InitDynamicTextLines();                                                                // Initialize the dynamic text lines with default settings
+    void UpdateDynamicTextLines(i2cDisplay *display);                                           // Update the dynamic text lines on the display
 
     // Helper functions for displayDynamicText
-    void calculateTextHeights(i2cDisplay * display, const std::vector<lcdText *> &textLines, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &totalMiddleHeight, uint16_t &middleLineCount);             // Calculate the heights of the text sections
-    void drawTextLines(i2cDisplay * display, const std::vector<lcdText *> &textLines, uint16_t totalHeightTop, uint16_t totalHeightBottom, uint16_t middleStartY, uint16_t availableMiddleHeight, uint32_t currentTime); // Draw each line of text
-    void handleScrolling(i2cDisplay * display, lcdText * line, uint32_t currentTime);                                                                                                                                    // Handle the scrolling of a text line
-    uint16_t calculateCursorX(i2cDisplay * display, const lcdText *line);                                                                                                                                                // Calculate the X position of the cursor for a text line
-    uint16_t calculateCursorY(i2cDisplay * display, const lcdText *line, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &middleStartY, uint16_t availableMiddleHeight);                                 // Calculate the Y position of the cursor for a text line
+    void calculateTextHeights(i2cDisplay *display, const std::vector<lcdText *> &textLines, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &totalMiddleHeight, uint16_t &middleLineCount);             // Calculate the heights of the text sections
+    void drawTextLines(i2cDisplay *display, const std::vector<lcdText *> &textLines, uint16_t totalHeightTop, uint16_t totalHeightBottom, uint16_t middleStartY, uint16_t availableMiddleHeight, uint32_t currentTime); // Draw each line of text
+    void handleScrolling(i2cDisplay *display, lcdText *line, uint32_t currentTime);                                                                                                                                     // Handle the scrolling of a text line
+    uint16_t calculateCursorX(i2cDisplay *display, const lcdText *line);                                                                                                                                                // Calculate the X position of the cursor for a text line
+    uint16_t calculateCursorY(i2cDisplay *display, const lcdText *line, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &middleStartY, uint16_t availableMiddleHeight);                                 // Calculate the Y position of the cursor for a text line
 
     // Boot logo and OpenKNX logo
-    void OpenKNXLogo(i2cDisplay * display);  // Show the OpenKNX logo on the display
-    void ShowBootLogo(i2cDisplay * display); // Show the boot logo on the display
+    void OpenKNXLogo(i2cDisplay *display);  // Show the OpenKNX logo on the display
+    void ShowBootLogo(i2cDisplay *display); // Show the boot logo on the display
 
     // Programming mode
-    ulong _showProgrammingMode_last_Blink = 0;      // Last time the blink state was updated
-    bool _showProgrammingMode_showProgMode = true;  // Toggle between showing/hiding "Prog Mode active"
-    void showProgrammingMode(i2cDisplay * display); // Show the programming mode on the display
+    ulong _showProgrammingMode_last_Blink = 0;     // Last time the blink state was updated
+    bool _showProgrammingMode_showProgMode = true; // Toggle between showing/hiding "Prog Mode active"
+    void showProgrammingMode(i2cDisplay *display); // Show the programming mode on the display
 
 #ifdef MATRIX_SCREENSAVER
     // Matrix screensaver
-    ulong _lastUpdateScreenSaver = 0;                 // Last time the screensaver was updated
-    void showMatrixScreensaver(i2cDisplay * display); // Show the matrix screensaver on the display
+    ulong _lastUpdateScreenSaver = 0;                                          // Last time the screensaver was updated
+    void showMatrixScreensaver(i2cDisplay *display);                           // Show the matrix screensaver on the display
+    void showPongScreensaver(i2cDisplay *display);                             // Show the pong screensaver on the display
+    void showClockScreensaver(i2cDisplay *display, bool rounded = false);      // Show the clock screensaver on the display
+    void showRainfallScreensaver(i2cDisplay *display, uint8_t intensity = 10); // Show the rainfall screensaver on the display
+    void showMatrixScreensaverP(i2cDisplay *display, uint8_t intensity = 10);  // Show the matrix screensaver on the display
+    void show3DCubeScreensaver(i2cDisplay *display);                           // Show the 3D cube screensaver on the display
+    void showStarfieldScreensaver(i2cDisplay *display, uint8_t intensity = 8); // Show the starfield screensaver on the display
+    void showLifeScreensaver(i2cDisplay *display);                             // Show the life screensaver on the display
+
+    void showOpenKNXTeamIntro(i2cDisplay *display, const std::vector<std::string> &names, const std::string &logoText); // Show the OpenKNX intro on the display
+    std::vector<std::string> developerNames = {"traxanos", "jeff25", "Ing-Dom", "mumpf", "thewhobox", "willisurf", "cornelius-koepp", "ab-tools", "GeminiServer", "mgeramb", "Smart-MF"};
+    std::string logoText = "Powered by OpenKNX";
+
 #endif
 #ifdef QRCODE_WIDGET
-    void showQRCode(i2cDisplay * display); // Show the QR code on the display
-#endif // QRCODE_WIDGET
+    void showQRCode(i2cDisplay *display); // Show the QR code on the display
+#endif                                    // QRCODE_WIDGET
 
   public:
     inline void setAllowEmptyTextLines(bool empty) { _AllowEmtyTextLines = empty; } // Set the initial empty text lines flag

@@ -149,8 +149,11 @@ void DeviceDisplay::loop(bool configured)
             wasInProgMode = false;
         }
     }
-    
+
     LoopWidgets(); // Switch widgets based on timing
+#ifdef DEMO_WIDGET_CMD_TESTS
+    if (_demoWidgetCmdTests) demoTestWidgetsLoop(); // Demo test widgets loop
+#endif
 }
 
 /**
@@ -184,15 +187,174 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             bRet = true;
         }
 #ifdef MATRIX_SCREENSAVER
-        else if (command.compare(4, 1, "m") == 0) // Matrix Screensaver
+        else if (command.compare(4, 2, "m ") == 0) // Matrix Screensaver
         {
-            Widget* srvMatrix = new Widget(Widget::DisplayMode::SCREEN_SAVER);
-            addWidget(srvMatrix, 10000, "srvMatrix", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                         DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display
+            if (command.compare(6, 1, "s") == 0) // Set Matrix Screensaver
+            {
+                Widget* srvMatrix = new Widget(Widget::DisplayMode::SCREEN_SAVER);
+                addWidget(srvMatrix, 10000, "srvMatrix", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                             DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                             DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
 
-            logInfoP("Sending Matrix Screensaver for 10 seconds to display...");
+                logInfoP("Sending Matrix Screensaver to display. Remove it with 'ddc m r'");
+            }
+            else if (command.compare(6, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvMatrix");
+                logInfoP("Removing Matrix Screensaver from display...");
+            }
             bRet = true;
+        }
+        else if (command.compare(4, 6, "clock ") == 0) // Clock Screensaver
+        {
+            if (command.compare(10, 1, "s") == 0) // Set Clock Screensaver
+            {
+                Widget* srvClock = new Widget(Widget::DisplayMode::SCREEN_SAVER_CLOCK);
+                addWidget(srvClock, 10000, "srvClock", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                           DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                           DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("Sending Clock Screensaver to display. Remove it with 'ddc clock r'");
+            }
+            else if (command.compare(10, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvClock");
+                logInfoP("Removing Clock Screensaver from display...");
+            }
+            bRet = true;
+        }
+        else if (command.compare(4, 5, "pong ") == 0) // Pong Screensaver
+        {
+            if (command.compare(9, 1, "s") == 0) // Set Pong Screensaver
+            {
+                Widget* srvPong = new Widget(Widget::DisplayMode::SCREEN_SAVER_PONG);
+                addWidget(srvPong, 10000, "srvPong", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                         DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("Pong Screensaver is set to display. Remove it with 'ddc pong r'");
+                bRet = true;
+            }
+            if (command.compare(9, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvPong");
+                logInfoP("Removing Pong Screensaver from display...");
+                bRet = true;
+            }
+        }
+        else if (command.compare(4, 5, "rain ") == 0) // Rainfall Screensaver
+        {
+            if (command.compare(9, 1, "s") == 0) // Set Rainfall Screensaver
+            {
+                Widget* srvRain = new Widget(Widget::DisplayMode::SCREEN_SAVER_RAIN);
+                addWidget(srvRain, 10000, "srvRain", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                         DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("Rainfall Screensaver is set to display. Remove it with 'ddc rain r'");
+                bRet = true;
+            }
+            if (command.compare(9, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvRain");
+                logInfoP("Removing Rainfall Screensaver from display...");
+                bRet = true;
+            }
+        }
+        else if (command.compare(4, 7, "matrix ") == 0) // Rainfall Screensaver
+        {
+            if (command.compare(11, 1, "s") == 0) // Set Rainfall Screensaver
+            {
+                Widget* srvRain = new Widget(Widget::DisplayMode::SCREEN_SAVER_MATRIX);
+                addWidget(srvRain, 10000, "srvMaxtrixP", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                         DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("Matrix Screensaver is set to display. Remove it with 'ddc matrix r'");
+                bRet = true;
+            }
+            if (command.compare(11, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvMatrixP");
+                logInfoP("Removing Matrix Screensaver from display...");
+                bRet = true;
+            }
+        }
+        else if (command.compare(4, 10, "starfield ") == 0) // Starfield Screensaver
+        {
+            if (command.compare(14, 1, "s") == 0) // Set Starfield Screensaver
+            {
+                Widget* srvStarfield = new Widget(Widget::DisplayMode::SCREEN_SAVER_STARFIELD);
+                addWidget(srvStarfield, 10000, "srvStarfield", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                               DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                               DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("Starfield Screensaver is set to display. Remove it with 'ddc starfield r'");
+                bRet = true;
+            }
+            if (command.compare(14, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvStarfield");
+                logInfoP("Removing Starfield Screensaver from display...");
+                bRet = true;
+            }
+        }
+        else if (command.compare(4, 7, "3dcube ") == 0) // 3D Cube Screensaver
+        {
+            if (command.compare(11, 1, "s") == 0) // Set 3D Cube Screensaver
+            {
+                Widget* srv3DCube = new Widget(Widget::DisplayMode::SCREEN_SAVER_3DCUBE);
+                addWidget(srv3DCube, 10000, "srv3DCube", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                         DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("3D Cube Screensaver is set to display. Remove it with 'ddc 3dcube r'");
+                bRet = true;
+            }
+            if (command.compare(11, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srv3DCube");
+                logInfoP("Removing 3D Cube Screensaver from display...");
+                bRet = true;
+            }
+        }
+        else if (command.compare(4, 5, "life ") == 0) // Life Screensaver
+        {
+            if (command.compare(9, 1, "s") == 0) // Set Life Screensaver
+            {
+                Widget* srvLife = new Widget(Widget::DisplayMode::SCREEN_SAVER_LIFE);
+                addWidget(srvLife, 10000, "srvLife", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                     DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                     DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("Life Screensaver is set to display. Remove it with 'ddc life r'");
+                bRet = true;
+            }
+            if (command.compare(9, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvLife");
+                logInfoP("Removing Life Screensaver from display...");
+                bRet = true;
+            }
+        }
+        else if (command.compare(4, 13, "openknx_team ") == 0) // OpenKNX Team Intro
+        {
+            if (command.compare(17, 1, "s") == 0) // Set OpenKNX Team Intro
+            {
+                Widget* srvOpenKNXTeam = new Widget(Widget::DisplayMode::OPENKNX_TEAM_INTRO);
+                addWidget(srvOpenKNXTeam, 10000, "srvOpenKNXTeam", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                                 DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                                 DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+
+                logInfoP("OpenKNX Team Intro is set to display. Remove it with 'ddc openknx_team r'");
+                bRet = true;
+            }
+            if (command.compare(17, 1, "r") == 0) // Remove Screensaver
+            {
+                removeWidget("srvOpenKNXTeam");
+                logInfoP("Removing OpenKNX Team Intro from display...");
+                bRet = true;
+            }
         }
 #endif
         else if (command.compare(4, 1, "c") == 0) // Console simulation output widget
@@ -229,7 +391,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 }
             }
         }
-        else if (command.compare(4, 1, "l") == 0 && command.compare(4, 4, "logo") != 0) // List all widgets
+        else if (command.compare(4, 1, "l") == 0 && command.size() < 6) // List all widgets
         {
             logInfoP("Total Widgets: %d:", widgetsQueue.size());
             for (size_t i = 0; i < widgetsQueue.size(); ++i)
@@ -322,64 +484,64 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         {
             if (command.compare(11, 1, "r") == 0) // Scrollen nach rechts
             {
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_RIGHT_HORIZONTAL_SCROLL);
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                displayModule.display->ssd1306_command(SSD1306_RIGHT_HORIZONTAL_SCROLL);
+                displayModule.display->ssd1306_command(0x00); // Startkolonne
+                displayModule.display->ssd1306_command(0x00); // Startseite
+                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
+                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Right horizontal scroll started");
             }
             else if (command.compare(11, 1, "l") == 0) // Scrollen nach links
             {
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_LEFT_HORIZONTAL_SCROLL);
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer (7 Frames)
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                displayModule.display->ssd1306_command(SSD1306_LEFT_HORIZONTAL_SCROLL);
+                displayModule.display->ssd1306_command(0x00); // Startkolonne
+                displayModule.display->ssd1306_command(0x00); // Startseite
+                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer (7 Frames)
+                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Left horizontal scroll started");
             }
             else if (command.compare(11, 2, "dr") == 0) // Diagonales Scrollen nach rechts
             {
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL);
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL);
+                displayModule.display->ssd1306_command(0x00); // Startkolonne
+                displayModule.display->ssd1306_command(0x00); // Startseite
+                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
+                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Diagonal scroll (right) started");
             }
             else if (command.compare(11, 2, "dl") == 0) // Diagonales Scrollen nach links
             {
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL);
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startkolonne
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                openknxDisplayModule.displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL);
+                displayModule.display->ssd1306_command(0x00); // Startkolonne
+                displayModule.display->ssd1306_command(0x00); // Startseite
+                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
+                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
+                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
+                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Diagonal scroll (left) started");
             }
             else if (command.compare(11, 5, "start") == 0) // Scrollen starten
             {
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Scrolling activated");
             }
             else if (command.compare(11, 4, "stop") == 0) // Scrollen stoppen
             {
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_DEACTIVATE_SCROLL);
+                displayModule.display->ssd1306_command(SSD1306_DEACTIVATE_SCROLL);
                 logInfoP("Scrolling stopped");
             }
             else if (command.compare(11, 2, "sa") == 0) // Scrollbereich setzen
             {
                 // Hier können wir den Bereich für das vertikale Scrollen definieren
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_SET_VERTICAL_SCROLL_AREA);
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x00); // Startseite
-                openknxDisplayModule.displayModule.display->ssd1306_command(0x3F); // Endseite (64px für 64px Display)
+                displayModule.display->ssd1306_command(SSD1306_SET_VERTICAL_SCROLL_AREA);
+                displayModule.display->ssd1306_command(0x00); // Startseite
+                displayModule.display->ssd1306_command(0x3F); // Endseite (64px für 64px Display)
                 logInfoP("Vertical scroll area set");
             }
             else
@@ -423,15 +585,15 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(13, 2, "on") == 0)
             {
                 // Segmentzuordnung umkehren (Segment Mapping)
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
-                openknxDisplayModule.displayModule.display->ssd1306_command(0xA1); // Umkehrung der Segmentzuordnung
+                displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
+                displayModule.display->ssd1306_command(0xA1); // Umkehrung der Segmentzuordnung
                 logInfoP("Segment remapping enabled");
             }
             else if (command.compare(13, 3, "off") == 0)
             {
                 // Segmentzuordnung zurücksetzen
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
-                openknxDisplayModule.displayModule.display->ssd1306_command(0xA0); // Standard Segmentzuordnung
+                displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
+                displayModule.display->ssd1306_command(0xA0); // Standard Segmentzuordnung
                 logInfoP("Segment remapping disabled");
             }
         }
@@ -440,13 +602,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(15, 2, "on") == 0)
             {
                 // Alle Pixel auf dem Display einschalten
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON);
+                displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON);
                 logInfoP("Display all-on mode enabled");
             }
             else if (command.compare(15, 3, "off") == 0)
             {
                 // Alle Pixel wieder normal anzeigen
-                openknxDisplayModule.displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON_RESUME);
+                displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON_RESUME);
                 logInfoP("Display all-on mode disabled, resumed normal display");
             }
         }
@@ -472,6 +634,18 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             bRet = true;
         }
 #endif
+#ifdef DEMO_WIDGET_CMD_TESTS
+        else if (command.compare(4, 10, "test_start") == 0) // Show the boot logo
+        {
+            demoTestWidgetsSetup();
+            bRet = true;
+        }
+        else if (command.compare(4, 9, "test_stop") == 0) // Show the boot logo
+        {
+            demoTestWidgetsStop();
+            bRet = true;
+        }
+#endif
         else
         {
             openknx.logger.begin();
@@ -486,11 +660,27 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc vcom <on|off|value>", "Enable or disable VCOM detect or set the value");
             openknx.console.printHelpLine("ddc dim <on|off|0-255>", "Dim the display to on, off or set the contrast value");
             openknx.console.printHelpLine("ddc inv <0|1>", "Invert the display to 0 or 1");
+            openknx.console.printHelpLine("ddc contrast <value>", "Set the contrast value (0x00 to 0xFF)");
+            openknx.console.printHelpLine("ddc chargepump <on|off>", "Enable or disable the charge pump");
+            openknx.console.printHelpLine("ddc segremap <on|off>", "Enable or disable the segment remapping");
+            openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
+#endif
+#ifdef DEMO_WIDGET_CMD_TESTS
+            openknx.console.printHelpLine("ddc test_start", "Start the demo test widgets");
+            openknx.console.printHelpLine("ddc test_stop", "Stop the demo test widgets");
 #endif
             openknx.console.printHelpLine("ddc l", "List all widgets");
             openknx.console.printHelpLine("ddc logo", "Show the boot logo");
 #ifdef MATRIX_SCREENSAVER
             openknx.console.printHelpLine("ddc m", "Print Matrix Screensaver");
+            openknx.console.printHelpLine("ddc clock", "Print Clock Screensaver");
+            openknx.console.printHelpLine("ddc pong", "Print Pong Screensaver");
+            openknx.console.printHelpLine("ddc rain", "Print Rainfall Screensaver");
+            openknx.console.printHelpLine("ddc matrix", "Print Matrix Screensaver");
+            openknx.console.printHelpLine("ddc starfield", "Print Starfield Screensaver");
+            openknx.console.printHelpLine("ddc 3dcube", "Print 3D Cube Screensaver");
+            openknx.console.printHelpLine("ddc life", "Print Life Screensaver");
+            openknx.console.printHelpLine("ddc openknx_team", "Print OpenKNX Team Intro");
 #endif
 #ifdef QRCODE_WIDGET
             openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
@@ -506,7 +696,9 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
     return bRet;
 }
 
-// Initialize widgets with default settings or add widgets to queue
+/**
+ * @brief Initialize widgets with default settings or add widgets to queue
+ */
 void DeviceDisplay::initializeWidgets()
 {
     // Bootlogo widget! The boot logo will be displayed immediately and removed after the set duration
@@ -521,12 +713,11 @@ void DeviceDisplay::initializeWidgets()
                                                                DeviceDisplay::WidgetAction::ExternalManaged); // This widget is initially disabled
                                                                                                               // Add here more default widgets
     Widget* defaultWidget = new Widget(Widget::DisplayMode::OPENKNX_LOGO);
-    openknxDisplayModule.addWidget(defaultWidget, 3000, "defaultWidget");
+    addWidget(defaultWidget, 3000, "defaultWidget");
 }
 
 /**
  * @brief Adds a widget to the queue with specified display duration.
- *
  * @param widget Pointer to the widget to be added.
  * @param duration Duration for which the widget should be displayed (in milliseconds).
  * @param name Unique name for the widget. If empty, a default name will be generated.
@@ -558,7 +749,6 @@ void DeviceDisplay::addWidget(Widget* widget, uint32_t duration, std::string nam
 
 /**
  * @brief Remove a widget from the queue by name. This will also free the memory of the widget.
- *
  * @param name the name of the widget to remove, must be unique
  * @return true if the widget was removed, false otherwise
  */
@@ -580,7 +770,6 @@ bool DeviceDisplay::removeWidget(const std::string& name)
 
 /**
  * @brief Will search for a widget by name and return the pointer to the widget.
- *
  * @param name of the widget to search for
  * @return DeviceDisplay::WidgetInfo* pointer to the widget or nullptr if not found
  */
@@ -606,98 +795,386 @@ DeviceDisplay::WidgetInfo* DeviceDisplay::getWidgetInfo(const std::string& name)
  *      Widgets can be marked for removal after display
  *      Widgets can be controlled externally to disable or enable them
  */
-
 void DeviceDisplay::LoopWidgets()
 {
-    if (widgetsQueue.empty()) return; // Keine Widgets -> frühzeitiger Abbruch
+    if (widgetsQueue.empty()) return; // Queue is empty -> return
 
-    uint32_t currentTime = millis();
-    WidgetInfo* showWidget = nullptr;
-    bool statusWidgetsInProgress = false;
+    uint32_t currentTime = millis();      // Get the current time
+    WidgetInfo* showWidget = nullptr;     // Widget to show
+    bool statusWidgetsInProgress = false; // Status widgets in progress
 
-    // Status-Widgets priorisieren
-    for (WidgetInfo& widget : widgetsQueue)
+    for (WidgetInfo& widget : widgetsQueue) // Check for status widgets and priorize the status widgets
     {
-        if (widget.isActionSet(WidgetAction::StatusFlag) &&
-            widget.isActionSet(WidgetAction::InternalEnabled))
+        if (widget.isActionSet(WidgetAction::StatusFlag) &&    // Check if the widget is a status widget
+            widget.isActionSet(WidgetAction::InternalEnabled)) // Check if the widget is enabled
         {
-            if (widget.startDisplayTime == 0)
-                widget.startDisplayTime = currentTime; // Startzeit setzen
+            if (widget.startDisplayTime == 0)          // If the start time is not set
+                widget.startDisplayTime = currentTime; // Set the start time
 
-            uint32_t elapsedTime = currentTime - widget.startDisplayTime;
-            bool durationPassed = elapsedTime >= widget.duration;
+            uint32_t elapsedTime = currentTime - widget.startDisplayTime; // Calculate the elapsed time
+            bool durationPassed = elapsedTime >= widget.duration;         // Check if the duration has passed
 
-            if (widget.isActionSet(WidgetAction::AutoRemoveFlag))
-                widget.addAction(WidgetAction::MarkedForRemove);
+            if (widget.isActionSet(WidgetAction::AutoRemoveFlag)) // Check if the widget is marked for auto-remove
+                widget.addAction(WidgetAction::MarkedForRemove);  // Mark the widget for removal
 
-            if (widget.isActionSet(WidgetAction::MarkedForRemove) && durationPassed)
+            if (widget.isActionSet(WidgetAction::MarkedForRemove) && durationPassed) // Check if the widget is marked for removal
             {
                 logDebugP("Removing status widget: %s", widget.name.c_str());
-                removeWidget(widget.name);
-                return; // Nach dem Entfernen sofort zurückkehren
+                removeWidget(widget.name); // Remove the widget
+                return;                    // Return if the widget was removed
             }
 
-            if (!widget.isActionSet(WidgetAction::ExternalManaged) && durationPassed)
+            if (!widget.isActionSet(WidgetAction::ExternalManaged) && durationPassed) // Check if the widget is not externally managed
             {
                 logDebugP("Disabling status widget: %s", widget.name.c_str());
-                widget.startDisplayTime = 0; // Reset der Startzeit
-                widget.removeAction(WidgetAction::InternalEnabled);
-                return; // Widget-Status geändert, zurückkehren
+                widget.startDisplayTime = 0;                        // Reset the start time
+                widget.removeAction(WidgetAction::InternalEnabled); // Disable the widget
+                return;                                             // Widget-Status changed -> return
             }
 
-            statusWidgetsInProgress = true;
-            showWidget = &widget; // Status-Widget gefunden
-            break;                // Status-Widgets blockieren reguläre Widgets
+            statusWidgetsInProgress = true; // Status widgets are in progress
+            showWidget = &widget;           // Found a status widget
+            break;                          // Status widgets have priority
         }
     }
 
-    // Normale Widgets nur verarbeiten, wenn keine aktiven Status-Widgets
-    if (!statusWidgetsInProgress)
+    if (!statusWidgetsInProgress) // If there are no status widgets in progress the process the regular widgets
     {
-        WidgetInfo& currentWidget = widgetsQueue[currentWidgetIndex];
-        uint32_t elapsedTime = currentTime - lastWidgetSwitchTime;
+        WidgetInfo& currentWidget = widgetsQueue[currentWidgetIndex]; // Get the current widget
+        uint32_t elapsedTime = currentTime - lastWidgetSwitchTime;    // Calculate the elapsed time
 
-        if (elapsedTime >= currentWidget.duration)
+        if (elapsedTime >= currentWidget.duration) // Check if the duration has passed
         {
-            if (currentWidget.isActionSet(WidgetAction::StatusFlag) &&
-                currentWidget.isActionSet(WidgetAction::ExternalManaged))
+            if (currentWidget.isActionSet(WidgetAction::StatusFlag) &&    // Check if the widget is a status widget
+                currentWidget.isActionSet(WidgetAction::ExternalManaged)) // Check if the widget is externally managed
             {
-                // Überspringen, wenn ExternalManaged
-                currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
+                // Skip status widgets that are externally managed
+                currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size(); // Next widget
             }
             else
             {
-                if (currentWidget.isActionSet(WidgetAction::MarkedForRemove))
+                if (currentWidget.isActionSet(WidgetAction::MarkedForRemove)) // Check if the widget is marked for removal
                 {
-                    removeWidget(currentWidget.name);
-                    if (currentWidgetIndex >= widgetsQueue.size())
-                        currentWidgetIndex = 0; // Index neu setzen, falls notwendig
+                    removeWidget(currentWidget.name);              // Remove the widget
+                    if (currentWidgetIndex >= widgetsQueue.size()) // Check if the index is out of bounds
+                        currentWidgetIndex = 0;                    // Reset the index if the last widget was removed
                 }
                 else
                 {
-                    if (currentWidget.isActionSet(WidgetAction::AutoRemoveFlag))
-                        currentWidget.addAction(WidgetAction::MarkedForRemove);
+                    if (currentWidget.isActionSet(WidgetAction::AutoRemoveFlag)) // Check if the widget is marked for auto-remove
+                        currentWidget.addAction(WidgetAction::MarkedForRemove);  // Mark the widget for removal
 
-                    showWidget = &currentWidget; // Aktuelles Widget anzeigen
+                    showWidget = &currentWidget; // Show the current widget
                     currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
                 }
-                lastWidgetSwitchTime = currentTime; // Switch-Zeit aktualisieren
+                lastWidgetSwitchTime = currentTime; // Update the last switch time
             }
         }
         else
         {
-            showWidget = &currentWidget; // Fortfahren mit aktuellem Widget
+            showWidget = &currentWidget; // Continue showing the current widget
         }
     }
 
-    // Endgültiges Zeichnen des Widgets
+    // Show the widget on the display if it is not disabled
     if (showWidget && showWidget->duration > WIDGET_INACTIVE)
     {
-        if (!(showWidget->isActionSet(WidgetAction::StatusFlag) &&
-              showWidget->isActionSet(WidgetAction::ExternalManaged) &&
-              !showWidget->isActionSet(WidgetAction::InternalEnabled)))
+        if (!(showWidget->isActionSet(WidgetAction::StatusFlag) &&      // Check if the widget is a status widget
+              showWidget->isActionSet(WidgetAction::ExternalManaged) && // Check if the widget is externally managed
+              !showWidget->isActionSet(WidgetAction::InternalEnabled))) // Check if the widget is disabled
         {
-            showWidget->widget->draw(&displayModule); // Zeichnen, wenn keine Konflikte
+            showWidget->widget->draw(&displayModule); // Draw the widget on the display
         }
     }
 }
+
+/**
+ * @brief This section is for the demo test widgets. It is used to test the display and the widgets.
+ *        The Command 'ddc test_start' will start the demo test widgets.
+ *        The Command 'ddc test_stop' will stop the demo test widgets.
+ *        This section can be enabled by defining the DEMO_WIDGET_CMD_TESTS in the platformio.ini file.
+ */
+#ifdef DEMO_WIDGET_CMD_TESTS
+const char* _demoTestWidgets_conversationLines[] = {
+    "1",
+    "12",
+    "123"
+    "1234",
+    "12345",
+    "123456",
+    "1234567",
+    "12345678",
+    "123456789",
+    "1234567890",
+    "12345678901",
+    "123456789012",
+    "1234567890123",
+    "12345678901234",
+    "123456789012345"};
+const int _demoTestWidgets_numLines = sizeof(_demoTestWidgets_conversationLines) / sizeof(_demoTestWidgets_conversationLines[0]);
+int _demoTestWidgets_currentLineIndex = 0;
+uint32_t _demoTestWidgets_lastUpdateTime = 0;
+uint32_t _demoTestWidgets_lastUpdateTime2 = 0;
+
+void DeviceDisplay::demoTestWidgetsStop()
+{
+    removeWidget("SysInfo");
+    removeWidget("NetInfo");
+    removeWidget("UptimeLogo");
+    removeWidget("DynamicText");
+    removeWidget("DynamicText_Header_and_1_Line");
+    removeWidget("DynamicText_LeftHeader_RightFooter");
+    removeWidget("DynamicText_TopCenterBottom");
+    removeWidget("DynamicText_DefaultStacking");
+    removeWidget("DynamicText_ScrollingCentered");
+    removeWidget("DynamicText_ScrollingCentered_skipLines");
+    removeWidget("DynamicText_LeftTop_RightMiddle");
+    removeWidget("DynamicText_AllChars");
+    removeWidget("QRCode");
+    removeWidget("consoleWidget");
+
+    logInfoP("All test widgets removed from the display queue.");
+    _demoWidgetCmdTests = false;
+}
+void DeviceDisplay::demoTestWidgetsSetup()
+{
+    // This are the custom widgets for the display, which can be used in the own application modules
+    // Example: addWidget(&textWidget, 5000); // Show TextWidget for 5 seconds
+
+    // Example Widget: Show the OpenKNX System Information
+    Widget* WidgetSysInfo = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);                                // Initialize the display and widgets
+    WidgetSysInfo->textLines[0].textSize = 2;                                                             // Set the text size for the header
+    WidgetSysInfo->SetDynamicTextLines(                                                                   // Set the text lines and the information to display
+        {"OpenKNX",                                                                                       // Header
+         "",                                                                                              // Line 1
+         String("Dev.: " + String(MAIN_OrderNumber)).c_str(),                                             // Line 2
+         String("Ver.: " + String(openknx.info.humanFirmwareVersion().c_str())).c_str(),                  // Line 3
+         String("Addr.: " + String(openknx.info.humanIndividualAddress().c_str())).c_str(),               // Line 4
+         String("Free mem: " + String((float)freeMemory() / 1024) + " KiB").c_str(),                      // Line 5
+         String("    (min. " + String((float)openknx.common.freeMemoryMin() / 1024) + " KiB)").c_str()}); // Line 6
+    addWidget(WidgetSysInfo, 5000, "SysInfo", DeviceDisplay::WidgetAction::NoAction);                     // Add the widget to the display queue.
+    logInfoP("Added System Information widget to the display queue.");
+
+    //
+    //  Example Widget: Show the Network Information
+    //
+    Widget* WidgetNetInfo = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+    {
+        WidgetNetInfo->textLines[0].textSize = 1;                            // Set the text size for the header
+        WidgetNetInfo->textLines[1].textSize = 1;                            // Set the text size for the Text line 1
+        WidgetNetInfo->textLines[2].textSize = 1;                            // Set the text size for the Text line 2
+        WidgetNetInfo->textLines[3].textSize = 1;                            // Set the text size for the Text line 3
+        WidgetNetInfo->textLines[4].textSize = 1;                            // Set the text size for the Text line 4
+        WidgetNetInfo->textLines[0].alignPos = TextDynamicAlign::ALIGN_LEFT; // Set the alignment for the header
+        WidgetNetInfo->textLines[1].alignPos = TextDynamicAlign::ALIGN_LEFT; // Set the alignment for the Text line 1
+        WidgetNetInfo->textLines[2].alignPos = TextDynamicAlign::ALIGN_LEFT; // Set the alignment for the Text line 2
+        WidgetNetInfo->textLines[3].alignPos = TextDynamicAlign::ALIGN_LEFT; // Set the alignment for the Text line 3
+        WidgetNetInfo->textLines[4].alignPos = TextDynamicAlign::ALIGN_LEFT; // Set the alignment for the Text line 4
+        WidgetNetInfo->SetDynamicTextLines(                                  // Set the text lines and the information to display
+            {
+                "Network:",              // Header
+                "IP: 11.11.0.123",       // Line 1 i.e.: String("IP: " + String(currentIpAddress.c_str())).c_str(),
+                "Subnet: 255.255.255.0", // Line 2
+                "Gateway: 11.11.0.1",    // Line 3
+                "DNS: 11.11.0.1"         // Line 4
+            });
+    }
+    addWidget(WidgetNetInfo, 3000, "NetInfo"); // Add the widget to the display queue.
+                                               // Defaul Action: Regular Widget, wich is the action NoAction!
+    logInfoP("Added Network Information widget to the display queue.");
+
+    // Example Widget: Show the OpenKNX Logo
+    // Since the OpenKNX logo is a part of the display module, it is not necessary to add it to the queue.
+    Widget* WidgetOKNXlogo = new Widget(Widget::DisplayMode::OPENKNX_LOGO);
+    addWidget(WidgetOKNXlogo, 3000, "UptimeLogo");
+    logInfoP("Added OpenKNX Logo widget to the display queue.");
+
+    // Example Widget: Text Widget with scrolling text
+    Widget* dynTextWidgetFull = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+    dynTextWidgetFull->SetDynamicTextLines(
+        {
+            "H: Fixed!",                       // Test Line 1
+            "L2: This is a scroll test Line2", // Test Line 2
+            "L3: This is Line3",               // Test Line 3
+            "L4: This is a scroll test Line4", // Test Line 4
+            "L5: This is Line5",               // Test Line 5
+            "L6: This is a scroll test Line6", // Test Line 6
+            "L7: This is Line7",               // Test Line 7
+            "L8: This is a scroll test Line8"  // Test Line 8
+        });
+    addWidget(dynTextWidgetFull, 3000, "DynamicText");
+    logInfoP("Added Dynamic Text widget to the display queue.");
+
+    // Example Widget: Header at the top, centered and middle-aligned line below
+    Widget* dynTextWidget_Header_and_1_Line = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);                                  // Create a new dynamic text widget
+    dynTextWidget_Header_and_1_Line->textLines[1].textSize = 4;                                                               // Set the text size for the line below the header
+    dynTextWidget_Header_and_1_Line->textLines[0].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_TOP;    // Set the alignment for the header
+    dynTextWidget_Header_and_1_Line->textLines[1].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_MIDDLE; // Set the alignment for the line below the header
+    dynTextWidget_Header_and_1_Line->SetDynamicTextLine(0, "H: Centered");                                                    // Set the header text
+    dynTextWidget_Header_and_1_Line->SetDynamicTextLine(1, "L1: Middle Centered");                                            // Set the line below the header
+    addWidget(dynTextWidget_Header_and_1_Line, 3000, "DynamicText_Header_and_1_Line");
+    logInfoP("Added Dynamic Text widget with header and 1 line to the display queue.");
+
+    // Example Widget:: Header aligned to the left, Footer aligned to the right
+    Widget* dynTextWidget_LeftHeader_RightFooter = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);                                 // Create a new dynamic text widget
+    dynTextWidget_LeftHeader_RightFooter->textLines[0].textSize = 1;                                                              // Header text size
+    dynTextWidget_LeftHeader_RightFooter->textLines[1].textSize = 1;                                                              // Footer text size
+    dynTextWidget_LeftHeader_RightFooter->textLines[0].alignPos = TextDynamicAlign::ALIGN_LEFT | TextDynamicAlign::ALIGN_TOP;     // Header alignment
+    dynTextWidget_LeftHeader_RightFooter->textLines[1].alignPos = TextDynamicAlign::ALIGN_RIGHT | TextDynamicAlign::ALIGN_BOTTOM; // Footer alignment
+    dynTextWidget_LeftHeader_RightFooter->SetDynamicTextLines(
+        {
+            "H:Left Aligned", // Expected top-left of the display
+            "F:Right Aligned" // Expected bottom-right of the display
+        });
+    addWidget(dynTextWidget_LeftHeader_RightFooter, 3000, "DynamicText_LeftHeader_RightFooter");
+    logInfoP("Added Dynamic Text widget with left header and right footer to the display queue.");
+
+    // Example Widget: Three lines - Top, Center, Bottom alignment (all centered horizontally)
+    Widget* dynTextWidget_TopCenterBottom = new Widget(Widget::DisplayMode::DYNAMIC_TEXT); // Create a new dynamic text widget
+    dynTextWidget_TopCenterBottom->textLines[0].textSize = 1;                              // Set the text size for the header. Default is 1
+    dynTextWidget_TopCenterBottom->textLines[0].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_TOP;
+    dynTextWidget_TopCenterBottom->textLines[1].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_MIDDLE;
+    dynTextWidget_TopCenterBottom->textLines[2].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_BOTTOM;
+    dynTextWidget_TopCenterBottom->SetDynamicTextLines( // Set the text lines and the information to display
+        {
+            "Top Centered",    // Expected top-center
+            "Middle Centered", // Expected center of the display
+            "Bottom Centered"  // Expected bottom-center
+        });
+    addWidget(dynTextWidget_TopCenterBottom, 3000, "DynamicText_TopCenterBottom");
+    logInfoP("Added Dynamic Text widget with top, center and bottom alignment to the display queue.");
+
+    // Example Widget: Multiple lines with stacked positioning (default without specific alignment flags)
+    Widget* dynTextWidget_DefaultStacking = new Widget(Widget::DisplayMode::DYNAMIC_TEXT); // Create a new dynamic text widget
+    dynTextWidget_DefaultStacking->textLines[1].textSize = 2;                              // Larger text for line 1
+    dynTextWidget_DefaultStacking->textLines[2].textSize = 2;                              // Larger text for line 2
+    dynTextWidget_DefaultStacking->SetDynamicTextLines(                                    // Set the text lines and the information to display
+        {
+            "L1: Top",    // Expected at the very top
+            "L2: Line 1", // Below line 1
+            "L3: Line 2"  // Below line 2, all stacked from the top
+        });
+    addWidget(dynTextWidget_DefaultStacking, 3000, "DynamicText_DefaultStacking");
+    logInfoP("Added Dynamic Text widget with default stacking to the display queue.");
+
+    // Example Widget: Center and middle alignment with scrollable text
+    Widget* dynTextWidget_ScrollingCentered = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+    dynTextWidget_ScrollingCentered->textLines[0].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_TOP;
+    dynTextWidget_ScrollingCentered->textLines[1].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_MIDDLE;
+    dynTextWidget_ScrollingCentered->textLines[4].scrollText = false; // Do not scroll the Line 4! Default is True!
+    dynTextWidget_ScrollingCentered->SetDynamicTextLines(
+        {
+            "H: Top Cententer",                                            // Centered at the top
+            "",                                                            // Line 1 is empty
+            "",                                                            // Line 2 is empty
+            "",                                                            // Line 3 is empty
+            "Not Scrollable. To long text for the display, do not scroll", // Centered in the middle, does not scroll
+            "Scrollable: This line will scroll if too long."               // Centered in the middle, scrolls if it exceeds width
+        });
+    addWidget(dynTextWidget_ScrollingCentered, 3000, "DynamicText_ScrollingCentered");
+    logInfoP("Added Dynamic Text widget with centered scrolling text to the display queue.");
+
+    // Example Widget: Center and middle alignment with scrollable text
+    Widget* dynTextWidget_ScrollingCentered_skipLines = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+    dynTextWidget_ScrollingCentered_skipLines->textLines[0].alignPos = TextDynamicAlign::ALIGN_CENTER | TextDynamicAlign::ALIGN_TOP;
+    dynTextWidget_ScrollingCentered_skipLines->textLines[7].alignPos = TextDynamicAlign::ALIGN_LEFT; // Align the last line to the left
+    dynTextWidget_ScrollingCentered_skipLines->textLines[1].skipLineIfEmpty = true;                  // Skip empty line 1
+    dynTextWidget_ScrollingCentered_skipLines->textLines[2].skipLineIfEmpty = true;                  // Skip empty line 2
+    dynTextWidget_ScrollingCentered_skipLines->textLines[3].skipLineIfEmpty = true;                  // Skip empty line 3
+    dynTextWidget_ScrollingCentered_skipLines->textLines[4].skipLineIfEmpty = true;                  // Skip empty line 4
+    dynTextWidget_ScrollingCentered_skipLines->textLines[5].skipLineIfEmpty = true;                  // Skip empty line 5
+    dynTextWidget_ScrollingCentered_skipLines->textLines[6].skipLineIfEmpty = true;                  // Skip empty line 6
+    dynTextWidget_ScrollingCentered_skipLines->SetDynamicTextLines(
+        {
+            "H: Top Cententer",                                              // Centered at the top
+            "", "", "", "", "", "",                                          // Empty lines. Those will be skipped, since the flag is set to skip empty lines
+            "NO SKIP LINES - Scrollable: This line will scroll if too long." // Centered in the middle, scrolls if it exceeds width
+            // This is line 8, since the empty lines are skipped, this line will be displayed in place of the Line 1 !
+        });
+    addWidget(dynTextWidget_ScrollingCentered_skipLines, 3000, "DynamicText_ScrollingCentered_skipLines");
+    logInfoP("Added Dynamic Text widget with centered scrolling text and skipped empty lines to the display queue.");
+
+    // Example Widget: Left-aligned text at the top and right-aligned text in the middle
+    Widget* dynTextWidget_LeftTop_RightMiddle = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+    dynTextWidget_LeftTop_RightMiddle->textLines[0].textSize = 2; // Larger text for header
+    dynTextWidget_LeftTop_RightMiddle->textLines[0].alignPos = TextDynamicAlign::ALIGN_LEFT | TextDynamicAlign::ALIGN_TOP;
+    dynTextWidget_LeftTop_RightMiddle->textLines[1].alignPos = TextDynamicAlign::ALIGN_RIGHT | TextDynamicAlign::ALIGN_MIDDLE;
+    dynTextWidget_LeftTop_RightMiddle->SetDynamicTextLine(0, "H: Left Aligned");         // Set the header text
+    dynTextWidget_LeftTop_RightMiddle->SetDynamicTextLine(1, "Right Aligned in Middle"); // Set the line below the header
+    addWidget(dynTextWidget_LeftTop_RightMiddle, 3000, "DynamicText_LeftTop_RightMiddle");
+    logInfoP("Added Dynamic Text widget with left top and right middle alignment to the display queue.");
+
+    // Example Widget: Print all possible characters on the display
+    Widget* dynTextWidget_AllChars = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+    dynTextWidget_AllChars->textLines[0].textSize = 1; // Set the text size for the header
+    dynTextWidget_AllChars->SetDynamicTextLines(       // Set the text lines and the information to display
+        {
+            "All Characters:",                   // Header
+            "0123456789",                        // Line 1
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",        // Line 2
+            "abcdefghijklmnopqrstuvwxyz",        // Line 3
+            "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" // Line 4
+        });
+    addWidget(dynTextWidget_AllChars, 3000, "DynamicText_AllChars");
+    logInfoP("Added Dynamic Text widget with all characters to the display queue.");
+
+    #ifdef QRCODE_WIDGET
+    // Example Widget: Show a QR code
+    Widget* QRCodeWidget = new Widget(Widget::DisplayMode::QR_CODE);                 // Create a new QR code widget
+    QRCodeWidget->qrCodeWidget.setUrl("https://www.openknx.de");                     // Set the URL for the QR code
+    QRCodeWidget->qrCodeWidget.setAlign(QRCodeWidget::QRCodeAlignPos::ALIGN_CENTER); // Set the alignment for the QR code
+    addWidget(QRCodeWidget, 15000, "QRCode",
+              DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget. The status flag will be displayed immediately
+                  DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                  DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display of the set duration time. Here 10sec.
+    logInfoP("Added QR-Code widget to the display queue. With link: https://www.openknx.de");
+    #endif
+
+    // Example Widget: Console Widget. This widget is used to display a console simulatted output.
+    Widget* myConsoleWidget = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
+    myConsoleWidget->setAllowEmptyTextLines(true); // Allow empty text lines
+    myConsoleWidget->textLines[0].textSize = 1;    // Set the text size for the header
+    myConsoleWidget->textLines[0].alignPos = TextDynamicAlign::ALIGN_LEFT;
+    myConsoleWidget->textLines[0].textColor = SSD1306_WHITE;
+    myConsoleWidget->textLines[0].bgColor = SSD1306_BLACK;
+    addWidget(myConsoleWidget, 30000, "consoleWidget");
+    logInfoP("Added Console Widget to the display queue.");
+
+    _demoWidgetCmdTests = true;
+}
+
+void DeviceDisplay::demoTestWidgetsLoop()
+{
+    if (delayCheck(_demoTestWidgets_lastUpdateTime2, 1000) && isWidgetCurrentlyDisplayed("SysInfo")) // Update the display every second!
+    {
+        Widget* sysInfoWidget = getWidgetInfo("SysInfo")->widget;
+        // Do the update only if the widget is currently displayed
+
+        if (sysInfoWidget != nullptr)
+        {
+            sysInfoWidget->SetDynamicTextLine(1, String("Uptime: " + String(openknx.logger.buildUptime().c_str())).c_str());
+            sysInfoWidget->SetDynamicTextLine(4, String("Addr.: " + String(openknx.info.humanIndividualAddress().c_str())).c_str());
+            sysInfoWidget->SetDynamicTextLine(5, String("Free mem: " + String((float)freeMemory() / 1024) + " KiB").c_str());
+            sysInfoWidget->SetDynamicTextLine(6, String("    (min. " + String((float)openknx.common.freeMemoryMin() / 1024) + " KiB)").c_str());
+        }
+    }
+    if (delayCheck(_demoTestWidgets_lastUpdateTime, 1000) && isWidgetCurrentlyDisplayed("consoleWidget")) // Update the display every second!
+    {
+        if (_demoTestWidgets_currentLineIndex < _demoTestWidgets_numLines)
+        {
+            DeviceDisplay::WidgetInfo* consoleWidgetInfo = getWidgetInfo("consoleWidget");
+            Widget* consoleWidget = consoleWidgetInfo->widget;
+            if (consoleWidget != nullptr)
+            {
+                consoleWidget->appendLine(_demoTestWidgets_conversationLines[_demoTestWidgets_currentLineIndex]);
+                _demoTestWidgets_currentLineIndex++;
+            }
+        }
+        else
+        {
+            _demoTestWidgets_currentLineIndex = 0;
+        }
+        _demoTestWidgets_lastUpdateTime = millis();
+    }
+}
+#endif
