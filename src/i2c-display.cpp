@@ -72,6 +72,20 @@ void i2cDisplay::setup()
     // ToDo: Setup OpenKNX Hardware Specific i2c settings, like SDA, SCL, i2c address, etc.
 }
 
+// update
+void i2cDisplay::loop()
+{
+    if (_loopColumn < lcdSettings.width && openknx.freeLoopTime())
+    {
+        updateCols(_loopColumn, _loopColumn+4-1);
+        _loopColumn += 4;
+    }
+    else if (_loopColumn == 0xff)
+    {
+        _loopColumn = 0;
+    }
+}
+
 /**
  * @brief Set the display width in pixels. Default is 128.
  *
@@ -274,6 +288,9 @@ void i2cDisplay::SetDisplayPreCharge(uint8_t precharge) // Set the display prech
 void i2cDisplay::displayBuff()
 {
     memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
+    _loopColumn = 0xff;
+
+    /*
     for (int page = 0; page < lcdSettings.height / 8; page++)    // Loop through the pages of the display
     {
         int startColumn = lcdSettings.width; // Set the start column to the width of the display
@@ -294,6 +311,7 @@ void i2cDisplay::displayBuff()
         if (pageChanged) // Update only if the page has changed. This will reduce the number of updates
             updatePage(page, startColumn, endColumn);
     }
+    */
 }
 
 /**
@@ -342,6 +360,33 @@ void i2cDisplay::updatePage(int page, int startCol, int endCol)
     for (int col = startCol; col <= endCol; col++)       // Loop through the columns
     {
         CustomI2C->write(_curDispBuffer[page * lcdSettings.width + col]); // Write the data to the display
+    }
+    CustomI2C->endTransmission(); // End the transmission
+}
+
+/**
+ * @brief UPdate the page of the display.
+ * @param page to update
+ * @param startCol of the page
+ * @param endCol of the page
+ */
+void i2cDisplay::updateCols(int startCol, int endCol)
+{
+    if (startCol > endCol) return;                       // Return if the start column is greater than the end column
+    sendCommand(SSD1306_PAGEADDR);                       // Set the page address
+    sendCommand(0);                                      // Set the page
+    sendCommand((lcdSettings.height / 8) - 1);           // Set the page
+    sendCommand(SSD1306_COLUMNADDR);                     // Set the column address
+    sendCommand(startCol);                               // Set the start column
+    sendCommand(endCol);                                 // Set the end column
+    CustomI2C->beginTransmission(lcdSettings.i2cadress); // Begin the transmission of the changes
+    CustomI2C->write(0x40);                              // Set the data mode
+    for (int page = 0; page < lcdSettings.height / 8; page++)    // Loop through the pages of the display
+    {
+        for (int col = startCol; col <= endCol; col++)       // Loop through the columns
+        {
+            CustomI2C->write(_curDispBuffer[page * lcdSettings.width + col]); // Write the data to the display
+        }
     }
     CustomI2C->endTransmission(); // End the transmission
 }

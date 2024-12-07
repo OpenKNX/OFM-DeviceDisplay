@@ -35,6 +35,7 @@ class i2cDisplay
     TwoWire* CustomI2C;        // I2C object. Must be a pointer to be able to use unique_ptr for it as well
 
     void setup();                                           // Setup method for initialization
+    void loop();
     bool InitDisplay();                                     // Initialize the display
     bool InitDisplay(ScreenSettings DeviceDisplaySettings); // Initialize the display with custom settings
     void SetDisplayWidth(uint8_t width);                    // Set the display width
@@ -65,9 +66,11 @@ class i2cDisplay
     uint16_t _sizeDispBuff;   
     uint8_t* _curDispBuffer;  // Buffer size!
     uint8_t* _prevDispBuffer; // Buffer size!
+    uint8_t _loopColumn = 0xfe;
     bool initDisplayBuffer();
     void updateArea(int x, int y, int byteIndex);
     void sendCommand(uint8_t command);
     void displayFullBuffer();
+    void updateCols(int startCol, int endCol);
     void updatePage(int page, int startCol, int endCol);
 };

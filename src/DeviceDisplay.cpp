@@ -151,6 +151,8 @@ void DeviceDisplay::loop(bool configured)
     }
     
     LoopWidgets(); // Switch widgets based on timing
+
+    displayModule.loop();
 }
 
 /**
