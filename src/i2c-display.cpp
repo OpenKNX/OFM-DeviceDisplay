@@ -52,6 +52,10 @@ bool i2cDisplay::InitDisplay()
     {
         return false; // Display not found or not initialized. Check the wiring and i2c address
     }
+
+    display->clearDisplay(); // Clear initialy the display buffer. Previous arcifacts could be displayed
+    display->display();      // Display the cleared buffer
+
     return true;
 }
 /**
