@@ -9,6 +9,7 @@
  */
 #include "Widget.h"
 #include "i2c-Display.h"
+#include "OpenKNX/Stat/RuntimeStat.h"
 
 #define DeviceDisplay_Display_Name "DeviceDisplay"
 #define DeviceDisplay_Display_Version "0.0.1"
@@ -17,6 +18,17 @@
 
 class DeviceDisplay : public OpenKNX::Module
 {
+  private:
+#ifdef OPENKNX_RUNTIME_STAT
+    OpenKNX::Stat::RuntimeStat _loopRuntimesDim;
+    OpenKNX::Stat::RuntimeStat _loopRuntimesProgmode;
+    OpenKNX::Stat::RuntimeStat _loopWidgets;
+    #ifdef DEMO_WIDGET_CMD_TESTS
+    OpenKNX::Stat::RuntimeStat _loopDemoWidgets;
+    #endif
+    OpenKNX::Stat::RuntimeStat _loopDisplayModule;
+#endif  
+
   public:
     // Regular widget is part of the widget queue and will be displayed in sequence
     // Status widget is a special widget that can be displayed at any time. It can be used for error messages or status information

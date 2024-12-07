@@ -105,6 +105,8 @@ void DeviceDisplay::loop(bool configured)
         logErrorP("Display not initialized");
         return;
     }
+
+    RUNTIME_MEASURE_BEGIN(_loopRuntimesDim);
     static uint32_t lastDisplayDimTimer_ = millis();
     static bool isDimmed = false;
 
@@ -126,7 +128,9 @@ void DeviceDisplay::loop(bool configured)
             isDimmed = false;
         }
     }
+    RUNTIME_MEASURE_END(_loopRuntimesDim);
 
+    RUNTIME_MEASURE_BEGIN(_loopRuntimesProgmode);
     static bool wasInProgMode = false;
     if (knx.progMode())
     {
@@ -149,13 +153,21 @@ void DeviceDisplay::loop(bool configured)
             wasInProgMode = false;
         }
     }
+    RUNTIME_MEASURE_END(_loopRuntimesProgmode);
 
+    RUNTIME_MEASURE_BEGIN(_loopWidgets);
     LoopWidgets(); // Switch widgets based on timing
+    RUNTIME_MEASURE_END(_loopWidgets);
+
 #ifdef DEMO_WIDGET_CMD_TESTS
+    RUNTIME_MEASURE_BEGIN(_loopDemoWidgets);
     if (_demoWidgetCmdTests) demoTestWidgetsLoop(); // Demo test widgets loop
+    RUNTIME_MEASURE_END(_loopDemoWidgets);
 #endif
 
+    RUNTIME_MEASURE_BEGIN(_loopDisplayModule);
     displayModule.loop();
+    RUNTIME_MEASURE_END(_loopDisplayModule);
 }
 
 /**
@@ -648,6 +660,25 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             bRet = true;
         }
 #endif
+#ifdef OPENKNX_RUNTIME_STAT
+        else if (command.compare(4, 7, "runtime") == 0)
+        {
+            logInfoP("DeviceDisplay Runtime Statistics: (Uptime=%dms)", millis());
+            logIndentUp();
+            OpenKNX::Stat::RuntimeStat::showStatHeader();
+
+            _loopRuntimesDim.showStat("dim", 0, true, true);
+            _loopRuntimesProgmode.showStat("progmode", 0, true, true);
+            _loopWidgets.showStat("widgets", 0, true, true);
+    #ifdef DEMO_WIDGET_CMD_TESTS
+            _loopDemoWidgets.showStat("demo_widgets", 0, true, true);
+    #endif
+            _loopDisplayModule.showStat("loop_only", 0, true, true);
+            logIndentDown();
+            bRet = true;
+            // return true;
+        }
+#endif 
         else
         {
             openknx.logger.begin();
