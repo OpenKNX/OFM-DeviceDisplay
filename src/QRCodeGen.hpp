@@ -191,11 +191,10 @@ class QRCodeWidget
 
     void draw()
     {
-        if (!_qrCodeGenerated) generateQRCode(); // Generate the QR code only once, to avoid unnecessary processing
-        else
+        if (!_qrCodeGenerated) 
         {
-            _display->displayBuff(); // Display the buffer on the display
-            //_display->display->display(); // Show the QR code on the display
+            generateQRCode(); // Generate the QR code only once, to avoid unnecessary processing
+            _display->displayBuff(); // Display the buffer on the display in the next loop
         }
     }
 
