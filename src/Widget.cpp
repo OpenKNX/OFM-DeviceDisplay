@@ -651,6 +651,11 @@ void Widget::showProgrammingMode(i2cDisplay *display)
         _showProgrammingMode_last_Blink = currentTime;                          // Update the last blink time
         _showProgrammingMode_showProgMode = !_showProgrammingMode_showProgMode; // Toggle the blink state (show/hide text)
     }
+    else
+    {
+        // nothing changed!
+        return;
+    }
 
     display->display->clearDisplay(); // Clear the display
     display->display->setTextColor(SSD1306_WHITE);
