@@ -83,18 +83,32 @@ void i2cDisplay::loop()
 {
     if (__loopColumnMethod) // Check if the loop column method is enabled
     {
-
-        if (_loopColumn <= (lcdSettings.width - _loopColumnCount))
+        if (_loopColState == 2) // _loopColumn <= (lcdSettings.width - _loopColumnCount))
         {
-            if (openknx.freeLoopTime())
+            if (openknx.freeLoopTime() || _loopColMisses > 3)
             {
-                updateCols(_loopColumn, _loopColumn + _loopColumnCount - 1);
-                _loopColumn += _loopColumnCount;
+                _loopColMisses = 0;
+
+                // TODO ensure width is `n * _loopColumnCount`
+                updateCols(_loopColIndex, _loopColIndex + _loopColumnCount - 1);
+                _loopColIndex = (_loopColIndex + _loopColumnCount) % lcdSettings.width;
+                _loopColsWritten += _loopColumnCount;
+                if (_loopColsWritten >= lcdSettings.width)
+                {
+                    // all written => 3:completed
+                    _loopColState = 3;
+                }
+            }
+            else
+            {
+                _loopColMisses++;
+                logError("DeviceDisplay", "Warning: i2cDisplay::loop() called without freeLoopTime available: %d", _loopColMisses);
             }
         }
-        else if (_loopColumn == 0xff)
+        else if (_loopColState == 1)
         {
-            _loopColumn = 0;
+            // 1:next => 2:active
+            _loopColState = 2;
         }
     } // End of loop column method
 }
@@ -306,7 +320,24 @@ void i2cDisplay::displayBuff()
         if (memcmp(_curDispBuffer, display->getBuffer(), _sizeDispBuff) != 0)
         {
             memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
-            _loopColumn = 0xff;
+
+            // plan for next, as long as not already planned
+            if (_loopColState == 1)
+            {
+                logError("DeviceDisplay", "Warning: i2cDisplay::displayBuff() immediately called again before start!");
+                _loopColState = 2;
+            }
+            else
+            {
+                if (_loopColState == 2)
+                {
+                    logError("DeviceDisplay", "Warning: i2cDisplay::displayBuff() called while still painting!");
+                }
+                _loopColState = 1;
+            }
+
+            // reset written
+            _loopColsWritten = 0;
         }
         else
         {
