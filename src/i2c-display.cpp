@@ -378,10 +378,9 @@ void i2cDisplay::updatePage(int page, int startCol, int endCol)
 }
 
 /**
- * @brief UPdate the page of the display.
- * @param page to update
- * @param startCol of the page
- * @param endCol of the page
+ * @brief Update the display partially, by columns
+ * @param startCol - the first column to update; Allowed values [0; lcdSettings.width - 1]
+ * @param endCol - the last (included) column to update; Allowed values [0; lcdSettings.width - 1]
  */
 void i2cDisplay::updateCols(int startCol, int endCol)
 {
