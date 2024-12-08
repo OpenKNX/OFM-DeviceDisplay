@@ -609,9 +609,10 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
             (display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + 20 /*SHIFT_TO_BOTTOM*/) / 2,
             logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,
             LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
+
+        display->displayBuff(); // Update the display with the rendered content
+        // display->display->display(); // Update the display with the rendered content
     }
-    display->displayBuff(); // Update the display with the rendered content
-    // display->display->display(); // Update the display with the rendered content
 }
 
 /**
