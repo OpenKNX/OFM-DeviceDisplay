@@ -628,13 +628,46 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
  */
 void Widget::ShowBootLogo(i2cDisplay *display)
 {
-    display->display->clearDisplay();
-    display->display->drawBitmap(
-        (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
-        (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
-        logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
-    // display->display->display();
-    display->displayBuff();
+    // TODO/looptime: check direct usage of full-display buffer as alternative
+
+    // TODO cleanup after extraction to own widget class...
+
+    /** Number of rows to draw in one loop() call */
+    const uint8_t stepHeight = 8; // TODO find "best" size (note: 8 results in ~1.6ms max loop time)
+
+    if (_drawBootlogo)
+    {
+        // reduce loop-time by split into multiple loop-calls, as drawing the bitmap is slow
+        switch (_drawBootlogo)
+        {
+            case 1:
+                display->display->clearDisplay();
+                _drawBootlogo = 2;
+                break;
+            case 2:
+                // TODO check generalization and extraction of partial image drawing
+                if (_yStart < logo_OpenKNX_HEIGHT)
+                {
+                    display->display->drawBitmap(
+                        (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
+                        (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2 + _yStart,
+                        logo_OpenKNX + _yStart * ((logo_OpenKNX_WIDTH + 7) / 8),
+                        logo_OpenKNX_WIDTH,
+                        MIN(logo_OpenKNX_HEIGHT - _yStart, stepHeight),
+                        1
+                    );
+                    _yStart += stepHeight;
+                    break;
+                }
+                _drawBootlogo = 3;
+                // fall through, when full height was drawn in last loop()
+            case 3:
+                display->displayBuff();
+                // fall through, to stop drawing
+            default:
+                _drawBootlogo = 0;
+        }
+    }
 }
 
 /**

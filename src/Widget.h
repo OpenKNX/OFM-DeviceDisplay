@@ -140,6 +140,17 @@ class Widget
     uint16_t calculateCursorX(i2cDisplay *display, const lcdText *line);                                                                                                                                                // Calculate the X position of the cursor for a text line
     uint16_t calculateCursorY(i2cDisplay *display, const lcdText *line, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &middleStartY, uint16_t availableMiddleHeight);                                 // Calculate the Y position of the cursor for a text line
 
+    /** state of partial drawing:
+     * 0=no drawing / done, 
+     * 1=clear, 
+     * 2=partial draw image, 
+     * 3=start sending to display, 
+     */ 
+    uint8_t _drawBootlogo = 1; // TODO check using enum
+
+    /** Row to start drawing in one loop() call */
+    uint8_t _yStart = 0;
+
     // Boot logo and OpenKNX logo
     void OpenKNXLogo(i2cDisplay *display);  // Show the OpenKNX logo on the display
     void ShowBootLogo(i2cDisplay *display); // Show the boot logo on the display
