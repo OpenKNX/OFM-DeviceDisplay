@@ -163,7 +163,7 @@ class QRCodeWidget
                 _display->display->drawRect(_qrAlignment.offsetX + x * pixelSize,               // X position
                                             _qrAlignment.offsetY + y * pixelSize,               // Y position
                                             pixelSize, pixelSize,                               // Width and height
-                                            qrcodegen_getModule(qrcode, x, y) ? BLACK : WHITE); // Color of the pixel
+                                            qrcodegen_getModule(qrcode, x, y) ? WHITE : BLACK); // Color of the pixel
             }
         }
 #ifdef QRCODE_WIDGET_ICON
