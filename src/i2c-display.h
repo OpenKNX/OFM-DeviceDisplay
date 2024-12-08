@@ -61,12 +61,16 @@ class i2cDisplay
     void SetDisplayPreCharge(uint8_t precharge);               // Set the display precharge
     void displayBuff();                                        // Funktion, die den Puffer mit dem aktuellen Zustand vergleicht und nur geänderte Bereiche sendet
 
+
+    inline void __setLoopColumnMethod(bool loopColumnMethod) { __loopColumnMethod = loopColumnMethod; } // Set the loop column method
   private:
     // #define BUFFER_SIZE (128 * ((64 + 7 ) / 8))
     uint16_t _sizeDispBuff;   
     uint8_t* _curDispBuffer;  // Buffer size!
     uint8_t* _prevDispBuffer; // Buffer size!
 
+    // __TESTING__
+    bool __loopColumnMethod = false; // Enable the loop column for partial display updates. Default is false. 
     /**
      * Number of Columns to partial transfer to display
      * Values 2^n only, value >32 will not update all pages!

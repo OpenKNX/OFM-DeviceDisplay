@@ -621,18 +621,13 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
  */
 void Widget::ShowBootLogo(i2cDisplay *display)
 {
-    static bool showLogo = false; // Flag to ensure the logo is drawn only once
-    if (!showLogo)
-    {
-        display->display->clearDisplay();
-        display->display->drawBitmap(
-            (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
-            (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
-            logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
-        // display->display->display();
-        display->displayBuff();
-        showLogo = true;
-    }
+    display->display->clearDisplay();
+    display->display->drawBitmap(
+        (display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
+        (display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2, logo_OpenKNX,
+        logo_OpenKNX_WIDTH, logo_OpenKNX_HEIGHT, 1);
+    // display->display->display();
+    display->displayBuff();
 }
 
 /**
@@ -762,235 +757,235 @@ void Widget::showMatrixScreensaver(i2cDisplay *display)
  */
 void Widget::showPongScreensaver(i2cDisplay *display)
 {
-  const uint8_t PADDLE_WIDTH = 2;   // Paddle width in pixels
-  const uint8_t PADDLE_HEIGHT = 10; // Paddle height in pixels
-  const uint8_t BALL_SIZE = 2;      // Ball size in pixels
-  const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
-  const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
+    const uint8_t PADDLE_WIDTH = 2;   // Paddle width in pixels
+    const uint8_t PADDLE_HEIGHT = 10; // Paddle height in pixels
+    const uint8_t BALL_SIZE = 2;      // Ball size in pixels
+    const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
+    const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
 
-  static uint16_t paddleLeftY = SCREEN_HEIGHT / 2 - PADDLE_HEIGHT / 2;
-  static uint16_t paddleRightY = SCREEN_HEIGHT / 2 - PADDLE_HEIGHT / 2;
-  static uint16_t ballX = SCREEN_WIDTH / 2;
-  static uint16_t ballY = SCREEN_HEIGHT / 2;
-  static int ballSpeedX = -1; // Ball Speed X (horizontal)
-  static int ballSpeedY = 1;  // Ball Speed Y (vertical)
+    static uint16_t paddleLeftY = SCREEN_HEIGHT / 2 - PADDLE_HEIGHT / 2;
+    static uint16_t paddleRightY = SCREEN_HEIGHT / 2 - PADDLE_HEIGHT / 2;
+    static uint16_t ballX = SCREEN_WIDTH / 2;
+    static uint16_t ballY = SCREEN_HEIGHT / 2;
+    static int ballSpeedX = -1; // Ball Speed X (horizontal)
+    static int ballSpeedY = 1;  // Ball Speed Y (vertical)
 
-  // Check if enough time has passed to update the screensaver
-  unsigned long currentTime = millis();
-  if (currentTime - _lastUpdateScreenSaver >= 50)
-  {
-    // Ball movement
-    ballX += ballSpeedX;
-    ballY += ballSpeedY;
-
-    // Ball collides with top and bottom walls
-    if (ballY <= 0 || ballY >= SCREEN_HEIGHT - BALL_SIZE)
+    // Check if enough time has passed to update the screensaver
+    unsigned long currentTime = millis();
+    if (currentTime - _lastUpdateScreenSaver >= 50)
     {
-      ballSpeedY = -ballSpeedY; // Change ball direction
+        // Ball movement
+        ballX += ballSpeedX;
+        ballY += ballSpeedY;
+
+        // Ball collides with top and bottom walls
+        if (ballY <= 0 || ballY >= SCREEN_HEIGHT - BALL_SIZE)
+        {
+            ballSpeedY = -ballSpeedY; // Change ball direction
+        }
+
+        // Ball collides with paddles
+        if (ballX <= PADDLE_WIDTH && ballY >= paddleLeftY && ballY <= paddleLeftY + PADDLE_HEIGHT)
+        {
+            ballSpeedX = -ballSpeedX; // Change ball direction
+        }
+        if (ballX >= SCREEN_WIDTH - PADDLE_WIDTH - BALL_SIZE && ballY >= paddleRightY && ballY <= paddleRightY + PADDLE_HEIGHT)
+        {
+            ballSpeedX = -ballSpeedX; // Change ball direction
+        }
+
+        // Ball collides with left and right walls (reset ball)
+        if (ballX <= 0 || ballX >= SCREEN_WIDTH)
+        {
+            ballX = SCREEN_WIDTH / 2;
+            ballY = SCREEN_HEIGHT / 2;
+            ballSpeedX = -ballSpeedX;
+            ballSpeedY = (random(0, 2) == 0 ? 1 : -1) * random(1, 3); // Random direction
+        }
+
+        // Paddles follow the ball
+        if (ballY < paddleLeftY + PADDLE_HEIGHT / 2)
+        {
+            paddleLeftY -= 1;
+        }
+        else if (ballY > paddleLeftY + PADDLE_HEIGHT / 2)
+        {
+            paddleLeftY += 1;
+        }
+
+        if (ballY < paddleRightY + PADDLE_HEIGHT / 2)
+        {
+            paddleRightY -= 1;
+        }
+        else if (ballY > paddleRightY + PADDLE_HEIGHT / 2)
+        {
+            paddleRightY += 1;
+        }
+
+        // Constrain paddle movement to the screen area
+        paddleLeftY = constrain(paddleLeftY, 0, SCREEN_HEIGHT - PADDLE_HEIGHT);
+        paddleRightY = constrain(paddleRightY, 0, SCREEN_HEIGHT - PADDLE_HEIGHT);
+
+        // Clear display
+        display->display->clearDisplay();
+
+        // Draw left paddle
+        display->display->fillRect(0, paddleLeftY, PADDLE_WIDTH, PADDLE_HEIGHT, WHITE);
+
+        // Draw right paddle
+        display->display->fillRect(SCREEN_WIDTH - PADDLE_WIDTH, paddleRightY, PADDLE_WIDTH, PADDLE_HEIGHT, WHITE);
+
+        // Draw ball
+        display->display->fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE, WHITE);
+
+        // Update display with changes
+        display->displayBuff();
+
+        // Update the last update time
+        _lastUpdateScreenSaver = currentTime;
     }
-
-    // Ball collides with paddles
-    if (ballX <= PADDLE_WIDTH && ballY >= paddleLeftY && ballY <= paddleLeftY + PADDLE_HEIGHT)
-    {
-      ballSpeedX = -ballSpeedX; // Change ball direction
-    }
-    if (ballX >= SCREEN_WIDTH - PADDLE_WIDTH - BALL_SIZE && ballY >= paddleRightY && ballY <= paddleRightY + PADDLE_HEIGHT)
-    {
-      ballSpeedX = -ballSpeedX; // Change ball direction
-    }
-
-    // Ball collides with left and right walls (reset ball)
-    if (ballX <= 0 || ballX >= SCREEN_WIDTH)
-    {
-      ballX = SCREEN_WIDTH / 2;
-      ballY = SCREEN_HEIGHT / 2;
-      ballSpeedX = -ballSpeedX;
-      ballSpeedY = (random(0, 2) == 0 ? 1 : -1) * random(1, 3); // Random direction
-    }
-
-    // Paddles follow the ball
-    if (ballY < paddleLeftY + PADDLE_HEIGHT / 2)
-    {
-      paddleLeftY -= 1;
-    }
-    else if (ballY > paddleLeftY + PADDLE_HEIGHT / 2)
-    {
-      paddleLeftY += 1;
-    }
-
-    if (ballY < paddleRightY + PADDLE_HEIGHT / 2)
-    {
-      paddleRightY -= 1;
-    }
-    else if (ballY > paddleRightY + PADDLE_HEIGHT / 2)
-    {
-      paddleRightY += 1;
-    }
-
-    // Constrain paddle movement to the screen area
-    paddleLeftY = constrain(paddleLeftY, 0, SCREEN_HEIGHT - PADDLE_HEIGHT);
-    paddleRightY = constrain(paddleRightY, 0, SCREEN_HEIGHT - PADDLE_HEIGHT);
-
-    // Clear display
-    display->display->clearDisplay();
-
-    // Draw left paddle
-    display->display->fillRect(0, paddleLeftY, PADDLE_WIDTH, PADDLE_HEIGHT, WHITE);
-
-    // Draw right paddle
-    display->display->fillRect(SCREEN_WIDTH - PADDLE_WIDTH, paddleRightY, PADDLE_WIDTH, PADDLE_HEIGHT, WHITE);
-
-    // Draw ball
-    display->display->fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE, WHITE);
-
-    // Update display with changes
-    display->displayBuff();
-
-    // Update the last update time
-    _lastUpdateScreenSaver = currentTime;
-  }
 }
 
 void Widget::showClockScreensaver(i2cDisplay *display, bool rounded)
 {
-  const unsigned long UPDATE_INTERVAL = 1000; // 1 second
+    const unsigned long UPDATE_INTERVAL = 1000; // 1 second
 
-  unsigned long currentTime = millis();
-  if (currentTime - _lastUpdateScreenSaver < UPDATE_INTERVAL)
-  {
-    return; // Not yet time to update
-  }
-  _lastUpdateScreenSaver = currentTime; // Reset timer
+    unsigned long currentTime = millis();
+    if (currentTime - _lastUpdateScreenSaver < UPDATE_INTERVAL)
+    {
+        return; // Not yet time to update
+    }
+    _lastUpdateScreenSaver = currentTime; // Reset timer
 
-  const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
-  const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
-  const uint16_t CENTER_X = SCREEN_WIDTH / 2;
-  const uint16_t CENTER_Y = SCREEN_HEIGHT / 2;
-  const uint16_t CLOCK_RADIUS = min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2 - 5; // For round clock
+    const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
+    const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
+    const uint16_t CENTER_X = SCREEN_WIDTH / 2;
+    const uint16_t CENTER_Y = SCREEN_HEIGHT / 2;
+    const uint16_t CLOCK_RADIUS = min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2 - 5; // For round clock
 
-  uint16_t hours, minutes, seconds;
+    uint16_t hours, minutes, seconds;
 
-  // Get the time or uptime
-  if (openknx.time.isValid())
-  {
-    auto time = openknx.time.getUtcTime();
-    hours = time.hour;
-    minutes = time.minute;
-    seconds = time.second;
-  }
-  else
-  {
-    uint32_t secs = uptime();
-    seconds = secs % 60;
-    secs /= 60;
-    minutes = secs % 60;
-    secs /= 60;
-    hours = secs % 24;
-  }
+    // Get the time or uptime
+    if (openknx.time.isValid())
+    {
+        auto time = openknx.time.getUtcTime();
+        hours = time.hour;
+        minutes = time.minute;
+        seconds = time.second;
+    }
+    else
+    {
+        uint32_t secs = uptime();
+        seconds = secs % 60;
+        secs /= 60;
+        minutes = secs % 60;
+        secs /= 60;
+        hours = secs % 24;
+    }
 
-  // Draw the clock
-  display->display->clearDisplay();
+    // Draw the clock
+    display->display->clearDisplay();
 
-  if (rounded)
-  {
-    // Round clock with dial
-    display->display->drawCircle(CENTER_X, CENTER_Y, CLOCK_RADIUS, WHITE);
+    if (rounded)
+    {
+        // Round clock with dial
+        display->display->drawCircle(CENTER_X, CENTER_Y, CLOCK_RADIUS, WHITE);
 
-    // Hour hand
-    float angleHour = -PI / 2 + (hours % 12 + minutes / 60.0) * (PI / 6);
-    int16_t hourX = CENTER_X + (CLOCK_RADIUS * 0.5) * cos(angleHour);
-    int16_t hourY = CENTER_Y + (CLOCK_RADIUS * 0.5) * sin(angleHour);
-    display->display->drawLine(CENTER_X, CENTER_Y, hourX, hourY, WHITE);
+        // Hour hand
+        float angleHour = -PI / 2 + (hours % 12 + minutes / 60.0) * (PI / 6);
+        int16_t hourX = CENTER_X + (CLOCK_RADIUS * 0.5) * cos(angleHour);
+        int16_t hourY = CENTER_Y + (CLOCK_RADIUS * 0.5) * sin(angleHour);
+        display->display->drawLine(CENTER_X, CENTER_Y, hourX, hourY, WHITE);
 
-    // Minute hand
-    float angleMin = -PI / 2 + (minutes + seconds / 60.0) * (PI / 30);
-    int16_t minX = CENTER_X + (CLOCK_RADIUS * 0.8) * cos(angleMin);
-    int16_t minY = CENTER_Y + (CLOCK_RADIUS * 0.8) * sin(angleMin);
-    display->display->drawLine(CENTER_X, CENTER_Y, minX, minY, WHITE);
+        // Minute hand
+        float angleMin = -PI / 2 + (minutes + seconds / 60.0) * (PI / 30);
+        int16_t minX = CENTER_X + (CLOCK_RADIUS * 0.8) * cos(angleMin);
+        int16_t minY = CENTER_Y + (CLOCK_RADIUS * 0.8) * sin(angleMin);
+        display->display->drawLine(CENTER_X, CENTER_Y, minX, minY, WHITE);
 
-    // Second hand
-    float angleSec = -PI / 2 + seconds * (PI / 30);
-    int16_t secX = CENTER_X + CLOCK_RADIUS * cos(angleSec);
-    int16_t secY = CENTER_Y + CLOCK_RADIUS * sin(angleSec);
-    display->display->drawLine(CENTER_X, CENTER_Y, secX, secY, WHITE);
-  }
-  else
-  {
-    // Rectangular clock
-    const uint8_t FONT_HEIGHT = 8;
-    const uint8_t FONT_WIDTH = 6;
+        // Second hand
+        float angleSec = -PI / 2 + seconds * (PI / 30);
+        int16_t secX = CENTER_X + CLOCK_RADIUS * cos(angleSec);
+        int16_t secY = CENTER_Y + CLOCK_RADIUS * sin(angleSec);
+        display->display->drawLine(CENTER_X, CENTER_Y, secX, secY, WHITE);
+    }
+    else
+    {
+        // Rectangular clock
+        const uint8_t FONT_HEIGHT = 8;
+        const uint8_t FONT_WIDTH = 6;
 
-    char timeString[9]; // HH:MM:SS
-    snprintf(timeString, sizeof(timeString), "%02u:%02u:%02u", hours, minutes, seconds);
+        char timeString[9]; // HH:MM:SS
+        snprintf(timeString, sizeof(timeString), "%02u:%02u:%02u", hours, minutes, seconds);
 
-    // Display time in the center
-    int16_t textWidth = strlen(timeString) * FONT_WIDTH;
-    int16_t startX = (SCREEN_WIDTH - textWidth) / 2;
-    int16_t startY = (SCREEN_HEIGHT - FONT_HEIGHT) / 2;
+        // Display time in the center
+        int16_t textWidth = strlen(timeString) * FONT_WIDTH;
+        int16_t startX = (SCREEN_WIDTH - textWidth) / 2;
+        int16_t startY = (SCREEN_HEIGHT - FONT_HEIGHT) / 2;
 
-    display->display->setCursor(startX, startY);
-    display->display->setTextSize(1);
-    display->display->setTextColor(WHITE);
-    display->display->print(timeString);
-  }
+        display->display->setCursor(startX, startY);
+        display->display->setTextSize(1);
+        display->display->setTextColor(WHITE);
+        display->display->print(timeString);
+    }
 
-  display->displayBuff();
+    display->displayBuff();
 }
 
 void Widget::showRainfallScreensaver(i2cDisplay *display, uint8_t intensity)
 {
-  static unsigned long _lastUpdateScreenSaver = 0;
-  const unsigned long UPDATE_INTERVAL = 25; // Speed of the rain
-  const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
-  const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
-  const uint8_t MAX_RAIN_DROPS = 100; // Maximum number of raindrops
+    static unsigned long _lastUpdateScreenSaver = 0;
+    const unsigned long UPDATE_INTERVAL = 25; // Speed of the rain
+    const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
+    const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
+    const uint8_t MAX_RAIN_DROPS = 100; // Maximum number of raindrops
 
-  unsigned long currentTime = millis();
-  if (currentTime - _lastUpdateScreenSaver < UPDATE_INTERVAL)
-  {
-    return; // Not yet time to update
-  }
-  _lastUpdateScreenSaver = currentTime; // Reset timer
-
-  // Current number of drops based on intensity
-  uint8_t dropCount = map(intensity, 1, 10, 5, MAX_RAIN_DROPS);
-
-  // Store drop positions
-  static uint8_t dropsX[MAX_RAIN_DROPS];
-  static uint8_t dropsY[MAX_RAIN_DROPS];
-  static bool initialized = false;
-
-  // Initialize drops
-  if (!initialized)
-  {
-    for (uint8_t i = 0; i < MAX_RAIN_DROPS; i++)
+    unsigned long currentTime = millis();
+    if (currentTime - _lastUpdateScreenSaver < UPDATE_INTERVAL)
     {
-      dropsX[i] = random(SCREEN_WIDTH);
-      dropsY[i] = random(SCREEN_HEIGHT);
+        return; // Not yet time to update
     }
-    initialized = true;
-  }
+    _lastUpdateScreenSaver = currentTime; // Reset timer
 
-  // Draw the rain
-  display->display->clearDisplay();
+    // Current number of drops based on intensity
+    uint8_t dropCount = map(intensity, 1, 10, 5, MAX_RAIN_DROPS);
 
-  for (uint8_t i = 0; i < dropCount; i++)
-  {
-    // Draw drop
-    display->display->drawPixel(dropsX[i], dropsY[i], WHITE);
+    // Store drop positions
+    static uint8_t dropsX[MAX_RAIN_DROPS];
+    static uint8_t dropsY[MAX_RAIN_DROPS];
+    static bool initialized = false;
 
-    // Move drop down
-    dropsY[i]++;
-
-    // If the drop reaches the bottom of the screen, restart it at the top
-    if (dropsY[i] >= SCREEN_HEIGHT)
+    // Initialize drops
+    if (!initialized)
     {
-      dropsX[i] = random(SCREEN_WIDTH);
-      dropsY[i] = 0;
+        for (uint8_t i = 0; i < MAX_RAIN_DROPS; i++)
+        {
+            dropsX[i] = random(SCREEN_WIDTH);
+            dropsY[i] = random(SCREEN_HEIGHT);
+        }
+        initialized = true;
     }
-  }
 
-  display->displayBuff();
+    // Draw the rain
+    display->display->clearDisplay();
+
+    for (uint8_t i = 0; i < dropCount; i++)
+    {
+        // Draw drop
+        display->display->drawPixel(dropsX[i], dropsY[i], WHITE);
+
+        // Move drop down
+        dropsY[i]++;
+
+        // If the drop reaches the bottom of the screen, restart it at the top
+        if (dropsY[i] >= SCREEN_HEIGHT)
+        {
+            dropsX[i] = random(SCREEN_WIDTH);
+            dropsY[i] = 0;
+        }
+    }
+
+    display->displayBuff();
 }
 
 void Widget::showMatrixScreensaverP(i2cDisplay *display, uint8_t intensity)
@@ -1005,7 +1000,7 @@ void Widget::showMatrixScreensaverP(i2cDisplay *display, uint8_t intensity)
     unsigned long currentTime = millis();
     if (currentTime - _lastUpdateScreenSaver < UPDATE_INTERVAL)
     {
-      return; // Not yet time to update
+        return; // Not yet time to update
     }
     _lastUpdateScreenSaver = currentTime; // Reset timer
 
@@ -1017,12 +1012,12 @@ void Widget::showMatrixScreensaverP(i2cDisplay *display, uint8_t intensity)
     // Initialize
     if (!initialized)
     {
-      for (uint8_t i = 0; i < COLUMN_COUNT; i++)
-      {
-        columnHeads[i] = random(SCREEN_HEIGHT);        // Start at random positions
-        columnLengths[i] = random(3, MAX_TAIL_LENGTH); // Random length
-      }
-      initialized = true;
+        for (uint8_t i = 0; i < COLUMN_COUNT; i++)
+        {
+            columnHeads[i] = random(SCREEN_HEIGHT);        // Start at random positions
+            columnLengths[i] = random(3, MAX_TAIL_LENGTH); // Random length
+        }
+        initialized = true;
     }
 
     // Clear Display
@@ -1031,27 +1026,27 @@ void Widget::showMatrixScreensaverP(i2cDisplay *display, uint8_t intensity)
     // Draw the matrix
     for (uint8_t col = 0; col < COLUMN_COUNT; col++)
     {
-      int8_t head = columnHeads[col];
-      uint8_t length = columnLengths[col];
+        int8_t head = columnHeads[col];
+        uint8_t length = columnLengths[col];
 
-      // Draw the "tail" for this column
-      for (uint8_t offset = 0; offset < length; offset++)
-      {
-        int8_t y = head - offset;
-        if (y >= 0 && y < SCREEN_HEIGHT)
+        // Draw the "tail" for this column
+        for (uint8_t offset = 0; offset < length; offset++)
         {
-          uint8_t brightness = 255 - (offset * (255 / length)); // Brightness decreases
-          display->display->drawPixel(col, y, brightness > 128 ? WHITE : BLACK);
+            int8_t y = head - offset;
+            if (y >= 0 && y < SCREEN_HEIGHT)
+            {
+                uint8_t brightness = 255 - (offset * (255 / length)); // Brightness decreases
+                display->display->drawPixel(col, y, brightness > 128 ? WHITE : BLACK);
+            }
         }
-      }
 
-      // Update column position
-      columnHeads[col]++;
-      if (columnHeads[col] - columnLengths[col] >= SCREEN_HEIGHT)
-      {
-        columnHeads[col] = 0;
-        columnLengths[col] = random(3, MAX_TAIL_LENGTH); // New length for the next cycle
-      }
+        // Update column position
+        columnHeads[col]++;
+        if (columnHeads[col] - columnLengths[col] >= SCREEN_HEIGHT)
+        {
+            columnHeads[col] = 0;
+            columnLengths[col] = random(3, MAX_TAIL_LENGTH); // New length for the next cycle
+        }
     }
 
     // Update Display
@@ -1141,68 +1136,68 @@ void Widget::show3DCubeScreensaver(i2cDisplay *display)
 
 void Widget::showStarfieldScreensaver(i2cDisplay *display, uint8_t intensity)
 {
-  static unsigned long lastUpdate = 0;
-  const unsigned long UPDATE_INTERVAL = map(intensity, 1, 10, 100, 20); // Speed of the screensaver
-  const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
-  const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
-  const uint16_t CENTER_X = SCREEN_WIDTH / 2;
-  const uint16_t CENTER_Y = SCREEN_HEIGHT / 2;
-  const int STAR_COUNT = intensity * 10;
+    static unsigned long lastUpdate = 0;
+    const unsigned long UPDATE_INTERVAL = map(intensity, 1, 10, 100, 20); // Speed of the screensaver
+    const uint16_t SCREEN_WIDTH = display->GetDisplayWidth();
+    const uint16_t SCREEN_HEIGHT = display->GetDisplayHeight();
+    const uint16_t CENTER_X = SCREEN_WIDTH / 2;
+    const uint16_t CENTER_Y = SCREEN_HEIGHT / 2;
+    const int STAR_COUNT = intensity * 10;
 
-  struct Star
-  {
-    float x, y, z;
-  };
+    struct Star
+    {
+        float x, y, z;
+    };
 
-  static Star stars[100]; // Maximum number of stars
+    static Star stars[100]; // Maximum number of stars
 
-  // Initialization
-  static bool initialized = false;
-  if (!initialized)
-  {
+    // Initialization
+    static bool initialized = false;
+    if (!initialized)
+    {
+        for (int i = 0; i < STAR_COUNT; i++)
+        {
+            stars[i] = {static_cast<float>(random(-100, 100)), static_cast<float>(random(-100, 100)), static_cast<float>(random(1, 100))};
+        }
+        initialized = true;
+    }
+
+    unsigned long currentTime = millis();
+    if (currentTime - lastUpdate < UPDATE_INTERVAL)
+    {
+        return; // Wait for the next frame
+    }
+    lastUpdate = currentTime;
+
+    // Clear Display
+    display->display->clearDisplay();
+
+    // Update and draw the stars
     for (int i = 0; i < STAR_COUNT; i++)
     {
-      stars[i] = {static_cast<float>(random(-100, 100)), static_cast<float>(random(-100, 100)), static_cast<float>(random(1, 100))};
-    }
-    initialized = true;
-  }
+        // Perspective projection
+        float projectionFactor = 100.0 / stars[i].z;
+        int16_t screenX = stars[i].x * projectionFactor + CENTER_X;
+        int16_t screenY = stars[i].y * projectionFactor + CENTER_Y;
 
-  unsigned long currentTime = millis();
-  if (currentTime - lastUpdate < UPDATE_INTERVAL)
-  {
-    return; // Wait for the next frame
-  }
-  lastUpdate = currentTime;
+        // Draw the star if it is visible
+        if (screenX >= 0 && screenX < SCREEN_WIDTH && screenY >= 0 && screenY < SCREEN_HEIGHT)
+        {
+            display->display->drawPixel(screenX, screenY, WHITE);
+        }
 
-  // Clear Display
-  display->display->clearDisplay();
-
-  // Update and draw the stars
-  for (int i = 0; i < STAR_COUNT; i++)
-  {
-    // Perspective projection
-    float projectionFactor = 100.0 / stars[i].z;
-    int16_t screenX = stars[i].x * projectionFactor + CENTER_X;
-    int16_t screenY = stars[i].y * projectionFactor + CENTER_Y;
-
-    // Draw the star if it is visible
-    if (screenX >= 0 && screenX < SCREEN_WIDTH && screenY >= 0 && screenY < SCREEN_HEIGHT)
-    {
-      display->display->drawPixel(screenX, screenY, WHITE);
+        // Update position
+        stars[i].z -= 2; // Move outward
+        if (stars[i].z <= 0)
+        {
+            stars[i].z = 100;
+            stars[i].x = random(-100, 100);
+            stars[i].y = random(-100, 100);
+        }
     }
 
-    // Update position
-    stars[i].z -= 2; // Move outward
-    if (stars[i].z <= 0)
-    {
-      stars[i].z = 100;
-      stars[i].x = random(-100, 100);
-      stars[i].y = random(-100, 100);
-    }
-  }
-
-  // Update Display
-  display->displayBuff();
+    // Update Display
+    display->displayBuff();
 }
 
 void Widget::showLifeScreensaver(i2cDisplay *display)

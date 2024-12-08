@@ -23,8 +23,8 @@ i2cDisplay::i2cDisplay() : lcdSettings()
  */
 i2cDisplay::~i2cDisplay()
 {
-    delete display;                            // Remove the display object from the memory (Adafruit_SSD1306)
-    delete CustomI2C;                          // Remove the i2c object from the memory (TwoWire)
+    delete display;                             // Remove the display object from the memory (Adafruit_SSD1306)
+    delete CustomI2C;                           // Remove the i2c object from the memory (TwoWire)
     if (_curDispBuffer) free(_curDispBuffer);   // Free the current display buffer if it was allocated
     if (_prevDispBuffer) free(_prevDispBuffer); // Free the previous display buffer if it was allocated
 }
@@ -81,18 +81,22 @@ void i2cDisplay::setup()
  */
 void i2cDisplay::loop()
 {
-    if (_loopColumn <= (lcdSettings.width - _loopColumnCount))
+    if (__loopColumnMethod) // Check if the loop column method is enabled
     {
-        if (openknx.freeLoopTime())
+
+        if (_loopColumn <= (lcdSettings.width - _loopColumnCount))
         {
-            updateCols(_loopColumn, _loopColumn + _loopColumnCount - 1);
-            _loopColumn += _loopColumnCount;
+            if (openknx.freeLoopTime())
+            {
+                updateCols(_loopColumn, _loopColumn + _loopColumnCount - 1);
+                _loopColumn += _loopColumnCount;
+            }
         }
-    }
-    else if (_loopColumn == 0xff)
-    {
-        _loopColumn = 0;
-    }
+        else if (_loopColumn == 0xff)
+        {
+            _loopColumn = 0;
+        }
+    } // End of loop column method
 }
 
 /**
@@ -297,30 +301,30 @@ void i2cDisplay::SetDisplayPreCharge(uint8_t precharge) // Set the display prech
 void i2cDisplay::displayBuff()
 {
     memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
-    _loopColumn = 0xff;
-
-    /*
-    for (int page = 0; page < lcdSettings.height / 8; page++)    // Loop through the pages of the display
+    if (__loopColumnMethod) _loopColumn = 0xff;
+    else
     {
-        int startColumn = lcdSettings.width; // Set the start column to the width of the display
-        int endColumn = -1;                  // Set the end column to -1
-        bool pageChanged = false;            // Set the page changed flag to false.
-
-        for (int col = 0; col < lcdSettings.width; col++) // Loop through the columns of the display
+        for (int page = 0; page < lcdSettings.height / 8; page++) // Loop through the pages of the display
         {
-            size_t index = page * lcdSettings.width + col;       // Calculate the index of the current byte
-            if (_curDispBuffer[index] != _prevDispBuffer[index]) // Check if the current byte is different from the previous byte
+            int startColumn = lcdSettings.width; // Set the start column to the width of the display
+            int endColumn = -1;                  // Set the end column to -1
+            bool pageChanged = false;            // Set the page changed flag to false.
+
+            for (int col = 0; col < lcdSettings.width; col++) // Loop through the columns of the display
             {
-                pageChanged = true;
-                if (col < startColumn) startColumn = col;       // Set the start column
-                if (col > endColumn) endColumn = col;           // Set the end column
-                _prevDispBuffer[index] = _curDispBuffer[index]; // Update the previous buffer
+                size_t index = page * lcdSettings.width + col;       // Calculate the index of the current byte
+                if (_curDispBuffer[index] != _prevDispBuffer[index]) // Check if the current byte is different from the previous byte
+                {
+                    pageChanged = true;
+                    if (col < startColumn) startColumn = col;       // Set the start column
+                    if (col > endColumn) endColumn = col;           // Set the end column
+                    _prevDispBuffer[index] = _curDispBuffer[index]; // Update the previous buffer
+                }
             }
+            if (pageChanged) // Update only if the page has changed. This will reduce the number of updates
+                updatePage(page, startColumn, endColumn);
         }
-        if (pageChanged) // Update only if the page has changed. This will reduce the number of updates
-            updatePage(page, startColumn, endColumn);
     }
-    */
 }
 
 /**
@@ -381,18 +385,18 @@ void i2cDisplay::updatePage(int page, int startCol, int endCol)
  */
 void i2cDisplay::updateCols(int startCol, int endCol)
 {
-    if (startCol > endCol) return;                       // Return if the start column is greater than the end column
-    sendCommand(SSD1306_PAGEADDR);                       // Set the page address
-    sendCommand(0);                                      // Set the page
-    sendCommand((lcdSettings.height / 8) - 1);           // Set the page
-    sendCommand(SSD1306_COLUMNADDR);                     // Set the column address
-    sendCommand(startCol);                               // Set the start column
-    sendCommand(endCol);                                 // Set the end column
-    CustomI2C->beginTransmission(lcdSettings.i2cadress); // Begin the transmission of the changes
-    CustomI2C->write(0x40);                              // Set the data mode
-    for (int page = 0; page < lcdSettings.height / 8; page++)    // Loop through the pages of the display
+    if (startCol > endCol) return;                            // Return if the start column is greater than the end column
+    sendCommand(SSD1306_PAGEADDR);                            // Set the page address
+    sendCommand(0);                                           // Set the page
+    sendCommand((lcdSettings.height / 8) - 1);                // Set the page
+    sendCommand(SSD1306_COLUMNADDR);                          // Set the column address
+    sendCommand(startCol);                                    // Set the start column
+    sendCommand(endCol);                                      // Set the end column
+    CustomI2C->beginTransmission(lcdSettings.i2cadress);      // Begin the transmission of the changes
+    CustomI2C->write(0x40);                                   // Set the data mode
+    for (int page = 0; page < lcdSettings.height / 8; page++) // Loop through the pages of the display
     {
-        for (int col = startCol; col <= endCol; col++)       // Loop through the columns
+        for (int col = startCol; col <= endCol; col++) // Loop through the columns
         {
             CustomI2C->write(_curDispBuffer[page * lcdSettings.width + col]); // Write the data to the display
         }

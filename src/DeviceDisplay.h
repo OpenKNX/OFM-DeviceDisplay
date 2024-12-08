@@ -7,14 +7,15 @@
  * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@çolak.de)
  *              Licensed under GNU GPL v3.0
  */
+#include "OpenKNX/Stat/RuntimeStat.h"
 #include "Widget.h"
 #include "i2c-Display.h"
-#include "OpenKNX/Stat/RuntimeStat.h"
 
 #define DeviceDisplay_Display_Name "DeviceDisplay"
 #define DeviceDisplay_Display_Version "0.0.1"
 
 #define DISPLAY_DIM_TIMER 60000 // DIm the display after 60 seconds of inactivity
+#define DEMO_WIDGET_CMD_TESTS // Enable the demo widget command tests
 
 class DeviceDisplay : public OpenKNX::Module
 {
@@ -27,7 +28,7 @@ class DeviceDisplay : public OpenKNX::Module
     OpenKNX::Stat::RuntimeStat _loopDemoWidgets;
     #endif
     OpenKNX::Stat::RuntimeStat _loopDisplayModule;
-#endif  
+#endif
 
   public:
     // Regular widget is part of the widget queue and will be displayed in sequence
@@ -105,12 +106,15 @@ class DeviceDisplay : public OpenKNX::Module
     WidgetInfo* getWidgetInfo(const std::string& name); // Get widget info by name
 #ifdef DEMO_WIDGET_CMD_TESTS
     // Example console conversation lines
-    bool _demoWidgetCmdTests = false; // Flag to enable the demo widget commands
-    void demoTestWidgetsSetup(); // Demo test widgets
-    void demoTestWidgetsLoop();  // Demo test widgets loop
-    void demoTestWidgetsStop(); // Demo test widgets remove
-#endif
+    void demoTestWidgetsSetup();      // Demo test widgets setup
+    void demoTestWidgetsStop();       // Demo test widgets remove
 
+    // Loop fpr the demo test widgets, to update their content. System info and console widget!
+    bool _demoWidgetSysInfo = false; // Flag to enable the demo widget commands
+    bool _demoWidgeConsoleWidget = false;
+    void demoSysinfoWidgetLoop(); // Demo test widgets loop
+    void demoConsoleWidgetLoop();     // Demo test widgets
+#endif
 };
 
 extern DeviceDisplay openknxDisplayModule; // Display module instance

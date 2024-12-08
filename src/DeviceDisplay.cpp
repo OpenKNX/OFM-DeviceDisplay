@@ -161,8 +161,10 @@ void DeviceDisplay::loop(bool configured)
 
 #ifdef DEMO_WIDGET_CMD_TESTS
     RUNTIME_MEASURE_BEGIN(_loopDemoWidgets);
-    if (_demoWidgetCmdTests) demoTestWidgetsLoop(); // Demo test widgets loop
+    if (_demoWidgetSysInfo) demoSysinfoWidgetLoop(); // Demo test widgets loop
+    if (_demoWidgeConsoleWidget) demoConsoleWidgetLoop();
     RUNTIME_MEASURE_END(_loopDemoWidgets);
+    
 #endif
 
     RUNTIME_MEASURE_BEGIN(_loopDisplayModule);
@@ -279,17 +281,17 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         {
             if (command.compare(11, 1, "s") == 0) // Set Rainfall Screensaver
             {
-                Widget* srvRain = new Widget(Widget::DisplayMode::SCREEN_SAVER_MATRIX);
-                addWidget(srvRain, 10000, "srvMaxtrixP", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                         DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+                Widget* srvMatrixPixel= new Widget(Widget::DisplayMode::SCREEN_SAVER_MATRIX);
+                addWidget(srvMatrixPixel, 10000, "srvMaxtrixPixel", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                                                             DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                             DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
 
                 logInfoP("Matrix Screensaver is set to display. Remove it with 'ddc matrix r'");
                 bRet = true;
             }
             if (command.compare(11, 1, "r") == 0) // Remove Screensaver
             {
-                removeWidget("srvMatrixP");
+                removeWidget("srvMaxtrixPixel");
                 logInfoP("Removing Matrix Screensaver from display...");
                 bRet = true;
             }
@@ -300,8 +302,8 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             {
                 Widget* srvStarfield = new Widget(Widget::DisplayMode::SCREEN_SAVER_STARFIELD);
                 addWidget(srvStarfield, 10000, "srvStarfield", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                               DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                               DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+                                                                   DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                                   DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
 
                 logInfoP("Starfield Screensaver is set to display. Remove it with 'ddc starfield r'");
                 bRet = true;
@@ -319,8 +321,8 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             {
                 Widget* srv3DCube = new Widget(Widget::DisplayMode::SCREEN_SAVER_3DCUBE);
                 addWidget(srv3DCube, 10000, "srv3DCube", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                         DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+                                                             DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                             DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
 
                 logInfoP("3D Cube Screensaver is set to display. Remove it with 'ddc 3dcube r'");
                 bRet = true;
@@ -338,8 +340,8 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             {
                 Widget* srvLife = new Widget(Widget::DisplayMode::SCREEN_SAVER_LIFE);
                 addWidget(srvLife, 10000, "srvLife", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                     DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                     DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+                                                         DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                         DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
 
                 logInfoP("Life Screensaver is set to display. Remove it with 'ddc life r'");
                 bRet = true;
@@ -351,19 +353,19 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 bRet = true;
             }
         }
-        else if (command.compare(4, 13, "openknx_team ") == 0) // OpenKNX Team Intro
+        else if (command.compare(4, 8, "openknx ") == 0) // OpenKNX Team Intro
         {
-            if (command.compare(17, 1, "s") == 0) // Set OpenKNX Team Intro
+            if (command.compare(12, 1, "s") == 0) // Set OpenKNX Team Intro
             {
                 Widget* srvOpenKNXTeam = new Widget(Widget::DisplayMode::OPENKNX_TEAM_INTRO);
                 addWidget(srvOpenKNXTeam, 10000, "srvOpenKNXTeam", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                                 DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                                 DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+                                                                       DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                                       DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
 
                 logInfoP("OpenKNX Team Intro is set to display. Remove it with 'ddc openknx_team r'");
                 bRet = true;
             }
-            if (command.compare(17, 1, "r") == 0) // Remove Screensaver
+            if (command.compare(12, 1, "r") == 0) // Remove Screensaver
             {
                 removeWidget("srvOpenKNXTeam");
                 logInfoP("Removing OpenKNX Team Intro from display...");
@@ -384,6 +386,8 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                                              DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
                                              DeviceDisplay::WidgetAction::AutoRemoveFlag;   // Remove this widget after display
                 logInfoP("Console Widget updated: avaiable for 30 seconds...");
+                logInfoP(" - Attention: The console simulator widget is active for 30 seconds.");
+                logInfoP(" - Please use 'ddc c <text>' to append text to the display console."); 
             }
             else
             {
@@ -678,7 +682,17 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             bRet = true;
             // return true;
         }
-#endif 
+#endif
+        else if (command.compare(4, 3, "__l") == 0)
+        {
+          displayModule.__setLoopColumnMethod(true);
+          logInfoP("Set loop column method: Enabled");
+        }
+        else if (command.compare(4, 3, "l__") == 0)
+        {
+          displayModule.__setLoopColumnMethod(false);
+          logInfoP("Set loop column method: Disabled");
+        }
         else
         {
             openknx.logger.begin();
@@ -705,18 +719,21 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc l", "List all widgets");
             openknx.console.printHelpLine("ddc logo", "Show the boot logo");
 #ifdef MATRIX_SCREENSAVER
-            openknx.console.printHelpLine("ddc m", "Print Matrix Screensaver");
-            openknx.console.printHelpLine("ddc clock", "Print Clock Screensaver");
-            openknx.console.printHelpLine("ddc pong", "Print Pong Screensaver");
-            openknx.console.printHelpLine("ddc rain", "Print Rainfall Screensaver");
-            openknx.console.printHelpLine("ddc matrix", "Print Matrix Screensaver");
-            openknx.console.printHelpLine("ddc starfield", "Print Starfield Screensaver");
-            openknx.console.printHelpLine("ddc 3dcube", "Print 3D Cube Screensaver");
-            openknx.console.printHelpLine("ddc life", "Print Life Screensaver");
-            openknx.console.printHelpLine("ddc openknx_team", "Print OpenKNX Team Intro");
+            openknx.console.printHelpLine("ddc m <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
+            openknx.console.printHelpLine("ddc matrix <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
+            openknx.console.printHelpLine("ddc clock <s|r>", "<s> set, <r> remove - Clock Screensaver ");
+            openknx.console.printHelpLine("ddc pong <s|r>", "<s> set, <r> remove - Pong Screensaver ");
+            openknx.console.printHelpLine("ddc rain <s|r>", "<s> set, <r> remove - Rainfall Screensaver ");
+            openknx.console.printHelpLine("ddc starfield <s|r>", "<s> set, <r> remove - Starfield Screensaver ");
+            openknx.console.printHelpLine("ddc 3dcube <s|r>", "<s> set, <r> remove - 3D Cube Screensaver ");
+            openknx.console.printHelpLine("ddc life <s|r>", "<s> set, <r> remove - Life Screensaver ");
+            openknx.console.printHelpLine("ddc openknx <s|r>", "<s> set, <r> remove - OpenKNX Team Intro ");
 #endif
 #ifdef QRCODE_WIDGET
             openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
+#endif
+#ifdef OPENKNX_RUNTIME_STAT
+            openknx.console.printHelpLine("ddc runtime", "Show runtime statistics");
 #endif
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("Info: To test the progMode widget toogle the prog mode on the device.");
@@ -798,6 +815,7 @@ bool DeviceDisplay::removeWidget(const std::string& name)
             return true;
         }
     }
+    logErrorP("Widget not found in queue: %s", name.c_str());
     return false;
 }
 
@@ -830,93 +848,108 @@ DeviceDisplay::WidgetInfo* DeviceDisplay::getWidgetInfo(const std::string& name)
  */
 void DeviceDisplay::LoopWidgets()
 {
-    if (widgetsQueue.empty()) return; // Queue is empty -> return
+    if (widgetsQueue.empty()) return; // Stop if no widgets are in the queue
 
-    uint32_t currentTime = millis();      // Get the current time
-    WidgetInfo* showWidget = nullptr;     // Widget to show
-    bool statusWidgetsInProgress = false; // Status widgets in progress
+    uint32_t currentTime = millis();
+    WidgetInfo* showWidget = nullptr;
+    bool statusWidgetsInProgress = false;
 
-    for (WidgetInfo& widget : widgetsQueue) // Check for status widgets and priorize the status widgets
+    // First loop to prioritize and manage status widgets
+    for (WidgetInfo& widget : widgetsQueue)
     {
-        if (widget.isActionSet(WidgetAction::StatusFlag) &&    // Check if the widget is a status widget
-            widget.isActionSet(WidgetAction::InternalEnabled)) // Check if the widget is enabled
+        showWidget = &widget;
+
+        // Check if widget is a status widget with `InternalEnabled`
+        if (showWidget->isActionSet(WidgetAction::StatusFlag) &&
+            showWidget->isActionSet(WidgetAction::InternalEnabled))
         {
-            if (widget.startDisplayTime == 0)          // If the start time is not set
-                widget.startDisplayTime = currentTime; // Set the start time
-
-            uint32_t elapsedTime = currentTime - widget.startDisplayTime; // Calculate the elapsed time
-            bool durationPassed = elapsedTime >= widget.duration;         // Check if the duration has passed
-
-            if (widget.isActionSet(WidgetAction::AutoRemoveFlag)) // Check if the widget is marked for auto-remove
-                widget.addAction(WidgetAction::MarkedForRemove);  // Mark the widget for removal
-
-            if (widget.isActionSet(WidgetAction::MarkedForRemove) && durationPassed) // Check if the widget is marked for removal
+            if (showWidget->startDisplayTime == 0)
             {
-                logDebugP("Removing status widget: %s", widget.name.c_str());
-                removeWidget(widget.name); // Remove the widget
-                return;                    // Return if the widget was removed
+                showWidget->startDisplayTime = currentTime; // Initialize start time for the widget
             }
 
-            if (!widget.isActionSet(WidgetAction::ExternalManaged) && durationPassed) // Check if the widget is not externally managed
+            // logDebugP("Displaying status widget: %s", showWidget->name.c_str());
+            // Auto-remove status widget after display duration
+            bool durationPassed = (currentTime - showWidget->startDisplayTime >= showWidget->duration);
+
+            if (showWidget->isActionSet(WidgetAction::AutoRemoveFlag))
             {
-                logDebugP("Disabling status widget: %s", widget.name.c_str());
-                widget.startDisplayTime = 0;                        // Reset the start time
-                widget.removeAction(WidgetAction::InternalEnabled); // Disable the widget
-                return;                                             // Widget-Status changed -> return
+                showWidget->addAction(WidgetAction::MarkedForRemove);
             }
 
-            statusWidgetsInProgress = true; // Status widgets are in progress
-            showWidget = &widget;           // Found a status widget
-            break;                          // Status widgets have priority
+            if (showWidget->isActionSet(WidgetAction::MarkedForRemove) && durationPassed)
+            {
+                logDebugP("Removing status widget: %s", showWidget->name.c_str());
+                removeWidget(showWidget->name);
+                break; // Exit after removing the widget
+            }
+
+            // Disable status widget after its display duration if `ExternalManaged` is not set
+            if (!showWidget->isActionSet(WidgetAction::ExternalManaged) && durationPassed)
+            {
+                // Clear start time after disabling the widget to reset for next activation
+                showWidget->startDisplayTime = 0;
+                logDebugP("Disabling status widget: %s", showWidget->name.c_str());
+                showWidget->removeAction(WidgetAction::InternalEnabled);
+                break;
+            }
+            statusWidgetsInProgress = true;
+            break; // Status widget is active; skip to avoid switching to regular widgets
         }
     }
 
-    if (!statusWidgetsInProgress) // If there are no status widgets in progress the process the regular widgets
+    if (!statusWidgetsInProgress) // Only proceed if no active status widget
     {
-        WidgetInfo& currentWidget = widgetsQueue[currentWidgetIndex]; // Get the current widget
-        uint32_t elapsedTime = currentTime - lastWidgetSwitchTime;    // Calculate the elapsed time
+        showWidget = (&widgetsQueue[currentWidgetIndex]);
+        bool durationPassed = (currentTime - lastWidgetSwitchTime >= widgetsQueue[currentWidgetIndex].duration);
 
-        if (elapsedTime >= currentWidget.duration) // Check if the duration has passed
+        if (durationPassed)
         {
-            if (currentWidget.isActionSet(WidgetAction::StatusFlag) &&    // Check if the widget is a status widget
-                currentWidget.isActionSet(WidgetAction::ExternalManaged)) // Check if the widget is externally managed
+            if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::StatusFlag) &&
+                (&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::ExternalManaged))
             {
-                // Skip status widgets that are externally managed
-                currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size(); // Next widget
+                // Skip `ExternalManaged` status widget without switching
+                currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
+                showWidget = nullptr;
             }
             else
             {
-                if (currentWidget.isActionSet(WidgetAction::MarkedForRemove)) // Check if the widget is marked for removal
+                // Remove widget if marked for removal
+                if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::MarkedForRemove))
                 {
-                    removeWidget(currentWidget.name);              // Remove the widget
-                    if (currentWidgetIndex >= widgetsQueue.size()) // Check if the index is out of bounds
-                        currentWidgetIndex = 0;                    // Reset the index if the last widget was removed
+                    removeWidget((&widgetsQueue[currentWidgetIndex])->name);
+                    if (currentWidgetIndex >= widgetsQueue.size()) currentWidgetIndex = 0;
+                    showWidget = &widgetsQueue[currentWidgetIndex];
                 }
                 else
                 {
-                    if (currentWidget.isActionSet(WidgetAction::AutoRemoveFlag)) // Check if the widget is marked for auto-remove
-                        currentWidget.addAction(WidgetAction::MarkedForRemove);  // Mark the widget for removal
-
-                    showWidget = &currentWidget; // Show the current widget
+                    // Auto-remove non-status widget
+                    if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::AutoRemoveFlag))
+                    {
+                        (&widgetsQueue[currentWidgetIndex])->addAction(WidgetAction::MarkedForRemove);
+                    }
+                    // Display the widget
+                    showWidget = &widgetsQueue[currentWidgetIndex];
                     currentWidgetIndex = (currentWidgetIndex + 1) % widgetsQueue.size();
+                    // logDebugP("Displayed regular widget: %s (Duration: %d ms)", showWidget->name.c_str(), showWidget->duration);
                 }
-                lastWidgetSwitchTime = currentTime; // Update the last switch time
             }
-        }
-        else
-        {
-            showWidget = &currentWidget; // Continue showing the current widget
+            lastWidgetSwitchTime = currentTime; // Only update switch time here to prevent pre-emptive skips
         }
     }
 
-    // Show the widget on the display if it is not disabled
-    if (showWidget && showWidget->duration > WIDGET_INACTIVE)
+    // Final draw logic outside of conditionals for `showWidget`
+    if (showWidget != nullptr && showWidget->duration > WIDGET_INACTIVE) // Skip inactive widgets.
     {
-        if (!(showWidget->isActionSet(WidgetAction::StatusFlag) &&      // Check if the widget is a status widget
-              showWidget->isActionSet(WidgetAction::ExternalManaged) && // Check if the widget is externally managed
-              !showWidget->isActionSet(WidgetAction::InternalEnabled))) // Check if the widget is disabled
+        if (showWidget->isActionSet(WidgetAction::StatusFlag) &&
+            showWidget->isActionSet(WidgetAction::ExternalManaged) &&
+            !showWidget->isActionSet(WidgetAction::InternalEnabled))
         {
-            showWidget->widget->draw(&displayModule); // Draw the widget on the display
+            showWidget = nullptr; // Skip widget with conflicting flags
+        }
+        else
+        {
+            showWidget->widget->draw(&displayModule);
         }
     }
 }
@@ -963,11 +996,12 @@ void DeviceDisplay::demoTestWidgetsStop()
     removeWidget("DynamicText_ScrollingCentered_skipLines");
     removeWidget("DynamicText_LeftTop_RightMiddle");
     removeWidget("DynamicText_AllChars");
-    removeWidget("QRCode");
+    // removeWidget("QRCode"); Will be removed automatically
     removeWidget("consoleWidget");
 
     logInfoP("All test widgets removed from the display queue.");
-    _demoWidgetCmdTests = false;
+    _demoWidgetSysInfo = false;
+    _demoWidgeConsoleWidget = false;
 }
 void DeviceDisplay::demoTestWidgetsSetup()
 {
@@ -1173,10 +1207,16 @@ void DeviceDisplay::demoTestWidgetsSetup()
     addWidget(myConsoleWidget, 30000, "consoleWidget");
     logInfoP("Added Console Widget to the display queue.");
 
-    _demoWidgetCmdTests = true;
+    _demoWidgetSysInfo = true;
+    _demoWidgeConsoleWidget = true;
 }
 
-void DeviceDisplay::demoTestWidgetsLoop()
+
+/**
+ * @brief This function is used to update the demo test widget System Information "SysInfo" and the console widget "consoleWidget".
+ *        The function will update the widgets every second.
+ */
+void DeviceDisplay::demoSysinfoWidgetLoop()
 {
     if (delayCheck(_demoTestWidgets_lastUpdateTime2, 1000) && isWidgetCurrentlyDisplayed("SysInfo")) // Update the display every second!
     {
@@ -1191,6 +1231,10 @@ void DeviceDisplay::demoTestWidgetsLoop()
             sysInfoWidget->SetDynamicTextLine(6, String("    (min. " + String((float)openknx.common.freeMemoryMin() / 1024) + " KiB)").c_str());
         }
     }
+}
+
+void DeviceDisplay::demoConsoleWidgetLoop()
+{
     if (delayCheck(_demoTestWidgets_lastUpdateTime, 1000) && isWidgetCurrentlyDisplayed("consoleWidget")) // Update the display every second!
     {
         if (_demoTestWidgets_currentLineIndex < _demoTestWidgets_numLines)
@@ -1210,4 +1254,4 @@ void DeviceDisplay::demoTestWidgetsLoop()
         _demoTestWidgets_lastUpdateTime = millis();
     }
 }
-#endif
+#endif // DEMO_WIDGET_CMD_TESTS
