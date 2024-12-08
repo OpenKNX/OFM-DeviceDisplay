@@ -300,10 +300,22 @@ void i2cDisplay::SetDisplayPreCharge(uint8_t precharge) // Set the display prech
  */
 void i2cDisplay::displayBuff()
 {
-    memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
-    if (__loopColumnMethod) _loopColumn = 0xff;
+    if (__loopColumnMethod)
+    {
+        // start sending to display on change only
+        if (memcmp(_curDispBuffer, display->getBuffer(), _sizeDispBuff) != 0)
+        {
+            memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
+            _loopColumn = 0xff;
+        }
+        else
+        {
+            logError("DeviceDisplay", "Warning: i2cDisplay::displayBuff() was called for unchaned output");
+        }
+    }
     else
     {
+        memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
         for (int page = 0; page < lcdSettings.height / 8; page++) // Loop through the pages of the display
         {
             int startColumn = lcdSettings.width; // Set the start column to the width of the display
