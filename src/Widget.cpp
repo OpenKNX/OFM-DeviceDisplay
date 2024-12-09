@@ -44,6 +44,7 @@ void Widget::EmptyLines()
  */
 bool Widget::checkAndUpdateLcdText(lcdText *sText)
 {
+    // TODO/runtime: check at update
     if (strcmp(sText->text, sText->_prevText) != 0)
     {
         strncpy(sText->_prevText, sText->text,
@@ -238,9 +239,10 @@ void Widget::UpdateDynamicTextLines(i2cDisplay *display)
     if (_AllowEmtyTextLines) allEmpty = false; // Do not skip empty lines at the beginning
     else                                       // Check if all lines are empty then exit early and do not display anything!
     {
+        // TODO/runtime: check on update!
         for (uint8_t i = 0; i < MAX_TEXT_LINES; ++i)
         {
-            if (strlen(textLines[i].text) != 0)
+            if (textLines[i].text[0] != '\0')
             {
                 allEmpty = false;
                 break;
@@ -445,9 +447,10 @@ void Widget::drawTextLines(i2cDisplay *display, const std::vector<lcdText *> &te
 {
     for (const auto &line : textLines)
     {
-        if (line->skipLineIfEmpty && strlen(line->text) == 0)
+        if (line->skipLineIfEmpty && line->text[0] == '\0')
             continue; // Skip empty lines!
 
+        // TODO check runtime!
         handleScrolling(display, line, currentTime); // Handles scrolling text!
 
         uint16_t cursorX = calculateCursorX(display, line);                                                                         // Calculate the X position of the cursor
