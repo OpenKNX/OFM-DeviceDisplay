@@ -15,6 +15,7 @@
 
 #include "i2c-Display.h"  // Include 1st
 #include "DisplayIcons.h" // Include 2nd
+#include "OpenKNX/Stat/RuntimeStat.h"
 
 #ifdef QRCODE_WIDGET
     #include "QRCodeGen.hpp" // Include 3rd
@@ -184,4 +185,8 @@ class Widget
     void SetDynamicTextLine(size_t lineIndex, const char *text);      // Set the text for a specific line in the widget
     lcdText textLines[MAX_TEXT_LINES];                                // Fixed array for text lines
     void EmptyLines();                                                // Clear all lines
+//  private:
+#ifdef OPENKNX_RUNTIME_STAT
+    OpenKNX::Stat::RuntimeStat _WidgetRutimeStat;
+#endif
 }; // End of class Widget
