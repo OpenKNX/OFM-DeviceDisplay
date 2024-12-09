@@ -22,7 +22,6 @@ class DeviceDisplay : public OpenKNX::Module
   private:
 #ifdef OPENKNX_RUNTIME_STAT
     OpenKNX::Stat::RuntimeStat _loopRuntimesDim;
-    OpenKNX::Stat::RuntimeStat _loopRuntimesProgmode;
     OpenKNX::Stat::RuntimeStat _loopWidgets;
     #ifdef DEMO_WIDGET_CMD_TESTS
     OpenKNX::Stat::RuntimeStat _loopDemoWidgets;

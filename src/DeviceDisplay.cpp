@@ -130,7 +130,6 @@ void DeviceDisplay::loop(bool configured)
     }
     RUNTIME_MEASURE_END(_loopRuntimesDim);
 
-    RUNTIME_MEASURE_BEGIN(_loopRuntimesProgmode);
     static bool wasInProgMode = false;
     if (knx.progMode())
     {
@@ -153,7 +152,6 @@ void DeviceDisplay::loop(bool configured)
             wasInProgMode = false;
         }
     }
-    RUNTIME_MEASURE_END(_loopRuntimesProgmode);
 
     RUNTIME_MEASURE_BEGIN(_loopWidgets);
     LoopWidgets(); // Switch widgets based on timing
@@ -164,7 +162,7 @@ void DeviceDisplay::loop(bool configured)
     if (_demoWidgetSysInfo) demoSysinfoWidgetLoop(); // Demo test widgets loop
     if (_demoWidgeConsoleWidget) demoConsoleWidgetLoop();
     RUNTIME_MEASURE_END(_loopDemoWidgets);
-    
+
 #endif
 
     RUNTIME_MEASURE_BEGIN(_loopDisplayModule);
@@ -281,10 +279,10 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         {
             if (command.compare(11, 1, "s") == 0) // Set Rainfall Screensaver
             {
-                Widget* srvMatrixPixel= new Widget(Widget::DisplayMode::SCREEN_SAVER_MATRIX);
+                Widget* srvMatrixPixel = new Widget(Widget::DisplayMode::SCREEN_SAVER_MATRIX);
                 addWidget(srvMatrixPixel, 10000, "srvMaxtrixPixel", DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                                                             DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
-                                                             DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
+                                                                        DeviceDisplay::WidgetAction::InternalEnabled | // This widget is enabled
+                                                                        DeviceDisplay::WidgetAction::ExternalManaged); // This is external managed
 
                 logInfoP("Matrix Screensaver is set to display. Remove it with 'ddc matrix r'");
                 bRet = true;
@@ -372,7 +370,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 bRet = true;
             }
         }
-#endif
+#endif // MATRIX_SCREENSAVER
         else if (command.compare(4, 1, "c") == 0) // Console simulation output widget
         {
             // Get the console widget
@@ -387,7 +385,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                                              DeviceDisplay::WidgetAction::AutoRemoveFlag;   // Remove this widget after display
                 logInfoP("Console Widget updated: avaiable for 30 seconds...");
                 logInfoP(" - Attention: The console simulator widget is active for 30 seconds.");
-                logInfoP(" - Please use 'ddc c <text>' to append text to the display console."); 
+                logInfoP(" - Please use 'ddc c <text>' to append text to the display console.");
             }
             else
             {
@@ -630,7 +628,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Display all-on mode disabled, resumed normal display");
             }
         }
-#endif
+#endif // DD_CONSOLE_CMDS
 #ifdef QRCODE_WIDGET
         else if (command.compare(4, 2, "qr") == 0) // Show QR-Code
         {
@@ -651,7 +649,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                           DeviceDisplay::WidgetAction::AutoRemoveFlag);  // Remove this widget after display of the set duration time. Here 10sec.
             bRet = true;
         }
-#endif
+#endif // QRCODE_WIDGET
 #ifdef DEMO_WIDGET_CMD_TESTS
         else if (command.compare(4, 10, "test_start") == 0) // Show the boot logo
         {
@@ -663,35 +661,80 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             demoTestWidgetsStop();
             bRet = true;
         }
-#endif
+#endif // DEMO_WIDGET_CMD_TESTS
 #ifdef OPENKNX_RUNTIME_STAT
-        else if (command.compare(4, 7, "runtime") == 0)
+        else if (command.compare(4, 8, "runtime ") == 0)
         {
             logInfoP("DeviceDisplay Runtime Statistics: (Uptime=%dms)", millis());
             logIndentUp();
+
             OpenKNX::Stat::RuntimeStat::showStatHeader();
 
-            _loopRuntimesDim.showStat("dim", 0, true, true);
-            _loopRuntimesProgmode.showStat("progmode", 0, true, true);
-            _loopWidgets.showStat("widgets", 0, true, true);
+            if (command.compare(12, 7, "widget ") == 0)
+            {
+                if (command.compare(19, 3, "all") == 0)
+                {
+                    for (size_t i = 0; i < widgetsQueue.size(); ++i)
+                    {
+                        WidgetInfo& widgetInfo = widgetsQueue[i];
+                        widgetInfo.widget->_WidgetRutimeStat.showStat("widget_" + widgetInfo.name, 0, true, true);
+                    }
+                    bRet = true;
+                }
+                else
+                {
+                    std::string WidgetName = command.substr(19);
+                    if (!WidgetName.empty())
+                    {
+                        WidgetInfo* widgetInfo = getWidgetInfo(WidgetName);
+                        if (widgetInfo && widgetInfo->widget != nullptr)
+                        {
+                            widgetInfo->widget->_WidgetRutimeStat.showStat("widget_" + WidgetName, 0, true, true);
+                        }
+                        else
+                        {
+                            logErrorP("Widget '%s' not found!", WidgetName.c_str());
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (command.compare(12, 7, "widgets") == 0)
+                    _loopWidgets.showStat("widgets", 0, true, true);
+                else if (command.compare(12, 3, "dim") == 0)
+                    _loopRuntimesDim.showStat("dim", 0, true, true);
     #ifdef DEMO_WIDGET_CMD_TESTS
-            _loopDemoWidgets.showStat("demo_widgets", 0, true, true);
+                else if (command.compare(12, 12, "demo_widgets") == 0)
+                    _loopDemoWidgets.showStat("demo_widgets", 0, true, true);
     #endif
-            _loopDisplayModule.showStat("loop_only", 0, true, true);
+                else if (command.compare(12, 4, "loop") == 0)
+                    _loopDisplayModule.showStat("loop_only", 0, true, true);
+                else if (command.compare(12, 3, "all") == 0)
+                {
+                    _loopWidgets.showStat("widgets", 0, true, true);
+                    _loopRuntimesDim.showStat("dim", 0, true, true);
+                    _loopDemoWidgets.showStat("demo_widgets", 0, true, true);
+                    _loopDisplayModule.showStat("loop_only", 0, true, true);
+                }
+                else
+                    logErrorP("Invalid runtime command.");
+            }
+
             logIndentDown();
             bRet = true;
             // return true;
         }
-#endif
+#endif // OPENKNX_RUNTIME_STAT
         else if (command.compare(4, 3, "__l") == 0)
         {
-          displayModule.__setLoopColumnMethod(true);
-          logInfoP("Set loop column method: Enabled");
+            displayModule.__setLoopColumnMethod(true);
+            logInfoP("Set loop column method: Enabled");
         }
         else if (command.compare(4, 3, "l__") == 0)
         {
-          displayModule.__setLoopColumnMethod(false);
-          logInfoP("Set loop column method: Disabled");
+            displayModule.__setLoopColumnMethod(false);
+            logInfoP("Set loop column method: Disabled");
         }
         else
         {
@@ -711,11 +754,11 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc chargepump <on|off>", "Enable or disable the charge pump");
             openknx.console.printHelpLine("ddc segremap <on|off>", "Enable or disable the segment remapping");
             openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
-#endif
+#endif // DD_CONSOLE_CMDS
 #ifdef DEMO_WIDGET_CMD_TESTS
             openknx.console.printHelpLine("ddc test_start", "Start the demo test widgets");
             openknx.console.printHelpLine("ddc test_stop", "Stop the demo test widgets");
-#endif
+#endif // DEMO_WIDGET_CMD_TESTS
             openknx.console.printHelpLine("ddc l", "List all widgets");
             openknx.console.printHelpLine("ddc logo", "Show the boot logo");
 #ifdef MATRIX_SCREENSAVER
@@ -728,16 +771,29 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc 3dcube <s|r>", "<s> set, <r> remove - 3D Cube Screensaver ");
             openknx.console.printHelpLine("ddc life <s|r>", "<s> set, <r> remove - Life Screensaver ");
             openknx.console.printHelpLine("ddc openknx <s|r>", "<s> set, <r> remove - OpenKNX Team Intro ");
-#endif
+#endif // MATRIX_SCREENSAVER
 #ifdef QRCODE_WIDGET
             openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
-#endif
-#ifdef OPENKNX_RUNTIME_STAT
-            openknx.console.printHelpLine("ddc runtime", "Show runtime statistics");
-#endif
+#endif // QRCODE_WIDGET
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("Info: To test the progMode widget toogle the prog mode on the device.");
             openknx.logger.log("--------------------------------------------------------------------------------");
+            openknx.logger.color(0);
+#ifdef OPENKNX_RUNTIME_STAT
+            openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+            openknx.logger.log("Runtime Statistics: Device Display Control");
+            openknx.logger.log("--------------------------------------------------------------------------------");
+            openknx.logger.color(0);
+            openknx.console.printHelpLine("ddc runtime <all>", "Show all (dim, demo, loop widgets) runtime statistics");
+            openknx.console.printHelpLine("ddc runtime <dim>", "Show display dim runtime statistics");
+            openknx.console.printHelpLine("ddc runtime <demo_widgets>", "Show DEMO widgets runtime statistics");
+            openknx.console.printHelpLine("ddc runtime <loop>", "Show display loop only runtime statistics");
+            openknx.console.printHelpLine("ddc runtime <widgets>", "Show ALL widgets runtime statistics");
+            openknx.console.printHelpLine("ddc runtime widget all", "Show ALL queue widgets runtime statistics");
+            openknx.console.printHelpLine("ddc runtime widget <'widget_name'>", "Show Widget runtime statistics. Use 'ddc l' to list all widgets.");
+            openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+            openknx.logger.log("--------------------------------------------------------------------------------");
+#endif // OPENKNX_RUNTIME_STAT
             openknx.logger.color(0);
             openknx.logger.end();
             bRet = false;
@@ -948,7 +1004,7 @@ void DeviceDisplay::LoopWidgets()
             showWidget = nullptr; // Skip widget with conflicting flags
         }
         else
-        {
+        { // Now we are ready to draw the widget
             showWidget->widget->draw(&displayModule);
         }
     }
@@ -1210,7 +1266,6 @@ void DeviceDisplay::demoTestWidgetsSetup()
     _demoWidgetSysInfo = true;
     _demoWidgeConsoleWidget = true;
 }
-
 
 /**
  * @brief This function is used to update the demo test widget System Information "SysInfo" and the console widget "consoleWidget".

@@ -63,6 +63,7 @@ bool Widget::checkAndUpdateLcdText(lcdText *sText)
  */
 void Widget::draw(i2cDisplay *display)
 {
+    RUNTIME_MEASURE_BEGIN(_WidgetRutimeStat);
     if (display == nullptr)
         return;
     switch (currentDisplayMode)
@@ -120,6 +121,7 @@ void Widget::draw(i2cDisplay *display)
         default:
             break;
     }
+    RUNTIME_MEASURE_END(_WidgetRutimeStat);
 }
 
 /**
@@ -255,9 +257,10 @@ void Widget::UpdateDynamicTextLines(i2cDisplay *display)
         {
             changed |= checkAndUpdateLcdText(&textLines[i]);
         }
-        displayDynamicText(display, {&textLines[0], &textLines[1], &textLines[2],
-                                     &textLines[3], &textLines[4], &textLines[5],
-                                     &textLines[6], &textLines[7]});
+        // ToDo EC: "changed" is only detecting the text changes. But the scrolling needs also a redraw! 
+        /*if (changed)*/ displayDynamicText(display, {&textLines[0], &textLines[1], &textLines[2],
+                                                  &textLines[3], &textLines[4], &textLines[5],
+                                                  &textLines[6], &textLines[7]});
     }
 }
 
