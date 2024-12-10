@@ -645,6 +645,11 @@ void Widget::ShowBootLogo(i2cDisplay *display)
  */
 void Widget::showProgrammingMode(i2cDisplay *display)
 {
+    // TODO cleanup split implementation...
+
+    /** state bases drawing: 0=disabled, 1=clear, 2..4=text draw, 5=trigger send */
+    static uint8_t drawStep = 0;
+
     ulong currentTime = millis();
 
     // Check if it's time to toggle the blink state
@@ -652,37 +657,51 @@ void Widget::showProgrammingMode(i2cDisplay *display)
     {
         _showProgrammingMode_last_Blink = currentTime;                          // Update the last blink time
         _showProgrammingMode_showProgMode = !_showProgrammingMode_showProgMode; // Toggle the blink state (show/hide text)
+        drawStep = 1;
     }
-    else
+    else if (drawStep == 0)
     {
-        // nothing changed!
+        // nothing to draw
         return;
     }
 
-    display->display->clearDisplay(); // Clear the display
-    display->display->setTextColor(SSD1306_WHITE);
-
-    // Set the header: "OpenKNX" (always visible, not blinking)
-    display->display->setTextSize(1);                // Set font size to normal for the header
-    display->display->setCursor(0, 0);               // Position the cursor at the top
-    display->display->print("   www.OpenKNX.de   "); // Print the header
-
-    // Show the "Prog Mode active" message if the blink state is true
-    _showProgrammingMode_showProgMode
-        ? display->display->setTextColor(SSD1306_BLACK, SSD1306_WHITE)
-        : display->display->setTextColor(SSD1306_WHITE);
-    display->display->setTextSize(2);      // Set font size to large for the message
-    display->display->setCursor(0, 20);    // Position the cursor for the message
-    display->display->print(" ProgMode!"); // Print "Prog Mode"
-
-    display->display->setTextColor(SSD1306_WHITE);
-    display->display->setTextSize(1);                                         // Set font size to large for the message
-    display->display->setCursor(0, 45);                                       // Position the cursor for the message
-    display->display->println(" Ready to use ETS to  program the Device!  "); // Print "Prog Mode"
-
-    // Update the display with the new content
-    // display->display->display();
-    display->displayBuff();
+    // Partial drawing, step by step in loop()-calls
+    switch (drawStep++)
+    {
+        case 1:
+            display->display->clearDisplay(); // Clear the display
+            display->display->setTextColor(SSD1306_WHITE);
+            break;
+        case 2:
+            // Set the header: "OpenKNX" (always visible, not blinking)
+            display->display->setTextSize(1);                // Set font size to normal for the header
+            display->display->setCursor(0, 0);               // Position the cursor at the top
+            display->display->print("   www.OpenKNX.de   "); // Print the header
+            break;
+        case 3:
+            // Show the "Prog Mode active" message if the blink state is true
+            _showProgrammingMode_showProgMode
+                ? display->display->setTextColor(SSD1306_BLACK, SSD1306_WHITE)
+                : display->display->setTextColor(SSD1306_WHITE);
+            display->display->setTextSize(2);      // Set font size to large for the message
+            display->display->setCursor(0, 20);    // Position the cursor for the message
+            display->display->print(" ProgMode!"); // Print "Prog Mode"
+            break;
+        case 4:
+            display->display->setTextColor(SSD1306_WHITE);
+            display->display->setTextSize(1);                                         // Set font size to large for the message
+            display->display->setCursor(0, 45);                                       // Position the cursor for the message
+            display->display->println(" Ready to use ETS to  program the Device!  "); // Print "Prog Mode"
+            break;
+        case 5:
+            // Update the display with the new content
+            // display->display->display();
+            display->displayBuff();
+            // fall trough
+        default:
+            drawStep = 0; // completed
+            break;
+    }
 }
 
 #ifdef MATRIX_SCREENSAVER
