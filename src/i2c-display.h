@@ -65,12 +65,12 @@ class i2cDisplay
     inline void __setLoopColumnMethod(bool loopColumnMethod) { __loopColumnMethod = loopColumnMethod; } // Set the loop column method
   private:
     // #define BUFFER_SIZE (128 * ((64 + 7 ) / 8))
-    uint16_t _sizeDispBuff;   
+    uint16_t _sizeDispBuff;
     uint8_t* _curDispBuffer;  // Buffer size!
     uint8_t* _prevDispBuffer; // Buffer size!
 
     // __TESTING__
-    bool __loopColumnMethod = true; // Enable the loop column for partial display updates. Default is false. 
+    bool __loopColumnMethod = true; // Enable the loop column for partial display updates. Default is false.
     /**
      * Number of Columns to partial transfer to display
      * Values 2^n only, value >32 will not update all pages!
