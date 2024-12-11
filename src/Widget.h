@@ -141,6 +141,12 @@ class Widget
     uint16_t calculateCursorY(i2cDisplay *display, const lcdText *line, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &middleStartY, uint16_t availableMiddleHeight);                                 // Calculate the Y position of the cursor for a text line
 
     /** state of partial drawing:
+     * 0    = no drawing / done, 
+     * 1..n = drawing step
+     */ 
+    uint8_t _drawStep = 1;
+
+    /** state of partial drawing:
      * 0=no drawing / done, 
      * 1=clear, 
      * 2=partial draw image, 

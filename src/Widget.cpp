@@ -595,29 +595,53 @@ void Widget::OpenKNXLogo(i2cDisplay *display)
     static String lastUptime = "";                               // Cache for the last rendered uptime
     String currentUptime = openknx.logger.buildUptime().c_str(); // Get the current uptime
 
-    if (lastUptime != currentUptime) // Check if the uptime has changed
+    // TODO compare update only, without formatting
+    if (lastUptime != currentUptime)
     {
-        display->display->cp437(true);    // Use CP437 character encoding
-        display->display->clearDisplay(); // Clear the display for fresh rendering
+        _drawStep = 1; // restart drawing as uptime has changed
+        lastUptime = currentUptime;
+    }
 
-        display->display->setCursor(0, 0);
-        display->display->setTextSize(1);
-        display->display->setTextColor(WHITE);
+    if (_drawStep)
+    {
+        display->display->cp437(true);    // Use CP437 character encoding (for all steps)
 
-        display->display->println("Uptime: " + currentUptime);
-        lastUptime = currentUptime; // Update the cache
+        switch (_drawStep)
+        {
+            case 1:
+                display->display->clearDisplay(); // Clear the display for fresh rendering
+                _drawStep++;
+                break;
+            case 2:
+                display->display->setCursor(0, 0);
+                display->display->setTextSize(1);
+                display->display->setTextColor(WHITE);
 
-        display->display->println("Dev.: " MAIN_OrderNumber);
-        display->display->println(String("Addr.: ") + openknx.info.humanIndividualAddress().c_str());
+                display->display->println("Uptime: " + currentUptime);
 
-        display->display->drawBitmap(
-            (display->GetDisplayWidth() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2,
-            (display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + 20 /*SHIFT_TO_BOTTOM*/) / 2,
-            logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,
-            LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
+                display->display->println("Dev.: " MAIN_OrderNumber);
+                display->display->println(String("Addr.: ") + openknx.info.humanIndividualAddress().c_str());
 
-        display->displayBuff(); // Update the display with the rendered content
-        // display->display->display(); // Update the display with the rendered content
+                _drawStep++;
+                break;
+            case 3:
+                display->display->drawBitmap(
+                    (display->GetDisplayWidth() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2,
+                    (display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + 20 /*SHIFT_TO_BOTTOM*/) / 2,
+                    logoICON_SMALL_OKNX, LOGO_WIDTH_ICON_SMALL_OKNX,
+                    LOGO_HEIGHT_ICON_SMALL_OKNX, 1);
+
+                _drawStep++;
+                break;
+            case 4:
+                display->displayBuff(); // Update the display with the rendered content
+                // display->display->display(); // Update the display with the rendered content
+
+                // fall trough
+            default:
+                _drawStep = 0;
+                break;
+        }
     }
 }
 
