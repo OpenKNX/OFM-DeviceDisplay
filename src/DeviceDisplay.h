@@ -8,8 +8,22 @@
  *              Licensed under GNU GPL v3.0
  */
 #include "OpenKNX/Stat/RuntimeStat.h"
+#include "Widgets.h"
 #include "Widget.h"
+#include "WidgetsManager.h"
 #include "i2c-Display.h"
+#include "Widgets/Clock.h"
+#include "Widgets/Pong.h"
+#include "Widgets/Menu.h"
+#include "Widgets/Life.h"
+#include "Widgets/Starfield.h"
+#include "Widgets/Cube3D.h"
+#include "Widgets/Matrix.h"
+#include "Widgets/MatrixClassic.h"
+#include "Widgets/Rain.h"
+
+
+
 
 #define DeviceDisplay_Display_Name "DeviceDisplay"
 #define DeviceDisplay_Display_Version "0.0.1"
@@ -19,7 +33,10 @@
 
 class DeviceDisplay : public OpenKNX::Module
 {
+  inline void setMenuWidget(MenuWidget *menuWidget) { _menuWidget = menuWidget; }
+
   private:
+    MenuWidget *_menuWidget = nullptr;
 #ifdef OPENKNX_RUNTIME_STAT
     OpenKNX::Stat::RuntimeStat _loopRuntimesDim;
     OpenKNX::Stat::RuntimeStat _loopWidgets;
@@ -54,7 +71,7 @@ class DeviceDisplay : public OpenKNX::Module
     inline const std::string name() { return DeviceDisplay_Display_Name; }       // Library name
     inline const std::string version() { return DeviceDisplay_Display_Version; } // Library version
 
-    void addWidget(Widget* widget, uint32_t duration, std::string name = "", uint8_t action = NoAction); // Add a widget to the queue
+    void addWidget(Widgets* widget, uint32_t duration, std::string name = "", uint8_t action = NoAction); // Add a widget to the queue
     bool removeWidget(const std::string& name);                                                          // Remove a widget from the queue
     inline void clearWidgets() { widgetsQueue.clear(); }                                                 // Clear all widgets from the queue
 
@@ -63,7 +80,7 @@ class DeviceDisplay : public OpenKNX::Module
 
     struct WidgetInfo
     {
-        Widget* widget;                      // Pointer to the widget
+        Widgets* widget;                      // Pointer to the widget
         uint32_t duration = WIDGET_INACTIVE; // Duration to display this widget in milliseconds. 0 = inactive
         std::string name;                    // Optional name for the widget
         uint8_t action = NoAction;           // Action flags for the widget
@@ -97,7 +114,7 @@ class DeviceDisplay : public OpenKNX::Module
 
     bool progModeActive = false; // Tracks Programming Mode status
 
-    Widget widget; // Widget instance
+    Widgets widget; // Widget instance
 
     void initializeWidgets(); // Initialize widgets with default settings or add widgets to queue
     void LoopWidgets();       // Switches widgets based on timing
