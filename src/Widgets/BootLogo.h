@@ -32,4 +32,19 @@ class WidgetBootLogo : public Widget
     i2cDisplay *_display;           // Zeiger auf das Display-Modul
     bool _needsRedraw;              // Gibt an, ob das Widget neu gezeichnet werden muss
     std::string _name = "BootLogo"; // Name des Widgets
+
+    /** state of partial drawing:
+     * 0=no drawing / done,
+     * 1=clear,
+     * 2=partial draw image,
+     * 3=start sending to display,
+     */
+    uint8_t _drawStep = 0; // TODO check using enum
+
+    /** Number of rows to draw in one loop() call */
+    const uint8_t _stepHeight = 8; // TODO find "best" size (note: 8 results in ~1.6ms max loop time)
+
+    /** Row to start drawing in one loop() call */
+    uint8_t _yStart = 0;
+
 };
