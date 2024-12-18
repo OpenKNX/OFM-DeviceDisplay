@@ -1,14 +1,26 @@
 #pragma once
 #include "../Widget.h"
 
+enum class MenuElementType
+{
+    ACTION,
+    CHECKBOX,
+    DROPDOWN,
+    SUBMENU,
+    BACK // Neuer Typ für "Zurück"-Menüeintrag
+};
+
 struct MenuOption
 {
-    std::string label;   // ToDo - Submenu / Checkboxes / Dropdowns / Sliders / Buttons / Value etc.
-    std::function<void()> action;
-    bool isSubmenu;               
-    std::vector<MenuOption> submenu;
-    uint8_t type;
-    void *value; 
+    std::string label;                        // Name of the menu item
+    std::function<void()> action;             // Function to call when the item is selected
+    bool isSubmenu;                           // If true, the item is a submenu
+    std::vector<MenuOption> submenu;          // Submenu items
+    MenuElementType type;                     // Typ of the menu item
+    void *value;                              // For Checkboxen, stores the value
+    bool checkboxState;                       // For Checkboxen, stores the state
+    size_t selectedOptionIndex;               // For Dropdown, stores the selected option
+    std::vector<std::string> dropdownOptions; // For Dropdown, stores the options
 };
 
 // MenuWidget-Klasse
@@ -18,12 +30,15 @@ class MenuWidget : public Widget
     const std::string logPrefix() { return "MenuWidget"; }                                                              // Log-Präfix for the widget
     MenuWidget(uint32_t displayTime, WidgetsAction action, uint8_t buttonUp, uint8_t buttonDown, uint8_t buttonSelect); // Constructor
 
-    void setup() override;  // Setup the widget
-    void start() override;  // Start the widget
-    void stop() override;   // Stop the widget
-    void pause() override;  // Pause the widget
-    void resume() override; // Resume the widget
-    void loop() override;   // Loop the widget
+    void start() override;                                                  // Start widget
+    void stop() override;                                                   // Stop widget
+    void pause() override;                                                  // Pause widget
+    void resume() override;                                                 // Resume widget
+    void setup() override;                                                  // Setup widget
+    void loop() override;                                                   // Update and draw the widget
+    inline const WidgetState getState() const override { return _state; }   // Get the current state of the widget
+    inline const std::string getName() const override { return _name; }     // Return the name of the widget
+    inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
     uint32_t getDisplayTime() const override; // Return the display time in ms
     WidgetsAction getAction() const override; // Return the widget action
@@ -53,6 +68,8 @@ class MenuWidget : public Widget
     pin_size_t _buttonUp, _buttonDown, _buttonSelect; // Button pins ToDo: Assign the buttons to the pins!
     uint16_t _screenWidth, _screenHeight;             // Screen dimensions
     i2cDisplay *_display;                             // Display module
+    std::string _name = "Menu";                       // Name of the widget
+    WidgetState _state;                               // Current state of the widget
 
     std::vector<MenuOption> _currentMenu;            // Menu items
     std::vector<std::vector<MenuOption>> _menuStack; // Menu stack

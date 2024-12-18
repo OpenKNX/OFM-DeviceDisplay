@@ -1,7 +1,7 @@
 #include "Clock.h"
 
 WidgetClock::WidgetClock(uint32_t displayTime, WidgetsAction action, bool roundedClock)
-    : _displayTime(displayTime), _action(action), _state(STOPPED), _display(nullptr),
+    : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),
       _roundedClock(roundedClock), _lastUpdateTime(0) {}
 
 void WidgetClock::setDisplayModule(i2cDisplay *displayModule)
@@ -13,6 +13,8 @@ i2cDisplay *WidgetClock::getDisplayModule() const { return _display; }
 
 void WidgetClock::setup()
 {
+    if(_state == WidgetState::RUNNING) return;
+
     logInfoP("Setup...");
     if (_display == nullptr)
     {
@@ -23,20 +25,20 @@ void WidgetClock::setup()
 
 void WidgetClock::start()
 {
-    if (_state == STOPPED)
+    if (_state == WidgetState::STOPPED)
     {
         logInfoP("Start...");
-        _state = RUNNING;
+        _state = WidgetState::RUNNING;
         _lastUpdateTime = millis();
     }
 }
 
 void WidgetClock::stop()
 {
-    if (_state != STOPPED)
+    if (_state != WidgetState::STOPPED)
     {
         logInfoP("Stop...");
-        _state = STOPPED;
+        _state = WidgetState::STOPPED;
         _display->display->clearDisplay();
         _display->displayBuff();
     }
@@ -44,29 +46,26 @@ void WidgetClock::stop()
 
 void WidgetClock::pause()
 {
-    if (_state == RUNNING)
+    if (_state == WidgetState::RUNNING)
     {
         logInfoP("Pause...");
-        _state = PAUSED;
+        _state = WidgetState::PAUSED;
     }
 }
 
 void WidgetClock::resume()
 {
-    if (_state == PAUSED)
+    if (_state == WidgetState::PAUSED)
     {
         logInfoP("Resume...");
-        _state = RUNNING;
+        _state = WidgetState::RUNNING;
         _lastUpdateTime = millis();
     }
 }
 
 void WidgetClock::loop()
 {
-    if (_state != RUNNING)
-    {
-        return; // Skip if not running
-    }
+    if (_state != WidgetState::RUNNING) return;
 
     uint32_t currentTime = millis();
     if (currentTime - _lastUpdateTime >= 1000)

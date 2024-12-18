@@ -8,12 +8,15 @@ class WidgetRain : public Widget
     const std::string logPrefix() { return "WidgetRain"; }
     WidgetRain(uint32_t displayTime, WidgetsAction action, uint8_t intensity);
 
-    void start() override;
-    void stop() override;
-    void pause() override;
-    void resume() override;
-    void setup() override;
-    void loop() override;
+    void start() override;                                                  // Start widget
+    void stop() override;                                                   // Stop widget
+    void pause() override;                                                  // Pause widget
+    void resume() override;                                                 // Resume widget
+    void setup() override;                                                  // Setup widget
+    void loop() override;                                                   // Update and draw the widget
+    inline const WidgetState getState() const override { return _state; }   // Get the current state of the widget
+    inline const std::string getName() const override { return _name; }     // Return the name of the widget
+    inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
     uint32_t getDisplayTime() const override;
     WidgetsAction getAction() const override;
@@ -22,6 +25,7 @@ class WidgetRain : public Widget
     i2cDisplay *getDisplayModule() const override;
 
   private:
+    WidgetState _state;              // Current state
     uint32_t _displayTime;
     WidgetsAction _action;
     uint8_t _intensity;
@@ -34,6 +38,7 @@ class WidgetRain : public Widget
     uint8_t _dropsX[MAX_RAIN_DROPS];
     uint8_t _dropsY[MAX_RAIN_DROPS];
     bool _initialized;
+    std::string _name = "Rain";
 
     void initRain();
     void updateRain();

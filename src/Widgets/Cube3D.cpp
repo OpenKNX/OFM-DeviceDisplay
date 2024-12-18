@@ -12,7 +12,7 @@ const uint8_t WidgetCube3D::cubeEdges[12][2] = {
 };
 
 WidgetCube3D::WidgetCube3D(uint32_t displayTime, WidgetsAction action)
-    : _displayTime(displayTime), _action(action), _state(STOPPED), _lastUpdateTime(0), _display(nullptr) {}
+    : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _lastUpdateTime(0), _display(nullptr) {}
 
 void WidgetCube3D::setup() {
 
@@ -26,11 +26,11 @@ void WidgetCube3D::setup() {
 
 void WidgetCube3D::start()
 {
-    if (_state == RUNNING) return;
+    if (_state == WidgetState::RUNNING) return;
     
     logInfoP("Start...");
 
-    _state = RUNNING;
+    _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
     angleX = 0.0;
     angleY = 0.0;
@@ -39,7 +39,7 @@ void WidgetCube3D::start()
 void WidgetCube3D::stop()
 {
     logInfoP("Stop...");
-    _state = STOPPED;
+    _state = WidgetState::STOPPED;
     if (_display)
     {
         _display->display->clearDisplay();
@@ -49,25 +49,25 @@ void WidgetCube3D::stop()
 
 void WidgetCube3D::pause()
 {
-    if (_state == RUNNING)
+    if (_state == WidgetState::RUNNING)
     {
         logInfoP("Pause...");
-        _state = PAUSED;
+        _state = WidgetState::PAUSED;
     }
 }
 
 void WidgetCube3D::resume()
 {
-    if (_state == PAUSED)
+    if (_state == WidgetState::PAUSED)
     {
         logInfoP("Resume...");
-        _state = RUNNING;
+        _state = WidgetState::RUNNING;
     }
 }
 
 void WidgetCube3D::loop()
 {
-    if (_state != RUNNING || !_display) return;
+    if (_state != WidgetState::RUNNING || !_display) return;
 
     uint32_t currentTime = millis();
     if (currentTime - _lastUpdateTime < UPDATE_INTERVAL)

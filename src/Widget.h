@@ -28,9 +28,14 @@ public:
     virtual void pause() = 0;    // pause the widget (will pause the current state and all internal timers, values, etc.)
     virtual void resume() = 0;   // resume the widget (will continue the current state and all internal timers, values, etc.)
     virtual void loop() = 0;     // loop the widget
+    virtual const WidgetState getState() const = 0;  // Get the current state of the widget
+    
     virtual uint32_t getDisplayTime() const = 0; // Time to display the widget in ms
     virtual WidgetsAction getAction() const = 0;   // Widget action flag
     virtual ~Widget() = default;
     virtual void setDisplayModule(i2cDisplay *displayModule) = 0;
     virtual i2cDisplay *getDisplayModule() const = 0;
+    virtual const std::string getName() const = 0;
+    virtual void setName(const std::string &name) = 0;
+    
 };

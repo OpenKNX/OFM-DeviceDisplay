@@ -23,12 +23,14 @@ void WidgetRain::setup()
 
 void WidgetRain::start()
 {
+    _state = WidgetState::RUNNING;
     logInfoP("Starting Rain Widget...");
     initRain();
 }
 
 void WidgetRain::stop()
 {
+    _state = WidgetState::STOPPED;
     logInfoP("Stopping Rain Widget...");
     if (_display)
     {
@@ -39,18 +41,19 @@ void WidgetRain::stop()
 
 void WidgetRain::pause()
 {
+    _state = WidgetState::PAUSED;
     logInfoP("Pausing Rain Widget...");
-
 }
 
 void WidgetRain::resume()
 {
+    _state = WidgetState::RUNNING;
     logInfoP("Resuming Rain Widget...");
 }
 
 void WidgetRain::loop()
 {
-    if (!_display)
+    if (!_display || _state != WidgetState::RUNNING)
         return;
 
     unsigned long currentTime = millis();

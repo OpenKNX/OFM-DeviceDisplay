@@ -7,6 +7,7 @@ WidgetBootLogo::WidgetBootLogo(uint32_t displayTime, WidgetsAction action)
 
 void WidgetBootLogo::setup()
 {
+    if(_state == WidgetState::RUNNING) return;
     logInfoP("Setup...");
     if (_display == nullptr)
     {
@@ -18,30 +19,34 @@ void WidgetBootLogo::setup()
 void WidgetBootLogo::start()
 {
     logInfoP("Start...");
+    _state = WidgetState::RUNNING;
     _needsRedraw = true;
 }
 
 void WidgetBootLogo::stop()
 {
     logInfoP("Stop...");
+    _state = WidgetState::STOPPED;
     _needsRedraw = false;
 }
 
 void WidgetBootLogo::pause()
 {
     logInfoP("Pause...");
+    _state = WidgetState::PAUSED;
     _needsRedraw = false;
 }
 
 void WidgetBootLogo::resume()
 {
     logInfoP("Resume...");
+    _state = WidgetState::RUNNING;
     _needsRedraw = true;
 }
 
 void WidgetBootLogo::loop()
 {
-    if (!_needsRedraw) return;
+    if (!_needsRedraw || _state != WidgetState::RUNNING) return;
 
     drawBootLogo();
     _needsRedraw = false;

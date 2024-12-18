@@ -9,12 +9,15 @@ class WidgetPong : public Widget
     const std::string logPrefix() { return "WidgetPong"; }
     WidgetPong(uint32_t displayTime, WidgetsAction action);
 
-    void start() override;  // Start the widget and display the WidgetPong screensaver
-    void stop() override;   // Stop the WidgetPong screensaver and clear the display
-    void pause() override;  // Pause the WidgetPong screensaver
-    void resume() override; // Resume the WidgetPong screensaver
-    void setup() override;  // Setup the widget
-    void loop() override;   // Loop is called every second to update the screensaver
+    void start() override;                                                  // Start widget
+    void stop() override;                                                   // Stop widget
+    void pause() override;                                                  // Pause widget
+    void resume() override;                                                 // Resume widget
+    void setup() override;                                                  // Setup widget
+    void loop() override;                                                   // Update and draw the widget
+    inline const WidgetState getState() const override { return _state; }   // Get the current state of the widget
+    inline const std::string getName() const override { return _name; }     // Return the name of the widget
+    inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
     uint32_t getDisplayTime() const override; // Return the display time in ms
     WidgetsAction getAction() const override; // Return the widget action
@@ -23,12 +26,12 @@ class WidgetPong : public Widget
     i2cDisplay *getDisplayModule() const override;             // Get the display module
 
   private:
-
     uint32_t _displayTime;        // Time to display the widget in ms
     WidgetsAction _action;        // Widget action
     uint32_t _lastUpdateTime = 0; // Last update time
-    WidgetState _state;       // Current state of the widget
+    WidgetState _state;           // Current state of the widget
     i2cDisplay *_display;         // Display object
+    std::string _name = "Pong";   // Name of the widget
 
     // WidgetPong screensaver data
     uint16_t paddleLeftY;  // Paddle left Y position

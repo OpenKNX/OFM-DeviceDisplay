@@ -1,7 +1,8 @@
 #include "Matrix.h"
 
 WidgetMatrix::WidgetMatrix(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
-    : _displayTime(displayTime), _action(action), _intensity(intensity), _display(nullptr), _lastUpdateTime(0)
+    : _displayTime(displayTime), _action(action), _intensity(intensity), 
+      _display(nullptr), _lastUpdateTime(0), _state(WidgetState::STOPPED)
 {
     _updateInterval = map(_intensity, 1, 10, 150, 30); // Map intensity to update speed
     _columnHeads = new int8_t[_display->GetDisplayWidth()];
@@ -24,6 +25,7 @@ void WidgetMatrix::setup()
 void WidgetMatrix::start()
 {
     logInfoP("Start...");
+    _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
     logDebugP("WidgetMatrix: Started.");
 }
@@ -31,6 +33,7 @@ void WidgetMatrix::start()
 void WidgetMatrix::stop()
 {
     logInfoP("Stop...");
+    _state = WidgetState::STOPPED;
     if (_display)
     {
         _display->display->clearDisplay();
@@ -41,18 +44,20 @@ void WidgetMatrix::stop()
 void WidgetMatrix::pause()
 {
     logInfoP("Pause...");
+    _state = WidgetState::PAUSED;
     _lastUpdateTime = millis();
 }
 
 void WidgetMatrix::resume()
 {
     logInfoP("Resume...");
+    _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
 }
 
 void WidgetMatrix::loop()
 {
-    if (!_display) return;
+    if (!_display || _state != WidgetState::RUNNING) return;
 
     unsigned long currentTime = millis();
     if (currentTime - _lastUpdateTime < _updateInterval)

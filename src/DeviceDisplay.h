@@ -33,7 +33,9 @@
 
 class DeviceDisplay : public OpenKNX::Module
 {
-  inline void setMenuWidget(MenuWidget *menuWidget) { _menuWidget = menuWidget; }
+  public:
+    inline void setMenuWidget(MenuWidget *menuWidget) { _menuWidget = menuWidget; }
+    WidgetsManager widgetManager;
 
   private:
     MenuWidget *_menuWidget = nullptr;

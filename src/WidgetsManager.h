@@ -13,6 +13,10 @@ class WidgetsManager
     inline void setDisplayModule(i2cDisplay* displayModule) { _displayModule = displayModule; }
     inline i2cDisplay* getDisplayModule() { return _displayModule; }
     Widget *getCurrentWidget() { return _currentWidget; }
+    Widget *getWidgetFromQueue( const char *widgetName );
+    void removeWidgetFromQueue( const char *widgetName );
+    std::queue<Widget*> getWidgetQueue() { return _widgetQueue; }
+    void clearWidgetQueue() { while (!_widgetQueue.empty()) _widgetQueue.pop(); }
 
   private:
     std::queue<Widget*> _widgetQueue; // Queue for the widgets

@@ -2,7 +2,7 @@
 
 // Constructor
 WidgetLife::WidgetLife(uint32_t displayTime, WidgetsAction action)
-    : _displayTime(displayTime), _action(action), _state(STOPPED), _lastUpdateTime(0), _display(nullptr)
+    : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _lastUpdateTime(0), _display(nullptr)
 {
     memset(grid, 0, sizeof(grid));
     memset(nextGrid, 0, sizeof(nextGrid));
@@ -21,17 +21,17 @@ void WidgetLife::setup()
 
 void WidgetLife::start()
 {
-    if (_state == RUNNING) return;
+    if (_state == WidgetState::RUNNING) return;
 
     logInfoP("Start...");
-    _state = RUNNING;
+    _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
 }
 
 void WidgetLife::stop()
 {
     logInfoP("Stop...");
-    _state = STOPPED;
+    _state = WidgetState::STOPPED;
     if (_display)
     {
         _display->display->clearDisplay();
@@ -41,25 +41,25 @@ void WidgetLife::stop()
 
 void WidgetLife::pause()
 {
-    if (_state == RUNNING)
+    if (_state == WidgetState::RUNNING)
     {
         logInfoP("Pause...");
-        _state = PAUSED;
+        _state = WidgetState::PAUSED;
     }
 }
 
 void WidgetLife::resume()
 {
-    if (_state == PAUSED)
+    if (_state == WidgetState::PAUSED)
     {
         logInfoP("Resume...");
-        _state = RUNNING;
+        _state = WidgetState::RUNNING;
     }
 }
 
 void WidgetLife::loop()
 {
-    if (_state != RUNNING || !_display) return;
+    if (_state != WidgetState::RUNNING || !_display) return;
 
     const uint32_t UPDATE_INTERVAL = 100; // Update speed in milliseconds
     uint32_t currentTime = millis();

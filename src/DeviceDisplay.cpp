@@ -2,7 +2,7 @@
 
 DeviceDisplay openknxDisplayModule;
 i2cDisplay* displayModule = new i2cDisplay();
-WidgetsManager widgetManager;
+
 
 /**
  * @brief Construct a new Device Display:: Device Display object

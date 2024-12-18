@@ -11,13 +11,15 @@ const char WidgetMatrixClassic::cp437[] = {
     0xB0, 0xB1, 0xB2, 0xB3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9};
 
 WidgetMatrixClassic::WidgetMatrixClassic(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
-    : _displayTime(displayTime), _action(action), _intensity(intensity), _display(nullptr), _lastUpdateScreenSaver(0)
+    : _displayTime(displayTime), _action(action), _intensity(intensity), 
+      _display(nullptr), _lastUpdateScreenSaver(0), FallSpeed(0), _state(WidgetState::STOPPED)
 {
     FallSpeed = map(_intensity, 1, 10, 150, 30); // Map intensity to speed
 }
 
-void WidgetMatrixClassic::setup() {
-    //logDebugP("Setup...");
+void WidgetMatrixClassic::setup()
+{
+    // logDebugP("Setup...");
     logInfoP("Setup...");
     if (_display == nullptr)
     {
@@ -29,6 +31,7 @@ void WidgetMatrixClassic::setup() {
 void WidgetMatrixClassic::start()
 {
     logInfoP("Start...");
+    _state = WidgetState::RUNNING;
     randomSeed(analogRead(0));
     initMatrix();
 }
@@ -36,6 +39,7 @@ void WidgetMatrixClassic::start()
 void WidgetMatrixClassic::stop()
 {
     logInfoP("Stop...");
+    _state = WidgetState::STOPPED;
     if (_display)
     {
         _display->display->clearDisplay();
@@ -43,8 +47,10 @@ void WidgetMatrixClassic::stop()
     }
 }
 
-void WidgetMatrixClassic::pause() {
+void WidgetMatrixClassic::pause()
+{
     logDebugP("Pause...");
+    _state = WidgetState::PAUSED;
     if (_display)
     {
         _display->display->clearDisplay();
@@ -52,15 +58,17 @@ void WidgetMatrixClassic::pause() {
     }
 }
 
-void WidgetMatrixClassic::resume() {
+void WidgetMatrixClassic::resume()
+{
     logDebugP("Resume...");
+    _state = WidgetState::RUNNING;
     randomSeed(analogRead(0));
     initMatrix();
 }
 
 void WidgetMatrixClassic::loop()
 {
-    if (!_display) return;
+    if (!_display || _state != WidgetState::RUNNING) return;
 
     unsigned long currentTime = millis();
     if (currentTime - _lastUpdateScreenSaver >= FallSpeed)
