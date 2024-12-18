@@ -5,6 +5,7 @@
 class WidgetCube3D : public Widget
 {
   public:
+    const std::string logPrefix() { return "WidgetCube3D"; }
     WidgetCube3D(uint32_t displayTime, WidgetsAction action);
 
     void start() override;  // Start the 3D cube animation

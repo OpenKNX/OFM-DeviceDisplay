@@ -88,29 +88,36 @@ void DeviceDisplay::setup(bool configured)
 #else
     widgetManager.setDisplayModule(&displayModule); // The display module for the widgets
 
-    WidgetClock* clockWidget = new WidgetClock(10000, WidgetsAction::AutoRemoveFlag, true); // Create a new Clock widget
-    WidgetPong* pongWidget = new WidgetPong(10000, WidgetsAction::AutoRemoveFlag);          // Create a new Pong widget
-    //MenuWidget* menuWidget = new MenuWidget(10000, WidgetsAction::ExternalManaged, 255, 255, 255 ); // Create a new Menu widget
-    WidgetLife* lifeWidget = new WidgetLife(10000, WidgetsAction::AutoRemoveFlag); // Create a new Life widget
-    WidgetStarfield* starfieldWidget = new WidgetStarfield(10000, WidgetsAction::AutoRemoveFlag, 10); // Create a new Starfield widget
-    WidgetCube3D* cube3DWidget = new WidgetCube3D(10000, WidgetsAction::AutoRemoveFlag); // Create a new 3D Cube widget
-    WidgetMatrix* matrixWidget = new WidgetMatrix(10000, WidgetsAction::AutoRemoveFlag, 10); // Create a new Matrix widget
-    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(10000, WidgetsAction::AutoRemoveFlag, 3); // Create a new MatrixClassic widget
-    WidgetRain *rainWidget = new WidgetRain(10000, WidgetsAction::AutoRemoveFlag, 10); // Create a new Rain widget
+    WidgetClock* clockWidget = new WidgetClock(3000, WidgetsAction::AutoRemoveFlag, true);                               // Create a new Clock widget
+    WidgetPong* pongWidget = new WidgetPong(2000, WidgetsAction::AutoRemoveFlag);                                        // Create a new Pong widget
+    WidgetLife* lifeWidget = new WidgetLife(2000, WidgetsAction::AutoRemoveFlag);                                        // Create a new Life widget
+    WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetsAction::AutoRemoveFlag, 10);                     // Create a new Starfield widget
+    WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetsAction::AutoRemoveFlag);                                  // Create a new 3D Cube widget
+    WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetsAction::AutoRemoveFlag, 7);                               // Create a new Matrix widget
+    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetsAction::AutoRemoveFlag, 8);          // Create a new MatrixClassic widget
+    WidgetRain* rainWidget = new WidgetRain(2000, WidgetsAction::AutoRemoveFlag, 10);                                    // Create a new Rain widget
+    WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetsAction::AutoRemoveFlag, "https://www.openknx.de", false); // Create a new QRcode widget
 
+    WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(2000, WidgetsAction::AutoRemoveFlag);          // Create a new BootLogo widget
+    WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetsAction::AutoRemoveFlag); // Create a new SysInfoLite widget
 
+    widgetManager.addWidget(bootLogoWidget);
+    widgetManager.addWidget(sysInfoLiteWidget);
     widgetManager.addWidget(matrixClassicWidget);
+    widgetManager.addWidget(matrixWidget);
     widgetManager.addWidget(rainWidget);
     widgetManager.addWidget(pongWidget);
     widgetManager.addWidget(clockWidget);
     widgetManager.addWidget(lifeWidget);
     widgetManager.addWidget(starfieldWidget);
     widgetManager.addWidget(cube3DWidget);
-    widgetManager.addWidget(matrixWidget);
-    
-    //setMenuWidget(menuWidget);
-    //widgetManager.addWidget(menuWidget);
-    widgetManager.setup();
+    widgetManager.addWidget(qrcodeWidget);
+
+    MenuWidget* menuWidget = new MenuWidget(20000, WidgetsAction::ExternalManaged, 255, 255, 255); // Create a new Menu widget
+    setMenuWidget(menuWidget);
+    widgetManager.addWidget(menuWidget);
+
+    widgetManager.start();
 #endif
 }
 
@@ -245,6 +252,21 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 else if (command.compare(10, 1, "e") == 0) // "e" = Select
                 {
                     _menuWidget->externalSelectItem();
+                    bRet = true;
+                }
+                else if (command.compare(10, 1, "p") == 0) // "p" = Pause
+                {
+                    widgetManager.getCurrentWidget()->pause();
+                    bRet = true;
+                }
+                else if (command.compare(10, 1, "r") == 0) // "r" = Resume
+                {
+                    widgetManager.getCurrentWidget()->resume();
+                    bRet = true;
+                }
+                else if (command.compare(10, 1, "x") == 0) // "x" = Stop
+                {
+                    widgetManager.getCurrentWidget()->stop();
                     bRet = true;
                 }
             }
@@ -834,6 +856,16 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 #ifdef QRCODE_WIDGET
             openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
 #endif // QRCODE_WIDGET
+#ifdef WIDGET_MANAGER
+            openknx.console.printHelpLine("ddc press <KEY>", "Simulates the menu widget button press");
+            openknx.console.printHelpLine("ddc press w ", "UP - Button press (W)");
+            openknx.console.printHelpLine("ddc press s ", "DOWN - Button press (S)");
+            openknx.console.printHelpLine("ddc press e ", "ENTER - Button press (E)");
+            openknx.console.printHelpLine("ddc press p ", "PAUSE the current widget");
+            openknx.console.printHelpLine("ddc press r ", "RESUME the current widget");
+            openknx.console.printHelpLine("ddc press x ", "STOP the current widget");
+#endif // WIDGET_MANAGER
+
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("Info: To test the progMode widget toogle the prog mode on the device.");
             openknx.logger.log("--------------------------------------------------------------------------------");

@@ -8,19 +8,29 @@ WidgetLife::WidgetLife(uint32_t displayTime, WidgetsAction action)
     memset(nextGrid, 0, sizeof(nextGrid));
 }
 
-void WidgetLife::setup() {}
+void WidgetLife::setup()
+{
+    logInfoP("Setup...");
+    if (_display == nullptr)
+    {
+        logErrorP(" Display is NULL.");
+        return;
+    }
+    initializeGrid();
+}
 
 void WidgetLife::start()
 {
     if (_state == RUNNING) return;
 
+    logInfoP("Start...");
     _state = RUNNING;
-    initializeGrid();
     _lastUpdateTime = millis();
 }
 
 void WidgetLife::stop()
 {
+    logInfoP("Stop...");
     _state = STOPPED;
     if (_display)
     {
@@ -33,6 +43,7 @@ void WidgetLife::pause()
 {
     if (_state == RUNNING)
     {
+        logInfoP("Pause...");
         _state = PAUSED;
     }
 }
@@ -41,6 +52,7 @@ void WidgetLife::resume()
 {
     if (_state == PAUSED)
     {
+        logInfoP("Resume...");
         _state = RUNNING;
     }
 }

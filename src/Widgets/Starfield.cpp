@@ -1,28 +1,46 @@
 #include "Starfield.h"
+#include "openknx.h"
 
 // Constructor
 WidgetStarfield::WidgetStarfield(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
-    : _displayTime(displayTime), _action(action), _intensity(intensity), _state(STOPPED), _lastUpdateTime(0), _display(nullptr)
+    : _displayTime(displayTime), _action(action), _intensity(intensity), _state(WidgetState::STOPPED), _lastUpdateTime(0), _display(nullptr)
 {
     memset(stars, 0, sizeof(stars));
 }
 
-void WidgetStarfield::setup() {}
+void WidgetStarfield::setup()
+{
+    logInfoP("Setting up Starfield Widget...");
+
+    if (_display == nullptr)
+    {
+        // logErrorP("WidgetStarfield: Display is NULL.");
+        logInfoP("Display is NULL!");
+
+        return;
+    }
+    // logDebugP("WidgetStarfield: Setup completed.");
+    logInfoP("Setup completed.");
+}
 
 void WidgetStarfield::start()
 {
-    if (_state == RUNNING) return;
+    if (_state == WidgetState::RUNNING) return;
+    // logDebugP("WidgetStarfield: Starting...");
+    logInfoP("Starting...");
 
-    _state = RUNNING;
+    _state = WidgetState::RUNNING;
     initializeStars();
     _lastUpdateTime = millis();
 }
 
 void WidgetStarfield::stop()
 {
-    _state = STOPPED;
+    _state =WidgetState::STOPPED;
     if (_display)
     {
+        // logDebugP("WidgetStarfield: Stop...");
+        logInfoP("Stopping...");
         _display->display->clearDisplay();
         _display->displayBuff();
     }
@@ -30,23 +48,27 @@ void WidgetStarfield::stop()
 
 void WidgetStarfield::pause()
 {
-    if (_state == RUNNING)
+    if (_state == WidgetState::RUNNING)
     {
-        _state = PAUSED;
+        // logDebugP("WidgetStarfield: Pausing...");
+        logInfoP("Pausing...");
+        _state = WidgetState::PAUSED;
     }
 }
 
 void WidgetStarfield::resume()
 {
-    if (_state == PAUSED)
+    if (_state == WidgetState::PAUSED)
     {
-        _state = RUNNING;
+        // logDebugP("WidgetStarfield: Resuming...");
+        logInfoP("Resuming...");
+        _state = WidgetState::RUNNING;
     }
 }
 
 void WidgetStarfield::loop()
 {
-    if (_state != RUNNING || !_display) return;
+    if (_state != WidgetState::RUNNING || !_display) return;
 
     const uint32_t UPDATE_INTERVAL = map(_intensity, 1, 10, 100, 20); // Control speed. The _intensity value is between 1 and 10.
     uint32_t currentTime = millis();
@@ -67,6 +89,7 @@ i2cDisplay *WidgetStarfield::getDisplayModule() const { return _display; }
 
 void WidgetStarfield::initializeStars()
 {
+    logInfoP("Initializing stars...");
     for (int i = 0; i < MAX_STARS; i++)
     {
         stars[i] = {static_cast<float>(random(-100, 100)), static_cast<float>(random(-100, 100)), static_cast<float>(random(1, 100))};

@@ -5,6 +5,7 @@
 class WidgetMatrixClassic : public Widget
 {
   public:
+    const std::string logPrefix() { return "WidgetMatrixClassic"; }
     WidgetMatrixClassic(uint32_t displayTime, WidgetsAction action, uint8_t intensity);
 
     void start() override;
@@ -30,9 +31,9 @@ class WidgetMatrixClassic : public Widget
     uint16_t FallSpeed; // Speed of drops depending on intensity
 
     // Matrix drop positions
-    static constexpr uint8_t maxColumns = 32;
-    static constexpr uint8_t maxDrops = 6;
-    static constexpr uint8_t columnWidth = 4;
+    static constexpr uint8_t maxColumns = 16; // Maximum number of columns
+    static constexpr uint8_t maxDrops = 5; // Maximum number of drops per column
+    static constexpr uint8_t columnWidth = 8; // Width of a column in pixels
 
     int _MatrixDropPos[maxColumns][maxDrops];
     static const char cp437[]; // Classic CP437 character set

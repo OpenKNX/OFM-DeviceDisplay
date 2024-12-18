@@ -5,6 +5,7 @@
 class WidgetStarfield : public Widget
 {
   public:
+    const std::string logPrefix() { return "WidgetStarfield"; }
     WidgetStarfield(uint32_t displayTime, WidgetsAction action, uint8_t intensity);
 
     void start() override;  // Start the starfield widget
@@ -21,19 +22,12 @@ class WidgetStarfield : public Widget
     i2cDisplay *getDisplayModule() const override;
 
   private:
-    enum WidgetStarfieldState
-    {
-        STOPPED,
-        RUNNING,
-        PAUSED
-    };
-
     struct Star
     {
         float x, y, z;
     };
 
-    WidgetStarfieldState _state; // Current state
+    WidgetState _state; // Current state
     uint32_t _displayTime;       // Display time
     WidgetsAction _action;       // Widget action
     i2cDisplay *_display;        // Display module

@@ -5,6 +5,7 @@
 class WidgetMatrix : public Widget
 {
   public:
+    const std::string logPrefix() { return "WidgetMatrix"; }
     WidgetMatrix(uint32_t displayTime, WidgetsAction action, uint8_t intensity);
 
     void start() override;  // Start the screensaver
@@ -28,13 +29,11 @@ class WidgetMatrix : public Widget
     unsigned long _lastUpdateTime; // Last update time for frame rate control
 
     // Matrix screensaver configuration
-    static constexpr uint8_t SCREEN_WIDTH = 128;
-    static constexpr uint8_t SCREEN_HEIGHT = 64;
-    static constexpr uint8_t MAX_TAIL_LENGTH = 10;
+    static constexpr uint8_t MAX_TAIL_LENGTH = 10; // Maximum length of the "tail" of the raindrops
     uint8_t _updateInterval;
 
-    int8_t _columnHeads[SCREEN_WIDTH];    // Head positions for each column
-    uint8_t _columnLengths[SCREEN_WIDTH]; // Tail lengths for each column
+    int8_t *_columnHeads;  // Head of the column (top)
+    uint8_t *_columnLengths; // Length of the column (tail)
 
     void initMatrix();     // Initialize matrix settings
     void updateMatrix();   // Update and draw the matrix animation

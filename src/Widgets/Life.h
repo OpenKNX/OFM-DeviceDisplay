@@ -5,6 +5,7 @@
 class WidgetLife : public Widget
 {
   public:
+    const std::string logPrefix() { return "WidgetLife"; }
     WidgetLife(uint32_t displayTime, WidgetsAction action);
 
     void start() override;  // Start the Game of Life widget

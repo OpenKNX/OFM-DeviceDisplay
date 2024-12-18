@@ -1,21 +1,35 @@
 #include "Rain.h"
+#include "OpenKNX.h"
 
 WidgetRain::WidgetRain(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(intensity), _display(nullptr), _lastUpdateScreenSaver(0), _initialized(false)
 {
-    UPDATE_INTERVAL = map(_intensity, 1, 10, 50, 10); // Speed: higher intensity = faster rain
+    UPDATE_INTERVAL = map(_intensity, 1, 10, 50, 10);        // Speed: higher intensity = faster rain
     _dropCount = map(_intensity, 1, 10, 10, MAX_RAIN_DROPS); // More drops with higher intensity
 }
 
-void WidgetRain::setup() {}
+void WidgetRain::setup()
+{
+    logInfoP("Setting up Rain Widget...");
+    //openknx.logger.log(logPrefix() + ": Setting up Rain Widget...");
+    if (_display == nullptr)
+    {
+        // logErrorP("WidgetRain: Display is NULL.");
+        openknx.logger.log(logPrefix() + ": Display is NULL.");
+        return;
+    }
+    initRain();
+}
 
 void WidgetRain::start()
 {
+    logInfoP("Starting Rain Widget...");
     initRain();
 }
 
 void WidgetRain::stop()
 {
+    logInfoP("Stopping Rain Widget...");
     if (_display)
     {
         _display->display->clearDisplay();
@@ -23,9 +37,16 @@ void WidgetRain::stop()
     }
 }
 
-void WidgetRain::pause() {}
+void WidgetRain::pause()
+{
+    logInfoP("Pausing Rain Widget...");
 
-void WidgetRain::resume() {}
+}
+
+void WidgetRain::resume()
+{
+    logInfoP("Resuming Rain Widget...");
+}
 
 void WidgetRain::loop()
 {
@@ -48,6 +69,7 @@ i2cDisplay *WidgetRain::getDisplayModule() const { return _display; }
 
 void WidgetRain::initRain()
 {
+    logInfoP("Initializing Rain Widget...");
     for (uint8_t i = 0; i < MAX_RAIN_DROPS; i++)
     {
         _dropsX[i] = random(_display->GetDisplayWidth());

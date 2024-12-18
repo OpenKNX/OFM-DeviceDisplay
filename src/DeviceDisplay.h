@@ -12,18 +12,18 @@
 #include "Widget.h"
 #include "WidgetsManager.h"
 #include "i2c-Display.h"
+#include "Widgets/Menu.h"
 #include "Widgets/Clock.h"
 #include "Widgets/Pong.h"
-#include "Widgets/Menu.h"
 #include "Widgets/Life.h"
 #include "Widgets/Starfield.h"
 #include "Widgets/Cube3D.h"
 #include "Widgets/Matrix.h"
 #include "Widgets/MatrixClassic.h"
 #include "Widgets/Rain.h"
-
-
-
+#include "Widgets/QRcode.h"
+#include "Widgets/BootLogo.h"
+#include "Widgets/SysInfoLite.h"
 
 #define DeviceDisplay_Display_Name "DeviceDisplay"
 #define DeviceDisplay_Display_Version "0.0.1"

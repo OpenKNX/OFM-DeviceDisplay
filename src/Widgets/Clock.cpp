@@ -7,30 +7,27 @@ WidgetClock::WidgetClock(uint32_t displayTime, WidgetsAction action, bool rounde
 void WidgetClock::setDisplayModule(i2cDisplay *displayModule)
 {
     _display = displayModule;
-    logDebugP("WidgetClock: Display module set.");
 }
 
 i2cDisplay *WidgetClock::getDisplayModule() const { return _display; }
 
 void WidgetClock::setup()
 {
-    logInfoP("WidgetClock: Setup started...");
+    logInfoP("Setup...");
     if (_display == nullptr)
     {
-        logErrorP("WidgetClock: Display is NULL.");
+        logErrorP("Display is NULL.");
         return;
     }
-    logInfoP("WidgetClock: Setup completed.");
 }
 
 void WidgetClock::start()
 {
     if (_state == STOPPED)
     {
-        logInfoP("WidgetClock: Starting...");
+        logInfoP("Start...");
         _state = RUNNING;
         _lastUpdateTime = millis();
-        logInfoP("WidgetClock: Started.");
     }
 }
 
@@ -38,11 +35,10 @@ void WidgetClock::stop()
 {
     if (_state != STOPPED)
     {
-        logInfoP("WidgetClock: Stopping...");
+        logInfoP("Stop...");
         _state = STOPPED;
         _display->display->clearDisplay();
         _display->displayBuff();
-        logInfoP("WidgetClock: Stopped.");
     }
 }
 
@@ -50,9 +46,8 @@ void WidgetClock::pause()
 {
     if (_state == RUNNING)
     {
-        logInfoP("WidgetClock: Pausing...");
+        logInfoP("Pause...");
         _state = PAUSED;
-        logInfoP("WidgetClock: Paused.");
     }
 }
 
@@ -60,10 +55,9 @@ void WidgetClock::resume()
 {
     if (_state == PAUSED)
     {
-        logInfoP("WidgetClock: Resuming...");
+        logInfoP("Resume...");
         _state = RUNNING;
         _lastUpdateTime = millis();
-        logInfoP("WidgetClock: Resumed.");
     }
 }
 

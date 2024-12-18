@@ -14,11 +14,21 @@ const uint8_t WidgetCube3D::cubeEdges[12][2] = {
 WidgetCube3D::WidgetCube3D(uint32_t displayTime, WidgetsAction action)
     : _displayTime(displayTime), _action(action), _state(STOPPED), _lastUpdateTime(0), _display(nullptr) {}
 
-void WidgetCube3D::setup() {}
+void WidgetCube3D::setup() {
+
+    logInfoP("Setup...");
+    if (_display == nullptr)
+    {
+        logErrorP("Display is NULL.");
+        return;
+    }
+}
 
 void WidgetCube3D::start()
 {
     if (_state == RUNNING) return;
+    
+    logInfoP("Start...");
 
     _state = RUNNING;
     _lastUpdateTime = millis();
@@ -28,6 +38,7 @@ void WidgetCube3D::start()
 
 void WidgetCube3D::stop()
 {
+    logInfoP("Stop...");
     _state = STOPPED;
     if (_display)
     {
@@ -40,6 +51,7 @@ void WidgetCube3D::pause()
 {
     if (_state == RUNNING)
     {
+        logInfoP("Pause...");
         _state = PAUSED;
     }
 }
@@ -48,6 +60,7 @@ void WidgetCube3D::resume()
 {
     if (_state == PAUSED)
     {
+        logInfoP("Resume...");
         _state = RUNNING;
     }
 }

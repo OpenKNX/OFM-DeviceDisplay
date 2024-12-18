@@ -5,6 +5,7 @@
 class WidgetRain : public Widget
 {
   public:
+    const std::string logPrefix() { return "WidgetRain"; }
     WidgetRain(uint32_t displayTime, WidgetsAction action, uint8_t intensity);
 
     void start() override;

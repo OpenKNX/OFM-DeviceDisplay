@@ -1,19 +1,20 @@
 #include "Pong.h"
 
 WidgetPong::WidgetPong(uint32_t displayTime, WidgetsAction action)
-    : _displayTime(displayTime), _action(action), _state(STOPPED), _display(nullptr),
+    : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),
       paddleLeftY(0), paddleRightY(0), ballX(0), ballY(0), ballSpeedX(0), ballSpeedY(0) {}
 
 void WidgetPong::setDisplayModule(i2cDisplay *displayModule)
 {
     _display = displayModule;
-    logDebugP("WidgetPong: Display-Modul gesetzt.");
+    //logDebugP("WidgetPong: Display-Modul gesetzt.");
+    logInfoP("Display-Modul gesetzt.");
 }
 i2cDisplay *WidgetPong::getDisplayModule() const { return _display; }
 
 void WidgetPong::initSettings() // Initialize the screensaver default settings
 {
-    logInfoP("WidgetPong: Initialisiere Screensaver...");
+    logInfoP("Init...");
     const uint16_t SCREEN_HEIGHT = _display->GetDisplayHeight();
     const uint16_t SCREEN_WIDTH = _display->GetDisplayWidth();
 
@@ -23,70 +24,67 @@ void WidgetPong::initSettings() // Initialize the screensaver default settings
     ballY = SCREEN_HEIGHT / 2;
     ballSpeedX = -1; // Horizontal movement
     ballSpeedY = 1;  // Vertical movement
-    logInfoP("WidgetPong: Screensaver initialisiert.");
+    logInfoP("Screensaver initialisiert.");
 }
 
 void WidgetPong::setup()
 {
-    logInfoP("WidgetPong: Setup gestartet...");
+    logInfoP("Setup...");
     if (_display == nullptr)
     {
-        logErrorP("WidgetPong: Display ist NULL.");
+        logErrorP("WidgetPong: Display is NULL.");
         return;
     }
     initSettings();
-    logInfoP("WidgetPong: Setup abgeschlossen.");
+    
 }
 
 void WidgetPong::start() // Start the widget and display the WidgetPong screensaver
 {
-    if (_state == STOPPED)
+    if (_state == WidgetState::STOPPED)
     {
-        logInfoP("WidgetPong: Starting...");
-        _state = RUNNING;
+        logInfoP("Start...");
+        _state = WidgetState::RUNNING;
         _lastUpdateTime = millis();
-        initSettings(); // Reset screensaver state
-        logInfoP("WidgetPong: Started.");
+        //initSettings(); // Reset screensaver state
     }
 }
 
 void WidgetPong::stop() // Stop the WidgetPong screensaver and clear the display
 {
-    if (_state != STOPPED)
+    logInfoP("Stop...");
+    if (_state != WidgetState::STOPPED)
     {
-        logInfoP("WidgetPong: Stop...");
-        _state = STOPPED;
+        _state = WidgetState::STOPPED;
         _display->display->clearDisplay();
         _display->displayBuff(); // Display leeren
-        logInfoP("WidgetPong: Gestoppt.");
+        logInfoP("Stopped.");
     }
 }
 
 void WidgetPong::pause() // Pause the WidgetPong screensaver
 {
-    if (_state == RUNNING)
+    if (_state == WidgetState::RUNNING)
     {
-        logInfoP("WidgetPong: Pausieren...");
-        _state = PAUSED; // Set the state to paused
+        logInfoP("Pause...");
+        _state = WidgetState::PAUSED; // Set the state to paused
                          // No need to reset the current WidgetPong pos and settings. Just pause WidgetPong
-        logInfoP("WidgetPong: Pausiert.");
     }
 }
 
 void WidgetPong::resume() // Resume the WidgetPong screensaver
 {
-    if (_state == PAUSED)
+    if (_state == WidgetState::PAUSED)
     {
-        logInfoP("WidgetPong: Fortsetzen...");
-        _state = RUNNING;
+        logInfoP("Resume...");
+        _state = WidgetState::RUNNING;
         _lastUpdateTime = millis(); // Reset last update time
-        logInfoP("WidgetPong: Fortgesetzt.");
     }
 }
 
 void WidgetPong::loop() // Loop is called every second to update the screensaver
 {
-    if (_state != RUNNING)
+    if (_state != WidgetState::RUNNING)
     {
         return; // Noting to do here. WidgetPong is not running
     }
@@ -106,10 +104,8 @@ void WidgetPong::drawScreensaver() // Draw the WidgetPong screensaver
 {
     if (_display == nullptr)
     {
-        logErrorP("WidgetPong: Display ist NULL.");
         return;
     }
-    logDebugP("WidgetPong: Screensaver aktualisieren...");
     const uint8_t PADDLE_WIDTH = 2;   // Paddle-Breite
     const uint8_t PADDLE_HEIGHT = 10; // Paddle-Höhe
     const uint8_t BALL_SIZE = 2;      // Ballgröße
@@ -173,5 +169,4 @@ void WidgetPong::drawScreensaver() // Draw the WidgetPong screensaver
     _display->display->fillRect(SCREEN_WIDTH - PADDLE_WIDTH, paddleRightY, PADDLE_WIDTH, PADDLE_HEIGHT, WHITE); // Right Paddle
     _display->display->fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE, WHITE);                                     // The Ball
     _display->displayBuff();                                                                                    // Send the data to the display
-    logDebugP("WidgetPong: Screensaver aktualisiert.");
 }

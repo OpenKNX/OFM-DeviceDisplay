@@ -13,9 +13,15 @@ typedef enum : uint8_t {
     MarkedForRemove = 16    // Marked for remove
 } WidgetsAction;
 
+enum class WidgetState {
+    STOPPED,
+    RUNNING,
+    PAUSED
+};
+
+
 class Widget {
 public:
-    const std::string logPrefix() { return "DeviceDisplay: "; }
     virtual void setup() = 0;    // setup the widget
     virtual void start() = 0;    // start the widget
     virtual void stop() = 0;     // stop the widget

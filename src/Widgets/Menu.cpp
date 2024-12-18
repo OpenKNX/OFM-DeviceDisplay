@@ -1,4 +1,5 @@
 #include "Menu.h"
+#include "openknx.h"
 
 // Constructor
 MenuWidget::MenuWidget(uint32_t displayTime, WidgetsAction action, pin_size_t buttonUp, pin_size_t buttonDown, pin_size_t buttonSelect)
@@ -16,58 +17,58 @@ WidgetsAction MenuWidget::getAction() const { return NoAction; }
 void MenuWidget::setDisplayModule(i2cDisplay *displayModule)
 {
     _display = displayModule;
-    if (displayModule == nullptr) {
-        //logErrorP("MenuWidget: Display ist NULL.");
-        openknx.logger.log("MenuWidget: Display ist NULL.");
-    } return;
 
-    //logDebugP("WidgetPong: Display-Modul gesetzt.");
-    openknx.logger.log("WidgetPong: Display-Modul gesetzt.");
+    logInfoP("Set display Module...");
+    if (_display == nullptr)
+    {
+        logErrorP("Display ist NULL.");
+        return;
+    }
+   
 }
 i2cDisplay *MenuWidget::getDisplayModule() const { return _display; }
 
 void MenuWidget::externalNavigateUp()
 {
+    logInfoP("External navigate up...");
     navigateUp();
-    _needsRedraw = true; // Menü neu zeichnen
 }
 
 void MenuWidget::externalNavigateDown()
 {
+    logInfoP("External navigate down...");
     navigateDown();
-    _needsRedraw = true; // Menü neu zeichnen
 }
 
 void MenuWidget::externalSelectItem()
 {
+    logInfoP("External select item...");
     selectItem();
-    _needsRedraw = true; // Menü neu zeichnen
 }
 void MenuWidget::externalPause()
 {
+    logInfoP("External pause...");
     pause();
-    _needsRedraw = true; // Eventuell visueller Hinweis beim Pausieren
 }
 
 void MenuWidget::externalResume()
 {
+    logInfoP("External resume...");
     resume();
-    _needsRedraw = true; // Menü nach dem Fortsetzen neu zeichnen
 }
 
 void MenuWidget::externalStop()
 {
+    logInfoP("External stop...");
     stop();
-    _needsRedraw = true; // Menü nach dem Stoppen leeren oder resetten
 }
 
 // Setup
 void MenuWidget::setup()
 {
-    logInfoP("MenuWidget: Setup...");
+    logInfoP("Setup...");
     if(_display == nullptr) {
-        //logErrorP("MenuWidget: Display ist NULL.");
-        openknx.logger.log("MenuWidget: Display ist NULL.");
+        logErrorP("MenuWidget: Display ist NULL.");
         return;
     }
     _screenHeight = _display->GetDisplayHeight();
@@ -77,7 +78,8 @@ void MenuWidget::setup()
 
 // Start
 void MenuWidget::start()
-{
+{   
+    logInfoP("Start...");
     _isPaused = false;
     _needsRedraw = true;
 }
@@ -85,6 +87,7 @@ void MenuWidget::start()
 // Stop
 void MenuWidget::stop()
 {
+    logInfoP("Stop...");
     _isPaused = true;
     _needsRedraw = true;
 }
@@ -92,12 +95,14 @@ void MenuWidget::stop()
 // Pause
 void MenuWidget::pause()
 {
+    logInfoP("Pause...");
     _isPaused = true;
 }
 
 // Resume
 void MenuWidget::resume()
 {
+    logInfoP("Resume...");
     _isPaused = false;
     _needsRedraw = true;
 }
@@ -128,6 +133,7 @@ void MenuWidget::loop()
 
     if (_needsRedraw) // Redraw the menu if needed
     {
+        logInfoP("Redraw menu...");
         drawMenu();
         _needsRedraw = false;
     }
@@ -136,6 +142,7 @@ void MenuWidget::loop()
 // Add default menus
 void MenuWidget::addDefaultMenus()
 {
+    logInfoP("Add default menus...");
     _currentMenu = {
         {"Reboot", []() { /* Reboot-Aktion */ }, false, {}, 0, nullptr},
         {"Brightness", nullptr, false, {}, 0, nullptr},
@@ -158,26 +165,35 @@ void MenuWidget::addDefaultMenus()
 // Add custom menu
 void MenuWidget::addCustomMenu(const std::vector<MenuOption> &menu)
 {
+    logInfoP("Add custom menu...");
     _currentMenu.insert(_currentMenu.end(), menu.begin(), menu.end());
 }
 
 // Navigate up
 void MenuWidget::navigateUp()
 {
+    logInfoP("Navigate up...");
+    logInfoP("Selected Index: %d", _selectedIndex);
+    logInfoP("Current Menu Size: %d", _currentMenu.size());
     if (_selectedIndex > 0)
     {
         _selectedIndex--;
+        logInfoP("Selected Index New: %d", _selectedIndex);
         _needsRedraw = true;
-    }
+    } 
 }
 
 // Navigate down
 void MenuWidget::navigateDown()
 {
+    logInfoP("Navigate down...");
+    logInfoP("Selected Index: %d", _selectedIndex);
+    logInfoP("Current Menu Size: %d", _currentMenu.size());
     if (_selectedIndex < _currentMenu.size() - 1)
     {
         _selectedIndex++;
         _needsRedraw = true;
+        logInfoP("Selected Index New: %d", _selectedIndex);
     }
 }
 
@@ -202,7 +218,8 @@ void MenuWidget::selectItem()
 void MenuWidget::drawMenu()
 {
     if (!_display || !_display->display) return;
-    logDebugP("MenuWidget: Draw menu...");
+    
+    logInfoP("Draw menu...");
 
     _display->display->clearDisplay();
 
@@ -213,10 +230,10 @@ void MenuWidget::drawMenu()
                            ? _selectedIndex - (MAX_VISIBLE_ITEMS - 1)
                            : 0;
 
+    logInfoP("Menu item: %d", _currentMenu.size());
     for (size_t i = startIdx; i < _currentMenu.size() && i < startIdx + MAX_VISIBLE_ITEMS; ++i)
     {
         uint8_t y = (i - startIdx) * (ITEM_HEIGHT + ITEM_MARGIN);
-
         if (i == _selectedIndex)
         {
             _display->display->fillRect(0, y, _screenWidth, ITEM_HEIGHT, WHITE);
@@ -229,8 +246,9 @@ void MenuWidget::drawMenu()
 
         _display->display->setCursor(2, y + 2);
         _display->display->print(_currentMenu[i].label.c_str());
+        logInfoP("Menu item: %s", _currentMenu[i].label.c_str());
     }
 
     _display->displayBuff();
-    logDebugP("MenuWidget: Menu drawn.");
+    logInfoP("Menu drawn.");
 }

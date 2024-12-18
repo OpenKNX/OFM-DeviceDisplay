@@ -6,7 +6,7 @@
 class WidgetPong : public Widget
 {
   public:
-    // const std::string logPrefix() { return " DD-WidgetPong: "; }
+    const std::string logPrefix() { return "WidgetPong"; }
     WidgetPong(uint32_t displayTime, WidgetsAction action);
 
     void start() override;  // Start the widget and display the WidgetPong screensaver
@@ -23,17 +23,11 @@ class WidgetPong : public Widget
     i2cDisplay *getDisplayModule() const override;             // Get the display module
 
   private:
-    enum WidgetPongState
-    {
-        STOPPED,
-        RUNNING,
-        PAUSED
-    }; // WidgetPong states
 
     uint32_t _displayTime;        // Time to display the widget in ms
     WidgetsAction _action;        // Widget action
     uint32_t _lastUpdateTime = 0; // Last update time
-    WidgetPongState _state;       // Current state of the widget
+    WidgetState _state;       // Current state of the widget
     i2cDisplay *_display;         // Display object
 
     // WidgetPong screensaver data

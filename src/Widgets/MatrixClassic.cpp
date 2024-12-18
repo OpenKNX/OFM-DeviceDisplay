@@ -16,16 +16,26 @@ WidgetMatrixClassic::WidgetMatrixClassic(uint32_t displayTime, WidgetsAction act
     FallSpeed = map(_intensity, 1, 10, 150, 30); // Map intensity to speed
 }
 
-void WidgetMatrixClassic::setup() {}
+void WidgetMatrixClassic::setup() {
+    //logDebugP("Setup...");
+    logInfoP("Setup...");
+    if (_display == nullptr)
+    {
+        logErrorP("Display is NULL.");
+        return;
+    }
+}
 
 void WidgetMatrixClassic::start()
 {
+    logInfoP("Start...");
     randomSeed(analogRead(0));
     initMatrix();
 }
 
 void WidgetMatrixClassic::stop()
 {
+    logInfoP("Stop...");
     if (_display)
     {
         _display->display->clearDisplay();
@@ -33,9 +43,20 @@ void WidgetMatrixClassic::stop()
     }
 }
 
-void WidgetMatrixClassic::pause() {}
+void WidgetMatrixClassic::pause() {
+    logDebugP("Pause...");
+    if (_display)
+    {
+        _display->display->clearDisplay();
+        _display->displayBuff();
+    }
+}
 
-void WidgetMatrixClassic::resume() {}
+void WidgetMatrixClassic::resume() {
+    logDebugP("Resume...");
+    randomSeed(analogRead(0));
+    initMatrix();
+}
 
 void WidgetMatrixClassic::loop()
 {

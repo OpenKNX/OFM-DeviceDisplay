@@ -5,6 +5,7 @@
 class WidgetClock : public Widget
 {
   public:
+    const std::string logPrefix() { return "WidgetClock"; }
     WidgetClock(uint32_t displayTime, WidgetsAction action, bool roundedClock);
 
     void start() override;  // Start the clock screensaver

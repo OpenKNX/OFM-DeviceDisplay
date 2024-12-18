@@ -14,7 +14,7 @@
 #define DD_CONSOLE_CMDS    // Enable the console commands for the display module
 
 #include "i2c-Display.h"  // Include 1st
-#include "DisplayIcons.h" // Include 2nd
+#include "icons/logo.h"
 #include "OpenKNX/Stat/RuntimeStat.h"
 
 #ifdef QRCODE_WIDGET
