@@ -77,7 +77,6 @@ void DeviceDisplay::init()
  * @param configured, will not be used
  */
 
-#define WIDGET_MANAGER
 void DeviceDisplay::setup(bool configured)
 {
     logDebugP("setup...");
@@ -235,7 +234,18 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
     bool bRet = false;
     if ((!diagnose) && command.compare(0, 4, "ddc ") == 0) // Display text on the display
     {
-        if (command.compare(4, 6, "press ") == 0) // Simuliere Button-Press
+        if (command.compare(4, 4, "logo") == 0) // Show the boot logo
+        {
+            logInfoP("BootLogo requested and will be displayed for %d seconds...", BOOT_LOGO_TIMEOUT / 1000);
+            Widgets* bootLogo = new Widgets(Widgets::DisplayMode::BOOT_LOGO);
+            addWidget(bootLogo, BOOT_LOGO_TIMEOUT, "BootLogo",
+                      DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
+                          DeviceDisplay::WidgetAction::AutoRemoveFlag |  // Remove this widget after display
+                          DeviceDisplay::WidgetAction::InternalEnabled); // This widget is enabled
+            bRet = true;
+        }
+#ifdef WIDGET_MANAGER
+        else if (command.compare(4, 6, "press ") == 0) // Simuliere Button-Press
         {
             if (_menuWidget) // Prüfen, ob MenuWidget referenziert wurde
             {
@@ -271,16 +281,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 }
             }
         }
-        else if (command.compare(4, 4, "logo") == 0) // Show the boot logo
-        {
-            logInfoP("BootLogo requested and will be displayed for %d seconds...", BOOT_LOGO_TIMEOUT / 1000);
-            Widgets* bootLogo = new Widgets(Widgets::DisplayMode::BOOT_LOGO);
-            addWidget(bootLogo, BOOT_LOGO_TIMEOUT, "BootLogo",
-                      DeviceDisplay::WidgetAction::StatusFlag |          // This is a status widget
-                          DeviceDisplay::WidgetAction::AutoRemoveFlag |  // Remove this widget after display
-                          DeviceDisplay::WidgetAction::InternalEnabled); // This widget is enabled
-            bRet = true;
-        }
+#endif
 #ifdef MATRIX_SCREENSAVER
         else if (command.compare(4, 2, "m ") == 0) // Matrix Screensaver
         {

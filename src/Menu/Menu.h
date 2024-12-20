@@ -1,29 +1,8 @@
 #pragma once
 #include "../Widget.h"
+#include "MenuConfig.h"
 
-enum class MenuElementType
-{
-    ACTION,
-    CHECKBOX,
-    DROPDOWN,
-    SUBMENU,
-    BACK // Neuer Typ für "Zurück"-Menüeintrag
-};
-
-struct MenuOption
-{
-    std::string label;                        // Name of the menu item
-    std::function<void()> action;             // Function to call when the item is selected
-    bool isSubmenu;                           // If true, the item is a submenu
-    std::vector<MenuOption> submenu;          // Submenu items
-    MenuElementType type;                     // Typ of the menu item
-    void *value;                              // For Checkboxen, stores the value
-    bool checkboxState;                       // For Checkboxen, stores the state
-    size_t selectedOptionIndex;               // For Dropdown, stores the selected option
-    std::vector<std::string> dropdownOptions; // For Dropdown, stores the options
-};
-
-// MenuWidget-Klasse
+// MenuWidget class: Displays a menu on the display
 class MenuWidget : public Widget
 {
   public:
@@ -45,8 +24,6 @@ class MenuWidget : public Widget
 
     void setDisplayModule(i2cDisplay *displayModule) override; // Set the display module
     i2cDisplay *getDisplayModule() const override;             // Get the display module
-
-    void addCustomMenu(const std::vector<MenuOption> &menu); // Add a custom menu. for external use (e.g. from the main or other libraries)
 
     void externalNavigateUp();   // External navigation up
     void externalNavigateDown(); // External navigation down
@@ -71,8 +48,8 @@ class MenuWidget : public Widget
     std::string _name = "Menu";                       // Name of the widget
     WidgetState _state;                               // Current state of the widget
 
-    std::vector<MenuOption> _currentMenu;            // Menu items
-    std::vector<std::vector<MenuOption>> _menuStack; // Menu stack
+    std::vector<MenuConfig::MenuOption> _currentMenu;            // Menu items
+    std::vector<std::vector<MenuConfig::MenuOption>> _menuStack; // Menu stack
 
     size_t _selectedIndex; // Selected menu index
     bool _needsRedraw;     // Redraw flag
