@@ -86,6 +86,10 @@ void WidgetsManager::loop()
         }
         _currentWidget->loop(); // Call the loop function of the current widget
     }
+    if (_displayModule != nullptr)
+    {
+        _displayModule->loop();
+    }
 }
 
 void WidgetsManager::stopCurrent()
