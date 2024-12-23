@@ -7,6 +7,7 @@ class WidgetMatrix : public Widget
   public:
     const std::string logPrefix() { return "WidgetMatrix"; }
     WidgetMatrix(uint32_t displayTime, WidgetsAction action, uint8_t intensity);
+    ~WidgetMatrix();
 
     void start() override;                                                  // Start widget
     void stop() override;                                                   // Stop widget
@@ -39,6 +40,7 @@ class WidgetMatrix : public Widget
 
     int8_t *_columnHeads;    // Head of the column (top)
     uint8_t *_columnLengths; // Length of the column (tail)
+    uint8_t *_columnSpeeds;  // Speed of the column
 
     void initMatrix();             // Initialize matrix settings
     void updateMatrix();           // Update and draw the matrix animation

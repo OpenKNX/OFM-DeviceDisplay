@@ -1,4 +1,5 @@
 #include "Pong.h"
+#include "OpenKNX.h"
 
 WidgetPong::WidgetPong(uint32_t displayTime, WidgetsAction action)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),
@@ -8,13 +9,13 @@ void WidgetPong::setDisplayModule(i2cDisplay *displayModule)
 {
     _display = displayModule;
     //logDebugP("WidgetPong: Display-Modul gesetzt.");
-    logInfoP("Display-Modul gesetzt.");
+    //logInfoP("Display-Modul gesetzt.");
 }
 i2cDisplay *WidgetPong::getDisplayModule() const { return _display; }
 
 void WidgetPong::initSettings() // Initialize the screensaver default settings
 {
-    logInfoP("Init...");
+    //logInfoP("Init...");
     const uint16_t SCREEN_HEIGHT = _display->GetDisplayHeight();
     const uint16_t SCREEN_WIDTH = _display->GetDisplayWidth();
 

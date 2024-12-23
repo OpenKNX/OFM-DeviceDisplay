@@ -1,5 +1,6 @@
 #include "QRCode.h"
-#include "openknx.h" // Assuming openknx.logger is used for logging
+#include "OpenKNX.h"
+#include "qrcodegen.h"
 
 // Constructor
 WidgetQRCode::WidgetQRCode(uint32_t displayTime, WidgetsAction action, const std::string &defaultText, bool backgroundWhite)
@@ -121,8 +122,8 @@ void WidgetQRCode::drawQRCode()
 {
     if (_qrCodeText.empty() || !_display) return;
 
-    uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
-    uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
+    static uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
+    static uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
 
     // Generate QR Code
     if (!qrcodegen_encodeText(_qrCodeText.c_str(), tempBuffer, qrcode,
@@ -135,17 +136,16 @@ void WidgetQRCode::drawQRCode()
     // Get QR Code size and pixel size
     int qrSize = qrcodegen_getSize(qrcode);
     int pixelSize = std::min(_display->GetDisplayWidth() / qrSize, _display->GetDisplayHeight() / qrSize);
-
     int xOffset = (_display->GetDisplayWidth() - qrSize * pixelSize) / 2;
     int yOffset = (_display->GetDisplayHeight() - qrSize * pixelSize) / 2;
 
     _display->display->clearDisplay(); // Clear the display
+
     for (int y = 0; y < qrSize; y++)
     {
         for (int x = 0; x < qrSize; x++)
         {
-            bool module = qrcodegen_getModule(qrcode, x, y);
-            if (module)
+            if (qrcodegen_getModule(qrcode, x, y))
             {
                 _display->display->drawRect(xOffset + x * pixelSize, yOffset + y * pixelSize,
                                             pixelSize, pixelSize, _backgroundWhite ? BLACK : WHITE);

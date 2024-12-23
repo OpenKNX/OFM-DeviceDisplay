@@ -1,4 +1,5 @@
 #include "MatrixClassic.h"
+#include "OpenKNX.h"
 
 // CP437 character set: Classic Matrix-style characters
 const char WidgetMatrixClassic::cp437[] = {

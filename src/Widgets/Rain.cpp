@@ -10,12 +10,10 @@ WidgetRain::WidgetRain(uint32_t displayTime, WidgetsAction action, uint8_t inten
 
 void WidgetRain::setup()
 {
-    logInfoP("Setting up Rain Widget...");
-    //openknx.logger.log(logPrefix() + ": Setting up Rain Widget...");
+    //logInfoP("Setting up Rain Widget...");
     if (_display == nullptr)
     {
-        // logErrorP("WidgetRain: Display is NULL.");
-        openknx.logger.log(logPrefix() + ": Display is NULL.");
+        //logErrorP("Display is NULL.");
         return;
     }
     initRain();
@@ -24,14 +22,14 @@ void WidgetRain::setup()
 void WidgetRain::start()
 {
     _state = WidgetState::RUNNING;
-    logInfoP("Starting Rain Widget...");
+    //logInfoP("Starting Rain Widget...");
     initRain();
 }
 
 void WidgetRain::stop()
 {
     _state = WidgetState::STOPPED;
-    logInfoP("Stopping Rain Widget...");
+    //logInfoP("Stopping Rain Widget...");
     if (_display)
     {
         _display->display->clearDisplay();
@@ -42,13 +40,13 @@ void WidgetRain::stop()
 void WidgetRain::pause()
 {
     _state = WidgetState::PAUSED;
-    logInfoP("Pausing Rain Widget...");
+    //logInfoP("Pausing Rain Widget...");
 }
 
 void WidgetRain::resume()
 {
     _state = WidgetState::RUNNING;
-    logInfoP("Resuming Rain Widget...");
+    //logInfoP("Resuming Rain Widget...");
 }
 
 void WidgetRain::loop()
@@ -72,7 +70,7 @@ i2cDisplay *WidgetRain::getDisplayModule() const { return _display; }
 
 void WidgetRain::initRain()
 {
-    logInfoP("Initializing Rain Widget...");
+    //logInfoP("Initializing Rain Widget...");
     for (uint8_t i = 0; i < MAX_RAIN_DROPS; i++)
     {
         _dropsX[i] = random(_display->GetDisplayWidth());

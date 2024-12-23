@@ -1,56 +1,72 @@
 #include "Matrix.h"
+#include "OpenKNX.h"
 
 WidgetMatrix::WidgetMatrix(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
-    : _displayTime(displayTime), _action(action), _intensity(intensity), 
+    : _displayTime(displayTime), _action(action), _intensity(intensity),
       _display(nullptr), _lastUpdateTime(0), _state(WidgetState::STOPPED)
 {
-    _updateInterval = map(_intensity, 1, 10, 150, 30); // Map intensity to update speed
-    _columnHeads = new int8_t[_display->GetDisplayWidth()];
-    _columnLengths = new uint8_t[_display->GetDisplayWidth()];
-    memset(_columnHeads, 0, _display->GetDisplayWidth() * sizeof(int8_t));
-    memset(_columnLengths, 0, _display->GetDisplayWidth() * sizeof(uint8_t));
+    _updateInterval = map(_intensity, 1, 10, 150, 30);
+}
+
+WidgetMatrix::~WidgetMatrix()
+{
+    logInfoP("Test - descructor called");
+    delete[] _columnHeads;
+    delete[] _columnLengths;
+    delete[] _columnSpeeds;
 }
 
 void WidgetMatrix::setup()
 {
-    logInfoP("Setup...");
-    if (_display == nullptr)
+    logInfoP("Setting up Matrix widget...");
+    if (!_display)
     {
         logErrorP("Display is NULL.");
         return;
     }
+
+    uint8_t displayWidth = _display->GetDisplayWidth();
+    _columnHeads = new int8_t[displayWidth];
+    _columnLengths = new uint8_t[displayWidth];
+    _columnSpeeds = new uint8_t[displayWidth];
+    memset(_columnHeads, 0, displayWidth * sizeof(int8_t));
+    memset(_columnLengths, 0, displayWidth * sizeof(uint8_t));
+    memset(_columnSpeeds, 0, displayWidth * sizeof(uint8_t));
+
     initMatrix();
 }
 
 void WidgetMatrix::start()
 {
-    logInfoP("Start...");
+    logInfoP("Starting Matrix widget...");
     _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
-    logDebugP("WidgetMatrix: Started.");
 }
 
 void WidgetMatrix::stop()
 {
-    logInfoP("Stop...");
+    logInfoP("Stopping Matrix widget...");
     _state = WidgetState::STOPPED;
     if (_display)
     {
         _display->display->clearDisplay();
         _display->displayBuff();
     }
+    //delete[] _columnHeads;
+    //delete[] _columnLengths;
+    //delete[] _columnSpeeds;
 }
 
 void WidgetMatrix::pause()
 {
-    logInfoP("Pause...");
+    logInfoP("Pausing Matrix widget...");
     _state = WidgetState::PAUSED;
     _lastUpdateTime = millis();
 }
 
 void WidgetMatrix::resume()
 {
-    logInfoP("Resume...");
+    logInfoP("Resuming Matrix widget...");
     _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
 }
@@ -60,10 +76,8 @@ void WidgetMatrix::loop()
     if (!_display || _state != WidgetState::RUNNING) return;
 
     unsigned long currentTime = millis();
-    if (currentTime - _lastUpdateTime < _updateInterval)
-    {
-        return; // Control the frame rate
-    }
+    if (currentTime - _lastUpdateTime < _updateInterval) return;
+
     _lastUpdateTime = currentTime;
 
     updateMatrix();
@@ -72,50 +86,62 @@ void WidgetMatrix::loop()
 uint32_t WidgetMatrix::getDisplayTime() const { return _displayTime; }
 WidgetsAction WidgetMatrix::getAction() const { return _action; }
 
-void WidgetMatrix::setDisplayModule(i2cDisplay *displayModule) { _display = displayModule; }
-i2cDisplay *WidgetMatrix::getDisplayModule() const { return _display; }
+void WidgetMatrix::setDisplayModule(i2cDisplay* displayModule) { _display = displayModule; }
+i2cDisplay* WidgetMatrix::getDisplayModule() const { return _display; }
 
 void WidgetMatrix::initMatrix()
 {
-    for (uint8_t col = 0; col < _display->GetDisplayWidth(); col++)
+    uint8_t displayWidth = _display->GetDisplayWidth();
+    for (uint8_t col = 0; col < displayWidth; col++)
     {
-        resetColumn(col); // Initialize each column
+        resetColumn(col);
     }
 }
 
 void WidgetMatrix::updateMatrix()
 {
-    _display->display->clearDisplay(); // Clear display before drawing
+    _display->display->clearDisplay();
 
-    for (uint8_t col = 0; col < _display->GetDisplayWidth(); col++)
+    uint8_t displayHeight = _display->GetDisplayHeight();
+    uint8_t displayWidth = _display->GetDisplayWidth();
+
+    for (uint8_t col = 0; col < displayWidth; col++)
     {
         int8_t head = _columnHeads[col];
         uint8_t length = _columnLengths[col];
+        uint8_t speed = _columnSpeeds[col];
 
-        // Draw the "tail" for this column
+        if (millis() % speed == 0)
+        {
+            _columnHeads[col]++;
+        }
+
         for (uint8_t offset = 0; offset < length; offset++)
         {
             int8_t y = head - offset;
-            if (y >= 0 && y < _display->GetDisplayHeight())
+            if (y < 0) y += displayHeight; // Loop nach oben
+            if (y >= 0 && y < displayHeight)
             {
-                uint8_t brightness = 255 - (offset * (255 / length)); // Brightness fades with offset
-                _display->display->drawPixel(col, y, brightness > 128 ? WHITE : BLACK);
+                if (offset % 2 == 0)
+                {
+                    _display->display->drawPixel(col, y, WHITE);
+                }
             }
         }
 
-        // Move the column head downward
-        _columnHeads[col]++;
-        if (_columnHeads[col] - length >= _display->GetDisplayHeight())
+        if (_columnHeads[col] >= displayHeight)
         {
-            resetColumn(col); // Reset the column when it moves off-screen
+            _columnHeads[col] = 0;
+            resetColumn(col);
         }
     }
 
-    _display->displayBuff(); // Update the display
+    _display->displayBuff();
 }
 
 void WidgetMatrix::resetColumn(uint8_t col)
 {
-    _columnHeads[col] = 0;                            // Reset head to top
-    _columnLengths[col] = random(3, MAX_TAIL_LENGTH); // Randomize tail length
+    _columnHeads[col] = random(0, _display->GetDisplayHeight() / 4); // Zufällige Startposition
+    _columnLengths[col] = random(3, MAX_TAIL_LENGTH);                // Zufällige Tropfenlänge
+    _columnSpeeds[col] = random(1, 4);                               // Zufällige Geschwindigkeit
 }

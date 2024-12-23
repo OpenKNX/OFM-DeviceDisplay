@@ -1,6 +1,6 @@
 #include "SysInfoLite.h"
 #include "../icons/logo.h"
-#include "openknx.h"
+#include "OpenKNX.h"
 
 // Constructor
 WidgetSysInfoLite::WidgetSysInfoLite(uint32_t displayTime, WidgetsAction action)

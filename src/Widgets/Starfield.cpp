@@ -1,5 +1,5 @@
 #include "Starfield.h"
-#include "openknx.h"
+#include "OpenKNX.h"
 
 // Constructor
 WidgetStarfield::WidgetStarfield(uint32_t displayTime, WidgetsAction action, uint8_t intensity)

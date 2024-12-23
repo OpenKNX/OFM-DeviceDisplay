@@ -20,6 +20,7 @@ void WidgetOpenKNXLogo::start()
     logInfoP("Start...");
     _drawStep = 1;
     _needsRedraw = true;
+    _state = WidgetState::RUNNING;
 }
 
 void WidgetOpenKNXLogo::stop()
@@ -27,12 +28,14 @@ void WidgetOpenKNXLogo::stop()
     logInfoP("Stop...");
     _drawStep = 0;
     _needsRedraw = false;
+    _state = WidgetState::STOPPED;
 }
 
 void WidgetOpenKNXLogo::pause()
 {
     logInfoP("Pause...");
     _needsRedraw = false;
+    _state = WidgetState::PAUSED;
 }
 
 void WidgetOpenKNXLogo::resume()
@@ -40,10 +43,12 @@ void WidgetOpenKNXLogo::resume()
     logInfoP("Resume...");
     _drawStep = 1; // TODO check
     _needsRedraw = true;
+    _state = WidgetState::RUNNING;
 }
 
 void WidgetOpenKNXLogo::loop()
 {
+    if (_state != WidgetState::RUNNING) return;
     if (!_needsRedraw) return;
 
     const String _currentUptime = openknx.logger.buildUptime().c_str(); // Get the current uptime

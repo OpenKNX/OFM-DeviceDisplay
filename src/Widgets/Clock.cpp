@@ -1,4 +1,5 @@
 #include "Clock.h"
+#include "OpenKNX.h"
 
 WidgetClock::WidgetClock(uint32_t displayTime, WidgetsAction action, bool roundedClock)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),

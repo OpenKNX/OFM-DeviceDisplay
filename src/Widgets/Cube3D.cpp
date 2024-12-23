@@ -1,11 +1,12 @@
 #include "Cube3D.h"
+#include "OpenKNX.h"
 
 // Define the cube vertices
-const int8_t WidgetCube3D::cubeVertices[8][3] = {
+constexpr int8_t WidgetCube3D::cubeVertices[8][3] = {
     {-1, -1, -1}, {1, -1, -1}, {1, 1, -1}, {-1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {1, 1, 1}, {-1, 1, 1}};
 
 // Define the cube edges
-const uint8_t WidgetCube3D::cubeEdges[12][2] = {
+constexpr uint8_t WidgetCube3D::cubeEdges[12][2] = {
     {0, 1}, {1, 2}, {2, 3}, {3, 0}, // Front face
     {4, 5}, {5, 6}, {6, 7}, {7, 4}, // Back face
     {0, 4}, {1, 5}, {2, 6}, {3, 7}  // Connections between front and back faces
@@ -44,6 +45,7 @@ void WidgetCube3D::stop()
     {
         _display->display->clearDisplay();
         _display->displayBuff();
+        _display = nullptr;
     }
 }
 

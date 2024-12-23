@@ -1,6 +1,5 @@
 #pragma once
 #include "../Widget.h"
-#include "qrcodegen.h"
 
 // WidgetQRCode class: Display a QR code on the screen
 class WidgetQRCode : public Widget

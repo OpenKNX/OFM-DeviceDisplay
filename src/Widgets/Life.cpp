@@ -1,4 +1,5 @@
 #include "Life.h"
+#include "OpenKNX.h"
 
 // Constructor
 WidgetLife::WidgetLife(uint32_t displayTime, WidgetsAction action)
