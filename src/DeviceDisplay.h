@@ -23,6 +23,7 @@
     #include "Widgets/Rain.h"
     #include "Widgets/Starfield.h"
     #include "Widgets/SysInfoLite.h"
+    #include "Widgets/OpenKNXLogo.h" // --> This is the new SysInfoLite widget
     #include "Menu/Menu.h"
 
     #include "WidgetsManager.h"

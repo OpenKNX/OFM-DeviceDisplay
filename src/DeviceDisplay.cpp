@@ -1,8 +1,8 @@
 #include "DeviceDisplay.h"
+#include "OpenKNX.h"
 
 DeviceDisplay openknxDisplayModule;
 i2cDisplay* displayModule = new i2cDisplay();
-
 
 /**
  * @brief Construct a new Device Display:: Device Display object
@@ -87,35 +87,50 @@ void DeviceDisplay::setup(bool configured)
 #else
     widgetManager.setDisplayModule(&displayModule); // The display module for the widgets
 
-    WidgetClock* clockWidget = new WidgetClock(3000, WidgetsAction::AutoRemoveFlag, true);                               // Create a new Clock widget
-    WidgetPong* pongWidget = new WidgetPong(2000, WidgetsAction::AutoRemoveFlag);                                        // Create a new Pong widget
-    WidgetLife* lifeWidget = new WidgetLife(2000, WidgetsAction::AutoRemoveFlag);                                        // Create a new Life widget
-    WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetsAction::AutoRemoveFlag, 10);                     // Create a new Starfield widget
-    WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetsAction::AutoRemoveFlag);                                  // Create a new 3D Cube widget
-    WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetsAction::AutoRemoveFlag, 7);                               // Create a new Matrix widget
-    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetsAction::AutoRemoveFlag, 8);          // Create a new MatrixClassic widget
-    WidgetRain* rainWidget = new WidgetRain(2000, WidgetsAction::AutoRemoveFlag, 10);                                    // Create a new Rain widget
-    WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetsAction::AutoRemoveFlag, "https://www.openknx.de", false); // Create a new QRcode widget
-
-    WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(2000, WidgetsAction::AutoRemoveFlag);          // Create a new BootLogo widget
-    WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetsAction::AutoRemoveFlag); // Create a new SysInfoLite widget
-
-    widgetManager.addWidget(bootLogoWidget);
-    widgetManager.addWidget(sysInfoLiteWidget);
-    widgetManager.addWidget(matrixClassicWidget);
-    widgetManager.addWidget(matrixWidget);
-    widgetManager.addWidget(rainWidget);
-    widgetManager.addWidget(pongWidget);
-    widgetManager.addWidget(clockWidget);
+    WidgetLife* lifeWidget = new WidgetLife(2000, WidgetsAction::AutoRemoveFlag); // Create a new Life widget
     widgetManager.addWidget(lifeWidget);
+
+    WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetsAction::AutoRemoveFlag, 10); // Create a new Starfield widget
     widgetManager.addWidget(starfieldWidget);
-    widgetManager.addWidget(cube3DWidget);
+
+    WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetsAction::AutoRemoveFlag, "https://www.openknx.de", false); // Create a new QRcode widget
     widgetManager.addWidget(qrcodeWidget);
 
-    MenuWidget* menuWidget = new MenuWidget(20000, WidgetsAction::ExternalManaged, 255, 255, 255); // Create a new Menu widget
+    WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetsAction::AutoRemoveFlag); // Create a new 3D Cube widget
+    widgetManager.addWidget(cube3DWidget);
+
+    WidgetPong* pongWidget = new WidgetPong(2000, WidgetsAction::AutoRemoveFlag); // Create a new Pong widget
+    widgetManager.addWidget(pongWidget);
+
+    WidgetRain* rainWidget = new WidgetRain(2000, WidgetsAction::AutoRemoveFlag, 6); // Create a new Rain widget
+    widgetManager.addWidget(rainWidget);
+
+    WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetsAction::AutoRemoveFlag, 7); // Create a new Matrix widget
+    widgetManager.addWidget(matrixWidget);
+
+    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetsAction::AutoRemoveFlag, 8); // Create a new MatrixClassic widget
+    widgetManager.addWidget(matrixClassicWidget);
+
+    WidgetClock* clockWidget = new WidgetClock(3000, WidgetsAction::AutoRemoveFlag, true); // Create a new Clock widget
+    widgetManager.addWidget(clockWidget);
+
+    WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetsAction::AutoRemoveFlag); // Create a new SysInfoLite widget
+    widgetManager.addWidget(sysInfoLiteWidget);
+
+    WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetsAction::AutoRemoveFlag); // Create a new OpenKNXLogo widget
+    widgetManager.addWidget(openknxLogoWidget);
+
+    WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(5000, WidgetsAction::AutoRemoveFlag); // Create a new BootLogo widget
+    widgetManager.addWidget(bootLogoWidget);
+
+    MenuWidget* menuWidget = new MenuWidget(20000, WidgetsAction::ExternalManaged, // Will be managed by the external system.
+                                            0x0107,                                // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
+                                            0x0105,                                // DD_CTRL_PIN5_DOWN_BUTTON,
+                                            0x0106                                 // DD_CTRL_PIN6_OK_BUTTON
+    );                                                                             // Create a new Menu widget
     setMenuWidget(menuWidget);
     widgetManager.addWidget(menuWidget);
-
+    //
     widgetManager.start();
 #endif
 }
