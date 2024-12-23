@@ -7,7 +7,6 @@
     "Adafruit_BusIO": "https://github.com/adafruit/Adafruit_BusIO",
     "liux-pro/qrcode generator" :"^1.7.0", 
     "johboh/nlohmann-json" : "^3.11.3"
-
   },
   "description": "OFM-DeviceDisplay is a library for the OpenKNX Framework to display information on a SSD1306 OLED display.",
   "homepage": "https://openknx.de",
