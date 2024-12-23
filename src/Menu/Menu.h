@@ -1,57 +1,85 @@
+// MenuWidget.h
 #pragma once
 #include "../Widget.h"
 #include "MenuConfig.h"
 
-// MenuWidget class: Displays a menu on the display
 class MenuWidget : public Widget
 {
   public:
-    const std::string logPrefix() { return "MenuWidget"; }                                                              // Log-Präfix for the widget
-    MenuWidget(uint32_t displayTime, WidgetsAction action, uint8_t buttonUp, uint8_t buttonDown, uint8_t buttonSelect); // Constructor
+    // Constructor
+    MenuWidget(uint32_t displayTime,
+               WidgetsAction action,
+               uint16_t buttonUp,
+               uint16_t buttonDown,
+               uint16_t buttonSelect);
 
-    void start() override;                                                  // Start widget
-    void stop() override;                                                   // Stop widget
-    void pause() override;                                                  // Pause widget
-    void resume() override;                                                 // Resume widget
-    void setup() override;                                                  // Setup widget
-    void loop() override;                                                   // Update and draw the widget
-    inline const WidgetState getState() const override { return _state; }   // Get the current state of the widget
-    inline const std::string getName() const override { return _name; }     // Return the name of the widget
-    inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
+    // Widget interface implementation
+    void start() override;
+    void stop() override;
+    void pause() override;
+    void resume() override;
+    void setup() override;
+    void loop() override;
 
-    uint32_t getDisplayTime() const override; // Return the display time in ms
-    WidgetsAction getAction() const override; // Return the widget action
+    // Getters & Setters
+    inline const WidgetState getState() const override { return _state; }
+    inline const std::string getName() const override { return _name; }
+    inline void setName(const std::string& name) override { _name = name; }
+    uint32_t getDisplayTime() const override;
+    WidgetsAction getAction() const override;
+    i2cDisplay* getDisplayModule() const override;
+    void setDisplayModule(i2cDisplay* displayModule) override;
 
-    void setDisplayModule(i2cDisplay *displayModule) override; // Set the display module
-    i2cDisplay *getDisplayModule() const override;             // Get the display module
+    // External navigation methods
+    void externalNavigateUp();
+    void externalNavigateDown();
+    void externalSelectItem();
+    void externalPause();
+    void externalResume();
+    void externalStop();
 
-    void externalNavigateUp();   // External navigation up
-    void externalNavigateDown(); // External navigation down
-    void externalSelectItem();   // External select item
-    void externalPause();        // External pause
-    void externalResume();       // External resume
-    void externalStop();         // External stop
+    // Logger prefix
+    const std::string logPrefix() { return "MenuWidget"; }
 
   private:
-    void navigateUp();      // Navigate up
-    void navigateDown();    // Navigate down
-    void selectItem();      // Select the current menu item
-    void addDefaultMenus(); // Add default menus
-    void drawMenu();        // Draw the menu
+    // UI Constants
+    static constexpr uint8_t ITEM_HEIGHT = 10;
+    static constexpr uint8_t ITEM_MARGIN = 2;
+    static constexpr uint16_t BUTTON_CHECK_INTERVAL = 250;
+    static constexpr uint16_t REDRAW_INTERVAL = 1000;
 
-    uint32_t _displayTime; // Time to display the widget in ms
-    WidgetsAction _action; // Widget action
+    // Core functionality
+    void navigateUp();
+    void navigateDown();
+    void selectItem();
+    void addDefaultMenus();
+    void clearDisplay();
+    void drawMenu();
+    bool readButton(uint16_t pin);
 
-    pin_size_t _buttonUp, _buttonDown, _buttonSelect; // Button pins ToDo: Assign the buttons to the pins!
-    uint16_t _screenWidth, _screenHeight;             // Screen dimensions
-    i2cDisplay *_display;                             // Display module
-    std::string _name = "Menu";                       // Name of the widget
-    WidgetState _state;                               // Current state of the widget
+    // Display properties
+    i2cDisplay* _display = nullptr;
+    uint16_t _screenWidth = 0;
+    uint16_t _screenHeight = 0;
 
-    std::vector<MenuConfig::MenuOption> _currentMenu;            // Menu items
-    std::vector<std::vector<MenuConfig::MenuOption>> _menuStack; // Menu stack
+    // Button configuration
+    const uint16_t _buttonUp;
+    const uint16_t _buttonDown;
+    const uint16_t _buttonSelect;
+    uint32_t _lastButtonCheck = 0;
+    uint32_t _lastRedrawTime = 0;
 
-    size_t _selectedIndex; // Selected menu index
-    bool _needsRedraw;     // Redraw flag
-    bool _isPaused;        // Pause flag
+    // Widget properties
+    const uint32_t _displayTime;
+    const WidgetsAction _action;
+    std::string _name = "Menu";
+    WidgetState _state = WidgetState::STOPPED;
+
+    // Menu state
+    std::vector<MenuConfig::MenuOption> _currentMenu;
+    std::vector<std::vector<MenuConfig::MenuOption>> _menuStack;
+    MenuConfig _menuConfig;
+    size_t _selectedIndex = 0;
+    bool _needsRedraw = true;
+    bool _isPaused = false;
 };

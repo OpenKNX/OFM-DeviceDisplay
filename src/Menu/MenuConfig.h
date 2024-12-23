@@ -1,60 +1,54 @@
 #pragma once
 
-#include <nlohmann/json.hpp> // JSON parsing library
+#include <nlohmann/json.hpp>
 #include <optional>
-#include <variant>
+
 
 using json = nlohmann::json;
 
-class MenuValue
-{
-  public:
-    enum class ValueType { None, Boolean, String, SizeT }; // Supported value types
-    // Constructors for each type
-    MenuValue() : type(ValueType::None), boolValue(false), stringValue(""), sizeTValue(0) {}
-    MenuValue(bool b) : type(ValueType::Boolean), boolValue(b), sizeTValue(0), stringValue("") {}
-    MenuValue(const std::string &s) : type(ValueType::String), boolValue(false), sizeTValue(0), stringValue(s) {}
-    MenuValue(size_t s) : type(ValueType::SizeT), boolValue(false), sizeTValue(s), stringValue("") {}
+class MenuValue {
+public:
+    enum class ValueType : uint8_t {
+        None,
+        Boolean,
+        String,
+        SizeT
+    };
+
+    MenuValue() : type(ValueType::None), boolValue(false) {}
+    explicit MenuValue(bool b) : type(ValueType::Boolean), boolValue(b) {}
+    explicit MenuValue(const std::string& s) : type(ValueType::String), stringValue(s) {}
+    explicit MenuValue(size_t s) : type(ValueType::SizeT), sizeTValue(s) {}
+
+    MenuValue(const MenuValue&) = default;
+    MenuValue& operator=(const MenuValue&) = default;
+    MenuValue(MenuValue&&) = default;
+    MenuValue& operator=(MenuValue&&) = default;
+
     ValueType getType() const { return type; }
-
-    // Accessors
-    bool getBool() const
-    {
-        if (type == ValueType::Boolean) return boolValue;
-        else return false;
+    bool getBool() const { return (type == ValueType::Boolean) ? boolValue : false; }
+    const std::string& getString() const { 
+        static const std::string empty;
+        return (type == ValueType::String) ? stringValue : empty;
     }
+    size_t getSizeT() const { return (type == ValueType::SizeT) ? sizeTValue : 0; }
 
-    std::string getString() const
-    {
-        if (type == ValueType::String) return stringValue;
-        else return "";
-    }
+    bool isBool() const { return type == ValueType::Boolean; }
+    bool isString() const { return type == ValueType::String; }
+    bool isSizeT() const { return type == ValueType::SizeT; }
 
-    size_t getSizeT() const
-    {
-        if (type == ValueType::SizeT) return sizeTValue;
-        else return 0;
-    }
-
-    inline bool isBool() const { return type == ValueType::Boolean; }
-    inline bool isString() const { return type == ValueType::String; }
-    inline bool isSizeT() const { return type == ValueType::SizeT; }
-
-  private:
+private:
     ValueType type;
-
-    // Internal storage
-    bool boolValue;
+    union {
+        bool boolValue;
+        size_t sizeTValue;
+    };
     std::string stringValue;
-    size_t sizeTValue;
 };
 
-class MenuConfig
-{
-  public:
-    // Supported menu element types
-    enum class MenuElementType
-    {
+class MenuConfig {
+public:
+    enum class MenuElementType : uint8_t {
         Checkbox,
         TextInput,
         Dropdown,
@@ -64,54 +58,38 @@ class MenuConfig
         Unknown
     };
 
-    // Structure for a menu option
-    struct MenuOption
-    {
-        std::string label;                                          // Name of the menu item
-        MenuElementType type;                                       // Type of the menu item
-        std::string key;                                            // Unique key for the menu option
-        MenuValue defaultValue;                                     // Default value (Checkbox: bool, TextInput: string, Dropdown: size_t)
-        std::function<void()> action;                               // Function to call for Action type
-        std::vector<std::string> dropdownOptions;                   // Dropdown options
-        std::optional<std::pair<std::string, MenuValue>> visibleIf; // Visibility condition (key and value)
+    struct MenuOption {
+        std::string label;
+        MenuElementType type;
+        std::string key;
+        MenuValue defaultValue;
+        std::vector<std::string> dropdownOptions;
+        std::optional<std::pair<std::string, MenuValue>> visibleIf;
         std::vector<MenuOption> submenu;
+        std::function<void()> action;
     };
 
-    const std::string logPrefix() { return "MenuConfig"; }
+    MenuConfig();
+    ~MenuConfig() = default;
 
-    using MenuValues = std::variant<bool, int, std::string, size_t>; // Supported value types
+    MenuConfig(const MenuConfig&) = delete;
+    MenuConfig& operator=(const MenuConfig&) = delete;
+    MenuConfig(MenuConfig&&) = default;
+    MenuConfig& operator=(MenuConfig&&) = default;
 
-    MenuConfig(); // Constructor
+    void loadDefaultMenu(std::string_view jsonString);
+    void loadExternalMenu(std::string_view jsonString);
+    const MenuValue& getValue(std::string_view key) const;
+    void setValue(const std::string& key, MenuValue value);
+    bool isMenuOptionVisible(const MenuOption& option) const;
+    const std::vector<MenuOption>& getMenu() const { return menu; }
 
-    // Load the default menu from JSON
-    void loadDefaultMenu(const std::string &jsonString);
+private:
+    void processMenuItems(const json& menuItems, std::vector<MenuOption>& targetMenu);
+    void processSubmenu(const json& submenuItems, std::vector<MenuOption>& submenu);
+    void setDefaultValue(const MenuOption& option, const json& item);
+    MenuElementType parseMenuElementType(std::string_view typeStr) const;
 
-    // Load additional menu options from external JSON
-    void loadExternalMenu(const std::string &jsonString);
-
-    // Retrieve the value of a menu item
-    MenuValue getValue(const std::string &key) const;
-
-    // Set the value of a menu item
-    void setValue(const std::string &key, const MenuValue &value);
-
-    // Check visibility of a menu option
-    bool isMenuOptionVisible(const MenuOption &option) const;
-
-    // Get the full menu structure
-    const std::vector<MenuOption> &getMenu() const;
-
-  private:
-    void processMenuItems(const json &menuItems, std::vector<MenuOption> &targetMenu); // Shared logic for processing menu items
-    void processSubmenu(const json &submenuItems, std::vector<MenuOption> &submenu);   // Process submenu items
-    void addBackOptionIfNeeded(std::vector<MenuOption> &submenu);                      // Add "Back" option if missing
-
-    std::vector<MenuOption> menu;                         // List of menu options
-    std::unordered_map<std::string, MenuValue> dataStore; // Centralized data storage
-
-    // Helper to parse the menu element type from string
-    MenuElementType parseMenuElementType(const std::string &typeStr) const;
-
-    // Helper to add default values to the data store
-    void setDefaultValue(const MenuOption &option, const json &item);
+    std::vector<MenuOption> menu;
+    std::unordered_map<std::string, MenuValue> dataStore;
 };
