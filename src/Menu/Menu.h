@@ -82,4 +82,5 @@ class MenuWidget : public Widget
     size_t _selectedIndex = 0;
     bool _needsRedraw = true;
     bool _isPaused = false;
+    bool _FrontPlateEnabled = false;
 };

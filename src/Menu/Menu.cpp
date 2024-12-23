@@ -51,28 +51,31 @@ void MenuWidget::setup()
     if (!openknxGPIOModule.initialized(1))
     {
         logErrorP("GPIO Module not initialized");
-        return;
     }
-
-    // Initialize buttons
-    const uint16_t pins[] = {_buttonUp, _buttonDown, _buttonSelect};
-    for (auto pin : pins)
+    else
     {
-        openknxGPIOModule.pinMode(pin, INPUT, true, 0);
-    }
+        _FrontPlateEnabled = true;
+        logInfoP("GPIO Module initialized");
+        // Initialize buttons
+        const uint16_t pins[] = {_buttonUp, _buttonDown, _buttonSelect};
+        for (auto pin : pins)
+        {
+            openknxGPIOModule.pinMode(pin, INPUT, true, 0);
+        }
 
-    // Initialize LED outputs
-    const struct
-    {
-        uint16_t pin;
-        bool state;
-    } outputs[] = {
-        {0x0101, LOW}, {0x0102, LOW}, {0x0103, HIGH}, {0x0104, LOW}};
+        // Initialize LED outputs
+        const struct
+        {
+            uint16_t pin;
+            bool state;
+        } outputs[] = {
+            {0x0101, LOW}, {0x0102, LOW}, {0x0103, HIGH}, {0x0104, LOW}};
 
-    for (const auto& out : outputs)
-    {
-        openknxGPIOModule.pinMode(out.pin, OUTPUT, false, 0);
-        openknxGPIOModule.digitalWrite(out.pin, out.state);
+        for (const auto& out : outputs)
+        {
+            openknxGPIOModule.pinMode(out.pin, OUTPUT, false, 0);
+            openknxGPIOModule.digitalWrite(out.pin, out.state);
+        }
     }
 }
 
@@ -111,9 +114,9 @@ void MenuWidget::loop()
     {
         _lastButtonCheck = currentTime;
 
-        if (readButton(_buttonUp)) navigateUp();
-        if (readButton(_buttonDown)) navigateDown();
-        if (readButton(_buttonSelect)) selectItem();
+        if (_FrontPlateEnabled && readButton(_buttonUp)) navigateUp();
+        if (_FrontPlateEnabled && readButton(_buttonDown)) navigateDown();
+        if (_FrontPlateEnabled && readButton(_buttonSelect)) selectItem();
     }
 
     // Hier die Bedingung erweitern
@@ -136,7 +139,7 @@ void MenuWidget::stop()
 {
     _state = WidgetState::STOPPED;
     clearDisplay();
-    logInfoP("Menu stopped"); 
+    logInfoP("Menu stopped");
 }
 
 void MenuWidget::pause()
