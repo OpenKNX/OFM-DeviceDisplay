@@ -1,8 +1,6 @@
 #pragma once
-
 #include <cstdint>
 #include "i2c-Display.h"
-#include "OpenKNX.h"
 
 typedef enum : uint8_t {
     NoAction = 0,           // No action
@@ -18,7 +16,6 @@ enum class WidgetState {
     RUNNING,
     PAUSED
 };
-
 
 class Widget {
 public:
