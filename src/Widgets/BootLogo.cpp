@@ -3,7 +3,7 @@
 #include "openknx.h"
 
 WidgetBootLogo::WidgetBootLogo(uint32_t displayTime, WidgetsAction action)
-    : _displayTime(displayTime), _action(action), _display(nullptr), _needsRedraw(true) {}
+    : _displayTime(displayTime), _action(action), _display(nullptr), _needsRedraw(true), _drawStep(0), _yStart(0) {}
 
 void WidgetBootLogo::setup()
 {
@@ -20,6 +20,7 @@ void WidgetBootLogo::start()
 {
     logInfoP("Start...");
     _state = WidgetState::RUNNING;
+    _drawStep = 1;
     _needsRedraw = true;
 }
 
@@ -27,6 +28,7 @@ void WidgetBootLogo::stop()
 {
     logInfoP("Stop...");
     _state = WidgetState::STOPPED;
+    _drawStep = 0;
     _needsRedraw = false;
 }
 
@@ -41,6 +43,7 @@ void WidgetBootLogo::resume()
 {
     logInfoP("Resume...");
     _state = WidgetState::RUNNING;
+    _drawStep = 1; // TODO check
     _needsRedraw = true;
 }
 
@@ -49,7 +52,6 @@ void WidgetBootLogo::loop()
     if (!_needsRedraw || _state != WidgetState::RUNNING) return;
 
     drawBootLogo();
-    _needsRedraw = false;
 }
 
 void WidgetBootLogo::setDisplayModule(i2cDisplay *displayModule)
@@ -77,6 +79,9 @@ WidgetsAction WidgetBootLogo::getAction() const
     return _action;
 }
 
+/**
+ * @brief Shows the OpenKNX logo on the display.
+ */
 void WidgetBootLogo::drawBootLogo()
 {
     if (!_display || !_display->display)
@@ -85,16 +90,41 @@ void WidgetBootLogo::drawBootLogo()
         return;
     }
 
-    // Zentriertes Zeichnen des Logos
-    _display->display->clearDisplay();
-    _display->display->drawBitmap(
-        (_display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
-        (_display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2,
-        logo_OpenKNX,
-        logo_OpenKNX_WIDTH,
-        logo_OpenKNX_HEIGHT,
-        1);
-    _display->displayBuff();
+    // TODO/looptime: check direct usage of full-display buffer as alternative
 
-    logInfoP("Boot logo drawn.");
+    if (_needsRedraw)
+    {
+        // reduce loop-time by split into multiple loop-calls, as drawing the bitmap is slow
+        switch (_drawStep)
+        {
+            case 1:
+                _display->display->clearDisplay();
+                _drawStep = 2;
+                break;
+            case 2:
+                // TODO check generalization and extraction of partial image drawing
+                if (_yStart < logo_OpenKNX_HEIGHT)
+                {
+                    _display->display->drawBitmap(
+                        (_display->GetDisplayWidth() - logo_OpenKNX_WIDTH) / 2,
+                        (_display->GetDisplayHeight() - logo_OpenKNX_HEIGHT) / 2 + _yStart,
+                        logo_OpenKNX + _yStart * ((logo_OpenKNX_WIDTH + 7) / 8),
+                        logo_OpenKNX_WIDTH,
+                        MIN(logo_OpenKNX_HEIGHT - _yStart, _stepHeight),
+                        1
+                    );
+                    _yStart += _stepHeight;
+                    break;
+                }
+                _drawStep = 3;
+                // fall through, when full height was drawn in last loop()
+            case 3:
+                _display->displayBuff();
+                // fall through, to stop drawing
+            default:
+                _drawStep = 0;
+                _needsRedraw = false;
+
+        }
+    }
 }
