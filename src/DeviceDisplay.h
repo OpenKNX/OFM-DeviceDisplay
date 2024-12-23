@@ -8,18 +8,46 @@
  *              Licensed under GNU GPL v3.0
  */
 #include "OpenKNX/Stat/RuntimeStat.h"
-#include "Widget.h"
-#include "i2c-Display.h"
+#include "Widgets.h"
+#define WIDGET_MANAGER // Enable the widget manager
+#ifdef WIDGET_MANAGER
+    #include "Widget.h"
+    #include "Widgets/BootLogo.h"
+    #include "Widgets/Clock.h"
+    #include "Widgets/Cube3D.h"
+    #include "Widgets/Life.h"
+    #include "Widgets/Matrix.h"
+    #include "Widgets/MatrixClassic.h"
+    #include "Widgets/Pong.h"
+    #include "Widgets/QRcode.h"
+    #include "Widgets/Rain.h"
+    #include "Widgets/Starfield.h"
+    #include "Widgets/SysInfoLite.h"
+    #include "Widgets/OpenKNXLogo.h" // --> This is the new SysInfoLite widget
+    #include "Menu/Menu.h"
+
+    #include "WidgetsManager.h"
+    #include "i2c-Display.h"
+#endif
 
 #define DeviceDisplay_Display_Name "DeviceDisplay"
 #define DeviceDisplay_Display_Version "0.0.1"
 
 #define DISPLAY_DIM_TIMER 60000 // DIm the display after 60 seconds of inactivity
-#define DEMO_WIDGET_CMD_TESTS // Enable the demo widget command tests
+#define DEMO_WIDGET_CMD_TESTS   // Enable the demo widget command tests
 
 class DeviceDisplay : public OpenKNX::Module
 {
+  public:
+#ifdef WIDGET_MANAGER
+    inline void setMenuWidget(MenuWidget* menuWidget) { _menuWidget = menuWidget; }
+    WidgetsManager widgetManager;
+#endif
+
   private:
+#ifdef WIDGET_MANAGER
+    MenuWidget* _menuWidget = nullptr;
+#endif
 #ifdef OPENKNX_RUNTIME_STAT
     OpenKNX::Stat::RuntimeStat _loopRuntimesDim;
     OpenKNX::Stat::RuntimeStat _loopWidgets;
@@ -54,16 +82,16 @@ class DeviceDisplay : public OpenKNX::Module
     inline const std::string name() { return DeviceDisplay_Display_Name; }       // Library name
     inline const std::string version() { return DeviceDisplay_Display_Version; } // Library version
 
-    void addWidget(Widget* widget, uint32_t duration, std::string name = "", uint8_t action = NoAction); // Add a widget to the queue
-    bool removeWidget(const std::string& name);                                                          // Remove a widget from the queue
-    inline void clearWidgets() { widgetsQueue.clear(); }                                                 // Clear all widgets from the queue
+    void addWidget(Widgets* widget, uint32_t duration, std::string name = "", uint8_t action = NoAction); // Add a widget to the queue
+    bool removeWidget(const std::string& name);                                                           // Remove a widget from the queue
+    inline void clearWidgets() { widgetsQueue.clear(); }                                                  // Clear all widgets from the queue
 
     void showHelp() override;                                               // Show help for console commands
     bool processCommand(const std::string command, bool diagnose) override; // Process console commands
 
     struct WidgetInfo
     {
-        Widget* widget;                      // Pointer to the widget
+        Widgets* widget;                     // Pointer to the widget
         uint32_t duration = WIDGET_INACTIVE; // Duration to display this widget in milliseconds. 0 = inactive
         std::string name;                    // Optional name for the widget
         uint8_t action = NoAction;           // Action flags for the widget
@@ -97,7 +125,7 @@ class DeviceDisplay : public OpenKNX::Module
 
     bool progModeActive = false; // Tracks Programming Mode status
 
-    Widget widget; // Widget instance
+    Widgets widget; // Widget instance
 
     void initializeWidgets(); // Initialize widgets with default settings or add widgets to queue
     void LoopWidgets();       // Switches widgets based on timing
@@ -105,14 +133,14 @@ class DeviceDisplay : public OpenKNX::Module
     WidgetInfo* getWidgetInfo(const std::string& name); // Get widget info by name
 #ifdef DEMO_WIDGET_CMD_TESTS
     // Example console conversation lines
-    void demoTestWidgetsSetup();      // Demo test widgets setup
-    void demoTestWidgetsStop();       // Demo test widgets remove
+    void demoTestWidgetsSetup(); // Demo test widgets setup
+    void demoTestWidgetsStop();  // Demo test widgets remove
 
     // Loop fpr the demo test widgets, to update their content. System info and console widget!
     bool _demoWidgetSysInfo = false; // Flag to enable the demo widget commands
     bool _demoWidgeConsoleWidget = false;
     void demoSysinfoWidgetLoop(); // Demo test widgets loop
-    void demoConsoleWidgetLoop();     // Demo test widgets
+    void demoConsoleWidgetLoop(); // Demo test widgets
 #endif
 };
 
