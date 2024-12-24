@@ -1,7 +1,7 @@
 #include "Clock.h"
 #include "OpenKNX.h"
 
-WidgetClock::WidgetClock(uint32_t displayTime, WidgetsAction action, bool roundedClock)
+WidgetClock::WidgetClock(uint32_t displayTime, WidgetFlags action, bool roundedClock)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),
       _roundedClock(roundedClock), _lastUpdateTime(0) {}
 
@@ -77,7 +77,7 @@ void WidgetClock::loop()
 }
 
 uint32_t WidgetClock::getDisplayTime() const { return _displayTime; }
-WidgetsAction WidgetClock::getAction() const { return _action; }
+WidgetFlags WidgetClock::getAction() const { return _action; }
 
 void WidgetClock::fetchTime(uint16_t &hours, uint16_t &minutes, uint16_t &seconds)
 {

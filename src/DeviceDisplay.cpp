@@ -87,46 +87,46 @@ void DeviceDisplay::setup(bool configured)
 #else
     widgetManager.setDisplayModule(&displayModule); // The display module for the widgets
 
-    WidgetLife* lifeWidget = new WidgetLife(2000, WidgetsAction::AutoRemoveFlag); // Create a new Life widget
+    WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
     widgetManager.addWidget(lifeWidget);
 
-    WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetsAction::AutoRemoveFlag, 10); // Create a new Starfield widget
+    WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
     widgetManager.addWidget(starfieldWidget);
 
-    WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetsAction::AutoRemoveFlag, "https://www.openknx.de", false); // Create a new QRcode widget
+    WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::AutoRemove, "https://www.openknx.de", false); // Create a new QRcode widget
     widgetManager.addWidget(qrcodeWidget);
 
-    WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetsAction::AutoRemoveFlag); // Create a new 3D Cube widget
+    WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
     widgetManager.addWidget(cube3DWidget);
 
-    WidgetPong* pongWidget = new WidgetPong(2000, WidgetsAction::AutoRemoveFlag); // Create a new Pong widget
+    WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
     widgetManager.addWidget(pongWidget);
 
-    WidgetRain* rainWidget = new WidgetRain(2000, WidgetsAction::AutoRemoveFlag, 6); // Create a new Rain widget
+    WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
     widgetManager.addWidget(rainWidget);
 
-    WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetsAction::AutoRemoveFlag, 7); // Create a new Matrix widget
+    WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
     widgetManager.addWidget(matrixWidget);
 
-    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetsAction::AutoRemoveFlag, 8); // Create a new MatrixClassic widget
+    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
     widgetManager.addWidget(matrixClassicWidget);
 
-    WidgetClock* clockWidget = new WidgetClock(3000, WidgetsAction::AutoRemoveFlag, true); // Create a new Clock widget
+    WidgetClock* clockWidget = new WidgetClock(3000, WidgetFlags::AutoRemove, true); // Create a new Clock widget
     widgetManager.addWidget(clockWidget);
 
-    WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetsAction::AutoRemoveFlag); // Create a new SysInfoLite widget
+    WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
     widgetManager.addWidget(sysInfoLiteWidget);
 
-    WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetsAction::AutoRemoveFlag); // Create a new OpenKNXLogo widget
+    WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
     widgetManager.addWidget(openknxLogoWidget);
 
-    //WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetsAction::AutoRemoveFlag, 4); // Create a new Fireworks widget
-    //widgetManager.addWidget(fireworksWidget);
+    WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
+    widgetManager.addWidget(fireworksWidget);
 
-    WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(5000, WidgetsAction::AutoRemoveFlag); // Create a new BootLogo widget
+    WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(5000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
     widgetManager.addWidget(bootLogoWidget);
     
-    MenuWidget* menuWidget = new MenuWidget(10000, WidgetsAction::ExternalManaged, // Will be managed by the external system.
+    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally, // Will be managed by the external system.
                                             0x0107,                                // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
                                             0x0105,                                // DD_CTRL_PIN5_DOWN_BUTTON,
                                             0x0106                                 // DD_CTRL_PIN6_OK_BUTTON
@@ -134,14 +134,14 @@ void DeviceDisplay::setup(bool configured)
     setMenuWidget(menuWidget);
     widgetManager.addWidget(menuWidget);
 
-    WidgetClock* defaultWidget = new WidgetClock(3000, WidgetsAction::AutoRemoveFlag, true); // Create a new Clock widget
+    WidgetClock* defaultWidget = new WidgetClock(3000, WidgetFlags::AutoRemove, true); // Create a new Clock widget
     defaultWidget->setName("DefaultWClock");
     // This widget is enabled and external managed. You need to  stop and remove it manually
-    defaultWidget->setAction(WidgetsAction::ExternalManaged | WidgetsAction::InternalEnabled);
+    defaultWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::DisplayEnabled);
     widgetManager.addWidget(defaultWidget);
 
     WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
-    progModeWidget->setAction(WidgetsAction::ExternalManaged | WidgetAction::StatusFlag);
+    progModeWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);
     widgetManager.addWidget(progModeWidget);
 
     widgetManager.start();
@@ -204,14 +204,18 @@ void DeviceDisplay::loop(bool configured)
             (progMode = widgetManager.getWidgetFromQueue("ProgMode")) != nullptr &&
             progMode->getState() != WidgetState::RUNNING)
         {
-            progMode->addAction(WidgetAction::InternalEnabled);
+            logInfoP("ProgMode requested and will be displayed...");
+            progMode->addAction(WidgetFlags::DisplayEnabled);
             wasInProgMode = true;
+            logInfoP(" Current Action: %d", progMode->getAction());
         }
     }
     else if (wasInProgMode && progMode != nullptr)
     {
-        progMode->removeAction(WidgetAction::InternalEnabled);
+        logInfoP("ProgMode requested and will be removed...");
+        progMode->removeAction(WidgetFlags::DisplayEnabled);
         wasInProgMode = false;
+        logInfoP(" Current Action: %d", progMode->getAction());
     }
 
     RUNTIME_MEASURE_BEGIN(_loopWidgets);
@@ -1032,8 +1036,8 @@ void DeviceDisplay::LoopWidgets()
         showWidget = &widget;
 
         // Check if widget is a status widget with `InternalEnabled`
-        if (showWidget->isActionSet(WidgetAction::StatusFlag) &&
-            showWidget->isActionSet(WidgetAction::InternalEnabled))
+        if (showWidget->isActionSet(DeviceDisplay::WidgetAction::StatusFlag) &&
+            showWidget->isActionSet(DeviceDisplay::WidgetAction::InternalEnabled))
         {
             if (showWidget->startDisplayTime == 0)
             {
@@ -1044,12 +1048,12 @@ void DeviceDisplay::LoopWidgets()
             // Auto-remove status widget after display duration
             bool durationPassed = (currentTime - showWidget->startDisplayTime >= showWidget->duration);
 
-            if (showWidget->isActionSet(WidgetAction::AutoRemoveFlag))
+            if (showWidget->isActionSet(DeviceDisplay::WidgetAction::AutoRemoveFlag))
             {
-                showWidget->addAction(WidgetAction::MarkedForRemove);
+                showWidget->addAction(DeviceDisplay::WidgetAction::MarkedForRemove);
             }
 
-            if (showWidget->isActionSet(WidgetAction::MarkedForRemove) && durationPassed)
+            if (showWidget->isActionSet(DeviceDisplay::WidgetAction::MarkedForRemove) && durationPassed)
             {
                 logDebugP("Removing status widget: %s", showWidget->name.c_str());
                 removeWidget(showWidget->name);
@@ -1057,12 +1061,12 @@ void DeviceDisplay::LoopWidgets()
             }
 
             // Disable status widget after its display duration if `ExternalManaged` is not set
-            if (!showWidget->isActionSet(WidgetAction::ExternalManaged) && durationPassed)
+            if (!showWidget->isActionSet(DeviceDisplay::WidgetAction::ExternalManaged) && durationPassed)
             {
                 // Clear start time after disabling the widget to reset for next activation
                 showWidget->startDisplayTime = 0;
                 logDebugP("Disabling status widget: %s", showWidget->name.c_str());
-                showWidget->removeAction(WidgetAction::InternalEnabled);
+                showWidget->removeAction(DeviceDisplay::WidgetAction::InternalEnabled);
                 break;
             }
             statusWidgetsInProgress = true;
@@ -1096,9 +1100,9 @@ void DeviceDisplay::LoopWidgets()
                 else
                 {
                     // Auto-remove non-status widget
-                    if ((&widgetsQueue[currentWidgetIndex])->isActionSet(WidgetAction::AutoRemoveFlag))
+                    if ((&widgetsQueue[currentWidgetIndex])->isActionSet(DeviceDisplay::WidgetAction::AutoRemoveFlag))
                     {
-                        (&widgetsQueue[currentWidgetIndex])->addAction(WidgetAction::MarkedForRemove);
+                        (&widgetsQueue[currentWidgetIndex])->addAction(DeviceDisplay::WidgetAction::MarkedForRemove);
                     }
                     // Display the widget
                     showWidget = &widgetsQueue[currentWidgetIndex];

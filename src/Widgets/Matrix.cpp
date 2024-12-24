@@ -1,7 +1,7 @@
 #include "Matrix.h"
 #include "OpenKNX.h"
 
-WidgetMatrix::WidgetMatrix(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
+WidgetMatrix::WidgetMatrix(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(intensity),
       _display(nullptr), _lastUpdateTime(0), _state(WidgetState::STOPPED)
 {
@@ -84,7 +84,7 @@ void WidgetMatrix::loop()
 }
 
 uint32_t WidgetMatrix::getDisplayTime() const { return _displayTime; }
-WidgetsAction WidgetMatrix::getAction() const { return _action; }
+WidgetFlags WidgetMatrix::getAction() const { return _action; }
 
 void WidgetMatrix::setDisplayModule(i2cDisplay* displayModule) { _display = displayModule; }
 i2cDisplay* WidgetMatrix::getDisplayModule() const { return _display; }

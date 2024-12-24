@@ -4,7 +4,7 @@
 #include "OpenKNX.h"
 
 MenuWidget::MenuWidget(uint32_t displayTime,
-                       WidgetsAction action,
+                       WidgetFlags action,
                        uint16_t buttonUp,
                        uint16_t buttonDown,
                        uint16_t buttonSelect)
@@ -17,7 +17,7 @@ uint32_t MenuWidget::getDisplayTime() const
     return _displayTime;
 }
 
-WidgetsAction MenuWidget::getAction() const
+WidgetFlags MenuWidget::getAction() const
 {
     return _action;
 }

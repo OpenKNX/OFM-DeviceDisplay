@@ -8,7 +8,7 @@ class MenuWidget : public Widget
   public:
     // Constructor
     MenuWidget(uint32_t displayTime,
-               WidgetsAction action,
+               WidgetFlags action,
                uint16_t buttonUp,
                uint16_t buttonDown,
                uint16_t buttonSelect);
@@ -26,12 +26,12 @@ class MenuWidget : public Widget
     inline const std::string getName() const override { return _name; }
     inline void setName(const std::string& name) override { _name = name; }
     uint32_t getDisplayTime() const override;
-    WidgetsAction getAction() const override;
-    inline uint32_t setDisplayTime(uint32_t displayTime) override { return _displayTime = displayTime; }
+    WidgetFlags getAction() const override;
+    inline void setDisplayTime(uint32_t displayTime) override { _displayTime = displayTime; }
     
-    inline void setAction(uint8_t action) override { _action = static_cast<WidgetsAction>(action); }      // Set the widget action
-    inline void addAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action | action); }     // Add an action to the widget
-    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action & ~action); } // Remove an action from the widget
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetFlags>(action); }      // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action & ~action); } // Remove an action from the widget
 
     i2cDisplay* getDisplayModule() const override;
     void setDisplayModule(i2cDisplay* displayModule) override;
@@ -77,7 +77,7 @@ class MenuWidget : public Widget
 
     // Widget properties
     uint32_t _displayTime;
-    WidgetsAction _action;
+    WidgetFlags _action;
     std::string _name = "Menu";
     WidgetState _state = WidgetState::STOPPED;
 

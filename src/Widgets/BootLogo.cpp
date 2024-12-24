@@ -2,7 +2,7 @@
 #include "../icons/logo.h"
 #include "OpenKNX.h"
 
-WidgetBootLogo::WidgetBootLogo(uint32_t displayTime, WidgetsAction action)
+WidgetBootLogo::WidgetBootLogo(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _display(nullptr), _needsRedraw(true), _drawStep(0), _yStart(0) {}
 
 void WidgetBootLogo::setup()
@@ -74,7 +74,7 @@ uint32_t WidgetBootLogo::getDisplayTime() const
     return _displayTime;
 }
 
-WidgetsAction WidgetBootLogo::getAction() const
+WidgetFlags WidgetBootLogo::getAction() const
 {
     return _action;
 }

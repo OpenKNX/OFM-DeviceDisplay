@@ -1,7 +1,7 @@
 #include "Rain.h"
 #include "OpenKNX.h"
 
-WidgetRain::WidgetRain(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
+WidgetRain::WidgetRain(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(intensity), _display(nullptr), _lastUpdateScreenSaver(0), _initialized(false)
 {
     UPDATE_INTERVAL = map(_intensity, 1, 10, 50, 10);        // Speed: higher intensity = faster rain
@@ -63,7 +63,7 @@ void WidgetRain::loop()
 }
 
 uint32_t WidgetRain::getDisplayTime() const { return _displayTime; }
-WidgetsAction WidgetRain::getAction() const { return _action; }
+WidgetFlags WidgetRain::getAction() const { return _action; }
 
 void WidgetRain::setDisplayModule(i2cDisplay *displayModule) { _display = displayModule; }
 i2cDisplay *WidgetRain::getDisplayModule() const { return _display; }

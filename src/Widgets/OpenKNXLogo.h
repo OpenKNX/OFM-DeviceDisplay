@@ -5,7 +5,7 @@ class WidgetOpenKNXLogo : public Widget
 {
   public:
     const std::string logPrefix() { return "WidgetOpenKNXLogo"; }
-    WidgetOpenKNXLogo(uint32_t displayTime, WidgetsAction action);
+    WidgetOpenKNXLogo(uint32_t displayTime, WidgetFlags action);
 
     void setup() override;
     void start() override;
@@ -18,12 +18,12 @@ class WidgetOpenKNXLogo : public Widget
     inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
     uint32_t getDisplayTime() const override;                                                            // Return display time
-    WidgetsAction getAction() const override;                                                            // Return widget action
-    inline uint32_t setDisplayTime(uint32_t displayTime) override { return _displayTime = displayTime; } // Set display time
+    WidgetFlags getAction() const override;                                                            // Return widget action
+    inline void setDisplayTime(uint32_t displayTime) override { _displayTime = displayTime; } // Set display time
     
-    inline void setAction(uint8_t action) override { _action = static_cast<WidgetsAction>(action); }      // Set the widget action
-    inline void addAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action | action); }     // Add an action to the widget
-    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action & ~action); } // Remove an action from the widget
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetFlags>(action); }      // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action & ~action); } // Remove an action from the widget
 
 
     void setDisplayModule(i2cDisplay *displayModule) override; // Set display module
@@ -34,7 +34,7 @@ class WidgetOpenKNXLogo : public Widget
 
     WidgetState _state;                  // OpenKNXLogo state
     uint32_t _displayTime;               // Display time in ms
-    WidgetsAction _action;               // Widget action
+    WidgetFlags _action;               // Widget action
     i2cDisplay *_display;                // Display object
     bool _needsRedraw;                   // Redraw flag
     std::string _name = "DefaultWidget"; // Name of the widget

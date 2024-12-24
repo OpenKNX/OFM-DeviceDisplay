@@ -2,7 +2,7 @@
 #include "../icons/logo.h"
 #include "openknx.h"
 
-WidgetOpenKNXLogo::WidgetOpenKNXLogo(uint32_t displayTime, WidgetsAction action)
+WidgetOpenKNXLogo::WidgetOpenKNXLogo(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _display(nullptr), _needsRedraw(true), _drawStep(0) {}
 
 void WidgetOpenKNXLogo::setup()
@@ -82,7 +82,7 @@ uint32_t WidgetOpenKNXLogo::getDisplayTime() const
     return _displayTime;
 }
 
-WidgetsAction WidgetOpenKNXLogo::getAction() const
+WidgetFlags WidgetOpenKNXLogo::getAction() const
 {
     return _action;
 }

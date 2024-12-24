@@ -12,7 +12,7 @@ constexpr uint8_t WidgetCube3D::cubeEdges[12][2] = {
     {0, 4}, {1, 5}, {2, 6}, {3, 7}  // Connections between front and back faces
 };
 
-WidgetCube3D::WidgetCube3D(uint32_t displayTime, WidgetsAction action)
+WidgetCube3D::WidgetCube3D(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _lastUpdateTime(0), _display(nullptr) {}
 
 void WidgetCube3D::setup() {
@@ -82,7 +82,7 @@ void WidgetCube3D::loop()
 }
 
 uint32_t WidgetCube3D::getDisplayTime() const { return _displayTime; }
-WidgetsAction WidgetCube3D::getAction() const { return _action; }
+WidgetFlags WidgetCube3D::getAction() const { return _action; }
 
 void WidgetCube3D::setDisplayModule(i2cDisplay *displayModule) { _display = displayModule; }
 i2cDisplay *WidgetCube3D::getDisplayModule() const { return _display; }

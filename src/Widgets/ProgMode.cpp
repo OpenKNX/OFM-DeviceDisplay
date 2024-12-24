@@ -4,7 +4,7 @@
 // Delay for blinking the "ProgMode" message
 #define PROG_MODE_BLINK_DELAY 1000
 
-WidgetProgMode::WidgetProgMode(uint32_t displayTime, WidgetsAction action)
+WidgetProgMode::WidgetProgMode(uint32_t displayTime, WidgetFlags action)
     : _display(nullptr), _action(action), _displayTime(displayTime), _state(WidgetState::STOPPED),
       _lastBlinkTime(0), _showProgMode(true)
 {
