@@ -25,7 +25,7 @@
     #include "Widgets/SysInfoLite.h"
     #include "Widgets/OpenKNXLogo.h" // --> This is the new SysInfoLite widget
     #include "Menu/Menu.h"
-    //#include "Widgets/Fireworks.h"
+    #include "Widgets/Fireworks.h"
     #include "Widgets/ProgMode.h"
 
     #include "WidgetsManager.h"
