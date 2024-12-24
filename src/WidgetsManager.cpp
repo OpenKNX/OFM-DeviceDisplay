@@ -35,6 +35,7 @@ void WidgetsManager::start()
     if (!_widgetQueue.empty())
     {
         _currentWidget = _widgetQueue.front();
+        _widgetQueue.push(_currentWidget);
         _widgetQueue.pop();
         if (_currentWidget)
         {
@@ -47,65 +48,66 @@ void WidgetsManager::start()
 void WidgetsManager::loop()
 {
     uint32_t currentTime = millis();
-
-    // Falls ein Status-Widget läuft, prüfe seine Bedingungen
-    if (_currentWidget && (_currentWidget->getAction() & StatusFlag))
+    // 1. If a current widget exists, check its flags and state.
+    if (_currentWidget)
     {
-        if (!(_currentWidget->getAction() & InternalEnabled))
+        const WidgetFlags flags = _currentWidget->getAction(); // Get the action flags
+        const WidgetState state = _currentWidget->getState(); // Get the state of the widget
+        // a. If it is a `StatusWidget` and `DisplayEnabled`, keep it active and continue running.
+        if ((flags & StatusWidget) && (flags & DisplayEnabled))
         {
-            // Deaktiviertes Status-Widget stoppen
-            logInfoP("Stopping disabled status widget: %s", _currentWidget->getName().c_str());
-            _currentWidget->stop();
-            // delete _currentWidget;
-            _currentWidget = nullptr;
-            return;
-        }
-        else
-        {
+            if (state == WidgetState::PAUSED) _currentWidget->resume(); // Resume Widget
+            if (state == WidgetState::STOPPED) _currentWidget->start(); // Start Widget
             _currentWidget->loop();
-            return; // Ein Status-Widget wird weiterhin bevorzugt behandelt
+            return; // StatusWidget has highest priority, so skip the rest of the code.
         }
-    }
-
-    // Suche nach einem priorisierten Status-Widget in der Warteschlange
-    Widget *priorityWidget = nullptr;
-
-    size_t queueSize = _widgetQueue.size();
-    for (size_t i = 0; i < queueSize; ++i)
-    {
-        Widget *widget = _widgetQueue.front();   // Vorne aus der Warteschlange holen
-        _widgetQueue.push(_widgetQueue.front()); // Wieder hinten anhängen
-        _widgetQueue.pop();                      // Entfernen jetzt vorne
-
-        WidgetsAction action = widget->getAction();
-
-        // Prüfe, ob es ein aktives Status-Widget ist
-        if ((action & StatusFlag) && (action & InternalEnabled))
+        // b. If it is a `ManagedExternally` and `DisplayEnabled`, keep it active and continue running.
+        if ((flags & ManagedExternally) && (flags & DisplayEnabled))
         {
-            priorityWidget = widget; // Priorisiere dieses Widget
+            if (state == WidgetState::PAUSED) _currentWidget->resume(); // Resume Widget
+            if (state == WidgetState::STOPPED) _currentWidget->start(); // Start Widget
+            _currentWidget->loop();
+            // External managed widgets are always active. No exit, since we need to check for StatusWidgets
+        }
+        // c. If it is a `ManagedExternally` and not `DisplayEnabled`, deactivate the widget.
+        if ((flags & ManagedExternally) && !(flags & DisplayEnabled))
+        {
+            logInfoP("Widget no longer DisplayEnabled: %s", _currentWidget->getName().c_str());
+            _currentWidget->stop();
+            _currentWidget = nullptr; // Widget deaktivieren
+        }
+        // d. If `AutoRemove` and the time has expired, remove the widget.
+        if (flags & AutoRemove && currentTime >= _currentTime)
+        {
+            logInfoP("AutoRemove widget expired: %s", _currentWidget->getName().c_str());
+            removeWidgetFromQueue(_currentWidget); // Widget entfernen
+            _currentWidget = nullptr;
         }
     }
-
-    // Falls ein priorisiertes Status-Widget gefunden wurde, aktiviere es
+    // 2. Search for a prioritized status widget in the queue.
+    Widget *priorityWidget = getNextPriorityWidget(); // Returns the first prioritized status widget in the queue.
+    // a. If a prioritized status widget exists:
     if (priorityWidget)
     {
-        if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
+        // i. Pause the current widget, if available.
+        if (_currentWidget)
         {
             logInfoP("Pausing current widget: %s", _currentWidget->getName().c_str());
-            _currentWidget->pause(); // Pausiere das aktuelle Widget
+            _currentWidget->pause();
         }
+        // ii. Activate the prioritized status widget.
+        logInfoP("Starting priority status widget: %s", priorityWidget->getName().c_str());
         _currentWidget = priorityWidget;
-        logInfoP("Starting priority status widget: %s", _currentWidget->getName().c_str());
         _currentWidget->start();
-        _currentWidget->loop();
-        return;
+        _currentTime = currentTime + _currentWidget->getDisplayTime(); // Set the display time
+        _currentWidget->loop();                                        // Call the loop() directly
+        return;                                                        // Exit the loop, since the status widget has the highest priority.
     }
-
-    // Wenn kein priorisiertes Status-Widget gefunden wurde, verarbeite normale Widgets
+    // 3. If no status widget was prioritized, activate a normal widget.
     if (!_currentWidget && !_widgetQueue.empty())
     {
         _currentWidget = _widgetQueue.front();
-        _widgetQueue.push(_widgetQueue.front());
+        _widgetQueue.push(_currentWidget);
         _widgetQueue.pop();
 
         if (_currentWidget)
@@ -115,52 +117,43 @@ void WidgetsManager::loop()
             _currentTime = currentTime + _currentWidget->getDisplayTime();
         }
     }
-
-    // Aktualisiere das aktuelle Widget
+    // 4. Run the `loop()` of the current widget if it is active.
     if (_currentWidget)
     {
-        WidgetsAction action = _currentWidget->getAction();
         _currentWidget->loop();
-
-        // Überprüfe Ablaufzeit oder Flags
-        if (currentTime >= _currentTime)
-        {
-            if (action & AutoRemoveFlag)
-            {
-                logInfoP("AutoRemoveFlag is set. Stopping and removing widget: %s", _currentWidget->getName().c_str());
-                _currentWidget->stop();
-                removeWidgetFromQueue(_currentWidget);
-                _currentWidget = nullptr;
-            }
-            else if (action & ExternalManaged)
-            {
-                if (!(action & InternalEnabled) && _currentWidget->getState() == WidgetState::RUNNING)
-                {
-                    logInfoP("ExternalManaged widget is no longer enabled. Stopping: %s", _currentWidget->getName().c_str());
-                    _currentWidget->stop();
-                    _currentWidget = nullptr;
-                }
-            }
-            else if (action & MarkedForRemove)
-            {
-                logInfoP("MarkedForRemove is set. Removing widget: %s", _currentWidget->getName().c_str());
-                _currentWidget->stop();
-                removeWidgetFromQueue(_currentWidget);
-                _currentWidget = nullptr;
-            }
-        }
     }
-
-    // Display-Modul aktualisieren
+    // 5. If a display module is available, update it.
     if (_displayModule)
     {
         _displayModule->loop();
     }
 }
 
+Widget *WidgetsManager::getNextPriorityWidget()
+{
+    Widget *priorityWidget = nullptr;
+    size_t queueSize = _widgetQueue.size();
+
+    for (size_t i = 0; i < queueSize; ++i)
+    {
+        Widget *widget = _widgetQueue.front();
+        _widgetQueue.push(widget);
+        _widgetQueue.pop();
+
+        WidgetFlags flags = widget->getAction();
+
+        // Check if the widget is a status widget with `InternalEnabled`
+        if ((flags & StatusWidget) && (flags & DisplayEnabled))
+        {
+            priorityWidget = widget; // StatusWidget has highest priority
+        }
+    }
+    return priorityWidget;
+}
+
 Widget *WidgetsManager::getWidgetFromQueue(const char *widgetName)
 {
-    if ( widgetName[0] == '\0' || _widgetQueue.empty() ) return nullptr;
+    if (widgetName[0] == '\0' || _widgetQueue.empty()) return nullptr;
     size_t queueSize = _widgetQueue.size();
     for (size_t i = 0; i < queueSize; ++i)
     {
@@ -183,7 +176,7 @@ Widget *WidgetsManager::getWidgetFromQueue(Widget *widget)
 
 void WidgetsManager::removeWidgetFromQueue(const char *widgetName)
 {
-    if ( widgetName[0] == '\0' || _widgetQueue.empty() ) return;
+    if (widgetName[0] == '\0' || _widgetQueue.empty()) return;
     size_t queueSize = _widgetQueue.size();
     for (size_t i = 0; i < queueSize; ++i)
     {

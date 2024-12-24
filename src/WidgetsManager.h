@@ -29,4 +29,5 @@ class WidgetsManager
 
     void removeWidgetFromQueue(const char* widgetName);
     void removeWidgetFromQueue(Widget* widget);
+    Widget* getNextPriorityWidget();
 };
