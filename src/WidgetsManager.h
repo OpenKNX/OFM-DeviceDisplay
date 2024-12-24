@@ -9,12 +9,11 @@ class WidgetsManager
     void setup();                   // Setup all widgets
     void start();                   // Start the first widget
     void loop();                    // Main loop for the widgets
-    void stopCurrent();             // Stop the current widget
     inline void setDisplayModule(i2cDisplay* displayModule) { _displayModule = displayModule; }
     inline i2cDisplay* getDisplayModule() { return _displayModule; }
     Widget* getCurrentWidget() { return _currentWidget; }
     Widget* getWidgetFromQueue(const char* widgetName);
-    void removeWidgetFromQueue(const char* widgetName);
+    Widget* getWidgetFromQueue(Widget* widget);
     std::queue<Widget*> getWidgetQueue() { return _widgetQueue; }
     void clearWidgetQueue()
     {
@@ -23,8 +22,11 @@ class WidgetsManager
     }
 
   private:
-    std::queue<Widget*> _widgetQueue;     // Queue for the widgets
+    std::queue<Widget*> _widgetQueue;     // Queue of widgets
     Widget* _currentWidget = nullptr;     // Pointer to the current widget
     uint32_t _currentTime = 0;            // Time when the widget should be removed
     i2cDisplay* _displayModule = nullptr; // Pointer to the display manager
+
+    void removeWidgetFromQueue(const char* widgetName);
+    void removeWidgetFromQueue(Widget* widget);
 };

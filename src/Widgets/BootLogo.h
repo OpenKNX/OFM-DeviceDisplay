@@ -17,21 +17,26 @@ class WidgetBootLogo : public Widget
     inline const std::string getName() const override { return _name; }     // Return the name of the widget
     inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
-    uint32_t getDisplayTime() const override; // Rückgabe der Anzeigedauer in ms
-    WidgetsAction getAction() const override; // Rückgabe der Aktion des Widgets
+    uint32_t getDisplayTime() const override;                                                            // Return display duration in ms
+    WidgetsAction getAction() const override;                                                            // Return widget action
+    inline uint32_t setDisplayTime(uint32_t displayTime) override { return _displayTime = displayTime; } // Set display time
 
-    void setDisplayModule(i2cDisplay *displayModule) override; // Display-Modul setzen
-    i2cDisplay *getDisplayModule() const override;             // Display-Modul abrufen
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetsAction>(action); }      // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action & ~action); } // Remove an action from the widget
+
+    void setDisplayModule(i2cDisplay *displayModule) override; // Set display module
+    i2cDisplay *getDisplayModule() const override;             // Get display module
 
   private:
-    void drawBootLogo(); // Boot-Logo zeichnen
+    void drawBootLogo(); // Draw the boot logo on the display
 
-    WidgetState _state;             // Aktueller Zustand des Widgets
-    uint32_t _displayTime;          // Anzeigedauer des Widgets in ms
-    WidgetsAction _action;          // Aktion des Widgets
-    i2cDisplay *_display;           // Zeiger auf das Display-Modul
-    bool _needsRedraw;              // Gibt an, ob das Widget neu gezeichnet werden muss
-    std::string _name = "BootLogo"; // Name des Widgets
+    WidgetState _state;             // BootLogo state
+    uint32_t _displayTime;          // Display time in ms
+    WidgetsAction _action;          // Widget action
+    i2cDisplay *_display;           // Display object
+    bool _needsRedraw;              // Redraw flag
+    std::string _name = "BootLogo"; // Name of the widget
 
     /** state of partial drawing:
      * 0=no drawing / done,
@@ -46,5 +51,4 @@ class WidgetBootLogo : public Widget
 
     /** Row to start drawing in one loop() call */
     uint8_t _yStart = 0;
-
 };

@@ -119,8 +119,7 @@ void MenuWidget::loop()
         if (_FrontPlateEnabled && readButton(_buttonSelect)) selectItem();
     }
 
-    // Hier die Bedingung erweitern
-    if (_needsRedraw || (currentTime - _lastRedrawTime >= REDRAW_INTERVAL))
+    if (_needsRedraw /*|| (currentTime - _lastRedrawTime >= REDRAW_INTERVAL)*/) 
     {
         drawMenu();
         _needsRedraw = false;

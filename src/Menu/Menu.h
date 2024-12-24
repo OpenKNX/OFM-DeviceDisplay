@@ -27,6 +27,12 @@ class MenuWidget : public Widget
     inline void setName(const std::string& name) override { _name = name; }
     uint32_t getDisplayTime() const override;
     WidgetsAction getAction() const override;
+    inline uint32_t setDisplayTime(uint32_t displayTime) override { return _displayTime = displayTime; }
+    
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetsAction>(action); }      // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action & ~action); } // Remove an action from the widget
+
     i2cDisplay* getDisplayModule() const override;
     void setDisplayModule(i2cDisplay* displayModule) override;
 
@@ -70,8 +76,8 @@ class MenuWidget : public Widget
     uint32_t _lastRedrawTime = 0;
 
     // Widget properties
-    const uint32_t _displayTime;
-    const WidgetsAction _action;
+    uint32_t _displayTime;
+    WidgetsAction _action;
     std::string _name = "Menu";
     WidgetState _state = WidgetState::STOPPED;
 

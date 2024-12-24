@@ -29,10 +29,14 @@ public:
     
     virtual uint32_t getDisplayTime() const = 0; // Time to display the widget in ms
     virtual WidgetsAction getAction() const = 0;   // Widget action flag
+    virtual uint32_t setDisplayTime(uint32_t displayTime) = 0; // Set the display time
+    virtual void setAction(uint8_t action) = 0; // Set the widget action
+    virtual void addAction(uint8_t action) = 0; // Add an action to the widget
+    virtual void removeAction(uint8_t action) = 0; // Remove an action from the widget
+
     virtual ~Widget() = default;
     virtual void setDisplayModule(i2cDisplay *displayModule) = 0;
     virtual i2cDisplay *getDisplayModule() const = 0;
     virtual const std::string getName() const = 0;
     virtual void setName(const std::string &name) = 0;
-    
 };

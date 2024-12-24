@@ -17,8 +17,14 @@ class WidgetSysInfoLite : public Widget
     inline const std::string getName() const override { return _name; }
     inline void setName(const std::string &name) override { _name = name; }
 
-    uint32_t getDisplayTime() const override; // Returns the display time in milliseconds
-    WidgetsAction getAction() const override; // Returns the widget action
+    uint32_t getDisplayTime() const override;                                                            // Returns the display time in milliseconds
+    WidgetsAction getAction() const override;                                                            // Returns the widget action
+    inline uint32_t setDisplayTime(uint32_t displayTime) override { return _displayTime = displayTime; } // Set display time
+    
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetsAction>(action); }      // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetsAction>(_action & ~action); } // Remove an action from the widget
+
 
     void setDisplayModule(i2cDisplay *displayModule) override; // Sets the display module
     i2cDisplay *getDisplayModule() const override;             // Retrieves the display module
