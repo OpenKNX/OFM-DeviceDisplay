@@ -25,11 +25,11 @@ void DeviceDisplay::init()
 // Setup the display module with the default settings from the selected hardware
 // Ensure all necessary hardware configuration macros are defined
 #ifndef OKNXHW_DEVICE_DISPLAY_I2C_0_1
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_0_1);
+    // ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_0_1);
 #endif
 
 #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
+    // ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
 #endif
 
 #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL
@@ -120,17 +120,30 @@ void DeviceDisplay::setup(bool configured)
     WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetsAction::AutoRemoveFlag); // Create a new OpenKNXLogo widget
     widgetManager.addWidget(openknxLogoWidget);
 
+    //WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetsAction::AutoRemoveFlag, 4); // Create a new Fireworks widget
+    //widgetManager.addWidget(fireworksWidget);
+
     WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(5000, WidgetsAction::AutoRemoveFlag); // Create a new BootLogo widget
     widgetManager.addWidget(bootLogoWidget);
-
-    MenuWidget* menuWidget = new MenuWidget(20000, WidgetsAction::ExternalManaged, // Will be managed by the external system.
+    
+    MenuWidget* menuWidget = new MenuWidget(10000, WidgetsAction::ExternalManaged, // Will be managed by the external system.
                                             0x0107,                                // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
                                             0x0105,                                // DD_CTRL_PIN5_DOWN_BUTTON,
                                             0x0106                                 // DD_CTRL_PIN6_OK_BUTTON
     );                                                                             // Create a new Menu widget
     setMenuWidget(menuWidget);
     widgetManager.addWidget(menuWidget);
-    //
+
+    WidgetClock* defaultWidget = new WidgetClock(3000, WidgetsAction::AutoRemoveFlag, true); // Create a new Clock widget
+    defaultWidget->setName("DefaultWClock");
+    // This widget is enabled and external managed. You need to  stop and remove it manually
+    defaultWidget->setAction(WidgetsAction::ExternalManaged | WidgetsAction::InternalEnabled);
+    widgetManager.addWidget(defaultWidget);
+
+    WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
+    progModeWidget->setAction(WidgetsAction::ExternalManaged | WidgetAction::StatusFlag);
+    widgetManager.addWidget(progModeWidget);
+
     widgetManager.start();
 #endif
 }
@@ -183,26 +196,22 @@ void DeviceDisplay::loop(bool configured)
     RUNTIME_MEASURE_END(_loopRuntimesDim);
 
     static bool wasInProgMode = false;
+    static Widget* progMode = nullptr;
     if (knx.progMode())
     {
-        wasInProgMode = true;
-
         lastDisplayDimTimer_ = millis(); // Reset the display dim timer if prog mode is active
-
-        WidgetInfo* ProgMode = getWidgetInfo("ProgMode");
-        if (ProgMode && ProgMode->widget != nullptr)
+        if (!wasInProgMode &&
+            (progMode = widgetManager.getWidgetFromQueue("ProgMode")) != nullptr &&
+            progMode->getState() != WidgetState::RUNNING)
         {
-            ProgMode->addAction(WidgetAction::InternalEnabled);
+            progMode->addAction(WidgetAction::InternalEnabled);
+            wasInProgMode = true;
         }
     }
-    else if (wasInProgMode)
+    else if (wasInProgMode && progMode != nullptr)
     {
-        WidgetInfo* ProgMode = getWidgetInfo("ProgMode");
-        if (ProgMode && ProgMode->widget != nullptr)
-        {
-            ProgMode->removeAction(WidgetAction::InternalEnabled);
-            wasInProgMode = false;
-        }
+        progMode->removeAction(WidgetAction::InternalEnabled);
+        wasInProgMode = false;
     }
 
     RUNTIME_MEASURE_BEGIN(_loopWidgets);
