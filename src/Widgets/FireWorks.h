@@ -3,19 +3,19 @@
 
 class WidgetFireworks : public Widget
 {
-public:
+  public:
     const std::string logPrefix() { return "WidgetFireworks"; }
-    
+
     WidgetFireworks(uint32_t displayTime, WidgetFlags action, uint8_t intensity);
     ~WidgetFireworks();
-    
+
     void start() override;
     void stop() override;
     void pause() override;
     void resume() override;
     void setup() override;
     void loop() override;
-    
+
     inline const WidgetState getState() const override { return _state; }
     inline const std::string getName() const override { return _name; }
     inline void setName(const std::string& name) override { _name = name; }
@@ -28,17 +28,19 @@ public:
     inline void setDisplayModule(i2cDisplay* displayModule) override { _display = displayModule; }
     inline i2cDisplay* getDisplayModule() const override { return _display; }
 
-private:
-    struct Particle {
-        int16_t x;      // Position (x * 16 for subpixel precision)
-        int16_t y;      // Position (y * 16)
-        int8_t vx;      // Speed X (-128 to 127)
-        int8_t vy;      // Speed Y
-        uint8_t life;   // Particle lifetime
-        bool active;    // Is the Particle active?
+  private:
+    struct Particle
+    {
+        int16_t x;    // Position (x * 16 for subpixel precision)
+        int16_t y;    // Position (y * 16)
+        int8_t vx;    // Speed X (-128 to 127)
+        int8_t vy;    // Speed Y
+        uint8_t life; // Particle lifetime
+        bool active;  // Is the Particle active?
     };
 
-    struct Firework {
+    struct Firework
+    {
         static const uint8_t MAX_PARTICLES = 12;
         Particle particles[MAX_PARTICLES];
         uint8_t x;
@@ -57,7 +59,7 @@ private:
     void launchFirework();
     void updateFireworks();
     void drawFireworks();
-    
+
     WidgetFlags _action;
     uint8_t _intensity;
     uint32_t _displayTime;

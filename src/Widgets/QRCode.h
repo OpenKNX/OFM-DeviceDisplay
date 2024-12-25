@@ -21,15 +21,13 @@ class WidgetQRCode : public Widget
     inline const std::string getName() const override { return _name; }     // Return the name of the widget
     inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
-    uint32_t getDisplayTime() const override;                                                            // Return the display time in ms
-    WidgetFlags getAction() const override;                                                            // Return the widget action
+    uint32_t getDisplayTime() const override;                                                 // Return the display time in ms
+    WidgetFlags getAction() const override;                                                   // Return the widget action
     inline void setDisplayTime(uint32_t displayTime) override { _displayTime = displayTime; } // Set display time
-    
-    inline void setAction(uint8_t action) override { _action = static_cast<WidgetFlags>(action); }      // Set the widget action
+
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetFlags>(action); }               // Set the widget action
     inline void addAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action | action); }     // Add an action to the widget
     inline void removeAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action & ~action); } // Remove an action from the widget
-
-
 
     void setDisplayModule(i2cDisplay *displayModule) override; // Set the display module
     i2cDisplay *getDisplayModule() const override;             // Get the display module
@@ -40,7 +38,7 @@ class WidgetQRCode : public Widget
 
   private:
     uint32_t _displayTime;        // Time to display the widget in ms
-    WidgetFlags _action;        // Action to perform after the widget
+    WidgetFlags _action;          // Action to perform after the widget
     WidgetState _state;           // Current state of the widget
     i2cDisplay *_display;         // Display object
     std::string _qrCodeText;      // Text for the QR code
