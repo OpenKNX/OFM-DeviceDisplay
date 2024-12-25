@@ -125,20 +125,20 @@ void DeviceDisplay::setup(bool configured)
 
     WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(5000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
     widgetManager.addWidget(bootLogoWidget);
-    
-    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally, // Will be managed by the external system.
-                                            0x0107,                                // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
-                                            0x0105,                                // DD_CTRL_PIN5_DOWN_BUTTON,
-                                            0x0106                                 // DD_CTRL_PIN6_OK_BUTTON
-    );                                                                             // Create a new Menu widget
-    setMenuWidget(menuWidget);
+
+    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally, // Is managed externally
+                                            0x0107,                           // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
+                                            0x0105,                           // DD_CTRL_PIN5_DOWN_BUTTON,
+                                            0x0106                            // DD_CTRL_PIN6_OK_BUTTON
+    );                                                                        // Create a new Menu widget
+    menuWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::Background);
+    setMenuWidget(menuWidget);                                                // For Internal use in this class
     widgetManager.addWidget(menuWidget);
 
-    WidgetClock* defaultWidget = new WidgetClock(3000, WidgetFlags::AutoRemove, true); // Create a new Clock widget
-    defaultWidget->setName("DefaultWClock");
-    // This widget is enabled and external managed. You need to  stop and remove it manually
-    defaultWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::DisplayEnabled);
-    widgetManager.addWidget(defaultWidget);
+    //WidgetClock* defaultWidget = new WidgetClock(3000, WidgetFlags::AutoRemove, true); // Create a new Clock widget
+    //defaultWidget->setName("DefaultWClock");
+    //defaultWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::DisplayEnabled); // This widget is enabled and external managed. You need to  stop and remove it manually
+    //widgetManager.addWidget(defaultWidget);
 
     WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
     progModeWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);

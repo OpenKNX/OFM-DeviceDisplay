@@ -15,11 +15,7 @@ class WidgetsManager
     Widget* getWidgetFromQueue(const char* widgetName);
     Widget* getWidgetFromQueue(Widget* widget);
     std::queue<Widget*> getWidgetQueue() { return _widgetQueue; }
-    void clearWidgetQueue()
-    {
-        while (!_widgetQueue.empty())
-            _widgetQueue.pop();
-    }
+    void clearWidgetQueue() { while (!_widgetQueue.empty()) _widgetQueue.pop(); }
 
   private:
     std::queue<Widget*> _widgetQueue;     // Queue of widgets

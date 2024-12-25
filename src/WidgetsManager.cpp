@@ -37,7 +37,7 @@ void WidgetsManager::start()
         _currentWidget = _widgetQueue.front();
         _widgetQueue.push(_currentWidget);
         _widgetQueue.pop();
-        if (_currentWidget)
+        if (_currentWidget && !(_currentWidget->getAction() & Background))
         {
             _currentWidget->start();
             _currentTime = millis() + _currentWidget->getDisplayTime();
@@ -52,7 +52,8 @@ void WidgetsManager::loop()
     if (_currentWidget)
     {
         const WidgetFlags flags = _currentWidget->getAction(); // Get the action flags
-        const WidgetState state = _currentWidget->getState(); // Get the state of the widget
+        const WidgetState state = _currentWidget->getState();  // Get the state of the widget
+
         // a. If it is a `StatusWidget` and `DisplayEnabled`, keep it active and continue running.
         if ((flags & StatusWidget) && (flags & DisplayEnabled))
         {
@@ -70,7 +71,7 @@ void WidgetsManager::loop()
             // External managed widgets are always active. No exit, since we need to check for StatusWidgets
         }
         // c. If it is a `ManagedExternally` and not `DisplayEnabled`, deactivate the widget.
-        if ((flags & ManagedExternally) && !(flags & DisplayEnabled))
+        if ((flags & ManagedExternally) && !(flags & DisplayEnabled) && !(flags & Background))
         {
             logInfoP("Widget no longer DisplayEnabled: %s", _currentWidget->getName().c_str());
             _currentWidget->stop();
@@ -82,6 +83,11 @@ void WidgetsManager::loop()
             logInfoP("AutoRemove widget expired: %s", _currentWidget->getName().c_str());
             removeWidgetFromQueue(_currentWidget); // Widget entfernen
             _currentWidget = nullptr;
+        }
+        // e. If it is a `Background` widget, do not display it.
+        if (flags & Background) // Background widgets are not displayed
+        {
+            //_currentWidget = nullptr;
         }
     }
     // 2. Search for a prioritized status widget in the queue.
@@ -122,7 +128,22 @@ void WidgetsManager::loop()
     {
         _currentWidget->loop();
     }
-    // 5. If a display module is available, update it.
+    else
+    {
+        // logInfoP("No active widget found."); ToDo! We need a default widget!
+    }
+    // 5. Check for Background widgets and run their loop() method
+    for (size_t i = 0; i < _widgetQueue.size(); ++i)
+    {
+        Widget *widget = _widgetQueue.front();
+        if (widget && widget->getAction() & Background)
+        {
+            widget->loop(); // Run the loop() method of the background widget
+        }
+        _widgetQueue.push(widget);
+        _widgetQueue.pop();
+    }
+    // 6. If a display module is available, update it.
     if (_displayModule)
     {
         _displayModule->loop();
