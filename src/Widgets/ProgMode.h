@@ -1,6 +1,9 @@
 #pragma once
 #include "../Widget.h"
 
+// Delay for blinking the "ProgMode" message
+#define PROG_MODE_BLINK_DELAY 500
+
 class WidgetProgMode : public Widget
 {
   public:
@@ -31,7 +34,7 @@ class WidgetProgMode : public Widget
 
   private:
     i2cDisplay *_display;           // Display module pointer
-    WidgetFlags _action;          // Action flags
+    WidgetFlags _action;            // Action flags
     uint32_t _displayTime;          // Time to display the widget
     WidgetState _state;             // Widget state
     std::string _name = "ProgMode"; // Widget name
