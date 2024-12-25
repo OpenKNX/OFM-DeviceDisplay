@@ -3,12 +3,17 @@
 #include "MenuConfig_json.h"
 #include "OpenKNX.h"
 
-MenuWidget::MenuWidget(uint32_t displayTime,
-                       WidgetsAction action,
-                       uint16_t buttonUp,
-                       uint16_t buttonDown,
-                       uint16_t buttonSelect)
-    : _displayTime(displayTime), _action(action), _buttonUp(buttonUp), _buttonDown(buttonDown), _buttonSelect(buttonSelect)
+MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action, uint16_t buttonUp, uint16_t buttonDown, uint16_t buttonSelect)
+    : _displayTime(displayTime),
+      _action(action),
+      _buttonUp(buttonUp),
+      _buttonDown(buttonDown),
+      _buttonSelect(buttonSelect),
+      _selectedIndex(0),
+      _lastButtonPressTime(0),
+      _lastButtonCheck(0),
+      _lastRedrawTime(0),
+      _FrontPlateEnabled(false)
 {
 }
 
@@ -17,7 +22,7 @@ uint32_t MenuWidget::getDisplayTime() const
     return _displayTime;
 }
 
-WidgetsAction MenuWidget::getAction() const
+WidgetFlags MenuWidget::getAction() const
 {
     return _action;
 }
@@ -77,6 +82,7 @@ void MenuWidget::setup()
             openknxGPIOModule.digitalWrite(out.pin, out.state);
         }
     }
+    _state = WidgetState::BACKGROUND; // Start Menu in background! Will be started by button press.
 }
 
 void MenuWidget::addDefaultMenus()
@@ -107,9 +113,25 @@ bool MenuWidget::readButton(uint16_t pin)
 
 void MenuWidget::loop()
 {
-    if (_state != WidgetState::RUNNING) return;
-
     uint32_t currentTime = millis();
+    if (_state != WidgetState::RUNNING && _state != WidgetState::BACKGROUND) return;
+
+    if ((currentTime - _lastButtonPressTime) < _displayTime)
+    {
+        if (_state != WidgetState::RUNNING)
+        {
+            start();
+        }
+    }
+    else if ((currentTime - _lastButtonPressTime) >= _displayTime)
+    {
+        if (_state == WidgetState::RUNNING && _state != WidgetState::BACKGROUND)
+        {
+            background();
+            return;
+        }
+    }
+
     if (currentTime - _lastButtonCheck >= BUTTON_CHECK_INTERVAL)
     {
         _lastButtonCheck = currentTime;
@@ -119,8 +141,8 @@ void MenuWidget::loop()
         if (_FrontPlateEnabled && readButton(_buttonSelect)) selectItem();
     }
 
-    // Hier die Bedingung erweitern
-    if (_needsRedraw || (currentTime - _lastRedrawTime >= REDRAW_INTERVAL))
+    if (_state != WidgetState::RUNNING) return; // Skip the rest if not running
+    if (_needsRedraw /*|| (currentTime - _lastRedrawTime >= REDRAW_INTERVAL)*/)
     {
         drawMenu();
         _needsRedraw = false;
@@ -131,27 +153,47 @@ void MenuWidget::loop()
 // State management methods
 void MenuWidget::start()
 {
+    logInfoP("Start...");
+    _stateLast = _state;
     _state = WidgetState::RUNNING;
     _needsRedraw = true;
+
+    setAction(WidgetFlags::DisplayEnabled);
+    removeAction(WidgetFlags::Background);
 }
 
 void MenuWidget::stop()
 {
+    _stateLast = _state;
     _state = WidgetState::STOPPED;
     clearDisplay();
-    logInfoP("Menu stopped");
+    logInfoP("Stop...");
 }
 
 void MenuWidget::pause()
 {
+    _stateLast = _state;
     _state = WidgetState::PAUSED;
-    logInfoP("Menu paused");
+    logInfoP("Pause...");
 }
 
 void MenuWidget::resume()
 {
-    _state = WidgetState::RUNNING;
+    _state = _stateLast;
     _needsRedraw = true;
+    logInfoP("Resume...");
+}
+
+void MenuWidget::background()
+{
+    _stateLast = _state;
+    _state = WidgetState::BACKGROUND;
+    _needsRedraw = false;
+
+    addAction(WidgetFlags::Background);
+    removeAction(WidgetFlags::DisplayEnabled);
+    clearDisplay();
+    logInfoP("Menu is running in background due to inactivity.");
 }
 
 // External navigation methods (just delegate to internal ones)
@@ -166,6 +208,7 @@ void MenuWidget::externalStop() { stop(); }
 void MenuWidget::navigateUp()
 {
     logInfoP("Navigate up");
+    _lastButtonPressTime = millis();
     if (_selectedIndex > 0)
     {
         --_selectedIndex;
@@ -177,6 +220,7 @@ void MenuWidget::navigateUp()
 void MenuWidget::navigateDown()
 {
     logInfoP("Navigate down");
+    _lastButtonPressTime = millis();
     if (_selectedIndex < _currentMenu.size() - 1)
     {
         ++_selectedIndex;
@@ -187,6 +231,8 @@ void MenuWidget::navigateDown()
 
 void MenuWidget::selectItem()
 {
+    _lastButtonPressTime = millis();
+
     if (_currentMenu.empty()) return;
 
     logInfoP("Select item");

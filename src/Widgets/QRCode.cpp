@@ -3,7 +3,7 @@
 #include "qrcodegen.h"
 
 // Constructor
-WidgetQRCode::WidgetQRCode(uint32_t displayTime, WidgetsAction action, const std::string &defaultText, bool backgroundWhite)
+WidgetQRCode::WidgetQRCode(uint32_t displayTime, WidgetFlags action, const std::string &defaultText, bool backgroundWhite)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED),
       _display(nullptr), _qrCodeText(defaultText), _defaultText(defaultText),
       _backgroundWhite(backgroundWhite) {}
@@ -76,7 +76,7 @@ uint32_t WidgetQRCode::getDisplayTime() const
 }
 
 // Return the widget action
-WidgetsAction WidgetQRCode::getAction() const
+WidgetFlags WidgetQRCode::getAction() const
 {
     return _action;
 }

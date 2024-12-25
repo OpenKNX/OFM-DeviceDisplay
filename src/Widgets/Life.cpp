@@ -2,7 +2,7 @@
 #include "OpenKNX.h"
 
 // Constructor
-WidgetLife::WidgetLife(uint32_t displayTime, WidgetsAction action)
+WidgetLife::WidgetLife(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _lastUpdateTime(0), _display(nullptr)
 {
     memset(grid, 0, sizeof(grid));
@@ -74,7 +74,7 @@ void WidgetLife::loop()
 }
 
 uint32_t WidgetLife::getDisplayTime() const { return _displayTime; }
-WidgetsAction WidgetLife::getAction() const { return _action; }
+WidgetFlags WidgetLife::getAction() const { return _action; }
 
 void WidgetLife::setDisplayModule(i2cDisplay *displayModule) { _display = displayModule; }
 i2cDisplay *WidgetLife::getDisplayModule() const { return _display; }

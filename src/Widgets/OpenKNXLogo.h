@@ -5,7 +5,7 @@ class WidgetOpenKNXLogo : public Widget
 {
   public:
     const std::string logPrefix() { return "WidgetOpenKNXLogo"; }
-    WidgetOpenKNXLogo(uint32_t displayTime, WidgetsAction action);
+    WidgetOpenKNXLogo(uint32_t displayTime, WidgetFlags action);
 
     void setup() override;
     void start() override;
@@ -17,21 +17,26 @@ class WidgetOpenKNXLogo : public Widget
     inline const std::string getName() const override { return _name; }     // Return the name of the widget
     inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
-    uint32_t getDisplayTime() const override; // Rückgabe der Anzeigedauer in ms
-    WidgetsAction getAction() const override; // Rückgabe der Aktion des Widgets
+    uint32_t getDisplayTime() const override;                                                 // Return display time
+    WidgetFlags getAction() const override;                                                   // Return widget action
+    inline void setDisplayTime(uint32_t displayTime) override { _displayTime = displayTime; } // Set display time
 
-    void setDisplayModule(i2cDisplay *displayModule) override; // Display-Modul setzen
-    i2cDisplay *getDisplayModule() const override;             // Display-Modul abrufen
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetFlags>(action); }               // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action & ~action); } // Remove an action from the widget
+
+    void setDisplayModule(i2cDisplay *displayModule) override; // Set display module
+    i2cDisplay *getDisplayModule() const override;             // Get display module
 
   private:
     void drawOpenKNXLogo();
 
-    WidgetState _state;                  // Aktueller Zustand des Widgets
-    uint32_t _displayTime;               // Anzeigedauer des Widgets in ms
-    WidgetsAction _action;               // Aktion des Widgets
-    i2cDisplay *_display;                // Zeiger auf das Display-Modul
-    bool _needsRedraw;                   // Gibt an, ob das Widget neu gezeichnet werden muss
-    std::string _name = "DefaultWidget"; // Name des Widgets
+    WidgetState _state;                  // OpenKNXLogo state
+    uint32_t _displayTime;               // Display time in ms
+    WidgetFlags _action;                 // Widget action
+    i2cDisplay *_display;                // Display object
+    bool _needsRedraw;                   // Redraw flag
+    std::string _name = "DefaultWidget"; // Name of the widget
 
     /** state of partial drawing:
      * 0    = no drawing / done,

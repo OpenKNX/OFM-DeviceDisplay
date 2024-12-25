@@ -11,7 +11,7 @@ const char WidgetMatrixClassic::cp437[] = {
     0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0xC4, 0xB1,
     0xB0, 0xB1, 0xB2, 0xB3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9};
 
-WidgetMatrixClassic::WidgetMatrixClassic(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
+WidgetMatrixClassic::WidgetMatrixClassic(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(intensity), 
       _display(nullptr), _lastUpdateScreenSaver(0), FallSpeed(0), _state(WidgetState::STOPPED)
 {
@@ -80,7 +80,7 @@ void WidgetMatrixClassic::loop()
 }
 
 uint32_t WidgetMatrixClassic::getDisplayTime() const { return _displayTime; }
-WidgetsAction WidgetMatrixClassic::getAction() const { return _action; }
+WidgetFlags WidgetMatrixClassic::getAction() const { return _action; }
 
 void WidgetMatrixClassic::setDisplayModule(i2cDisplay *displayModule) { _display = displayModule; }
 i2cDisplay *WidgetMatrixClassic::getDisplayModule() const { return _display; }

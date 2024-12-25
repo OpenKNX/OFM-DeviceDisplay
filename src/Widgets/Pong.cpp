@@ -1,7 +1,7 @@
 #include "Pong.h"
 #include "OpenKNX.h"
 
-WidgetPong::WidgetPong(uint32_t displayTime, WidgetsAction action)
+WidgetPong::WidgetPong(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),
       paddleLeftY(0), paddleRightY(0), ballX(0), ballY(0), ballSpeedX(0), ballSpeedY(0) {}
 
@@ -99,7 +99,7 @@ void WidgetPong::loop() // Loop is called every second to update the screensaver
 }
 
 uint32_t WidgetPong::getDisplayTime() const { return _displayTime; } // Retrun the display time in ms
-WidgetsAction WidgetPong::getAction() const { return _action; }      // Return the widget action
+WidgetFlags WidgetPong::getAction() const { return _action; }      // Return the widget action
 
 void WidgetPong::drawScreensaver() // Draw the WidgetPong screensaver
 {

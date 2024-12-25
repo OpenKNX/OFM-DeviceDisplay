@@ -5,7 +5,7 @@ class WidgetSysInfoLite : public Widget
 {
   public:
     const std::string logPrefix() { return "WidgetSysInfoLite"; } // Prefix for log output
-    WidgetSysInfoLite(uint32_t displayTime, WidgetsAction action);
+    WidgetSysInfoLite(uint32_t displayTime, WidgetFlags action);
 
     void setup() override;
     void start() override;
@@ -17,8 +17,14 @@ class WidgetSysInfoLite : public Widget
     inline const std::string getName() const override { return _name; }
     inline void setName(const std::string &name) override { _name = name; }
 
-    uint32_t getDisplayTime() const override; // Returns the display time in milliseconds
-    WidgetsAction getAction() const override; // Returns the widget action
+    uint32_t getDisplayTime() const override;                                                            // Returns the display time in milliseconds
+    WidgetFlags getAction() const override;                                                            // Returns the widget action
+    inline void setDisplayTime(uint32_t displayTime) override { _displayTime = displayTime; } // Set display time
+    
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetFlags>(action); }      // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action & ~action); } // Remove an action from the widget
+
 
     void setDisplayModule(i2cDisplay *displayModule) override; // Sets the display module
     i2cDisplay *getDisplayModule() const override;             // Retrieves the display module
@@ -28,7 +34,7 @@ class WidgetSysInfoLite : public Widget
     void invertBitmap(uint8_t *bitmap, size_t width, size_t height); // Inverts the bitmap
 
     uint32_t _displayTime;             // Duration the widget is displayed in milliseconds
-    WidgetsAction _action;             // Action assigned to the widget
+    WidgetFlags _action;             // Action assigned to the widget
     i2cDisplay *_display;              // Pointer to the display module
     WidgetState _state;                // Current state of the widget
     bool _invertBitmap;                // Tracks if the bitmap should be inverted

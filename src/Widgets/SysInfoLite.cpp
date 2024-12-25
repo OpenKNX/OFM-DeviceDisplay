@@ -3,7 +3,7 @@
 #include "OpenKNX.h"
 
 // Constructor
-WidgetSysInfoLite::WidgetSysInfoLite(uint32_t displayTime, WidgetsAction action)
+WidgetSysInfoLite::WidgetSysInfoLite(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _display(nullptr),
       _state(WidgetState::STOPPED), _invertBitmap(false), _lastUpdate(0) {}
 
@@ -32,7 +32,7 @@ uint32_t WidgetSysInfoLite::getDisplayTime() const
 }
 
 // Returns the widget action
-WidgetsAction WidgetSysInfoLite::getAction() const
+WidgetFlags WidgetSysInfoLite::getAction() const
 {
     return _action;
 }

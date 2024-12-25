@@ -7,7 +7,7 @@ class WidgetPong : public Widget
 {
   public:
     const std::string logPrefix() { return "WidgetPong"; }
-    WidgetPong(uint32_t displayTime, WidgetsAction action);
+    WidgetPong(uint32_t displayTime, WidgetFlags action);
 
     void start() override;                                                  // Start widget
     void stop() override;                                                   // Stop widget
@@ -19,15 +19,22 @@ class WidgetPong : public Widget
     inline const std::string getName() const override { return _name; }     // Return the name of the widget
     inline void setName(const std::string &name) override { _name = name; } // Set the name of the widget
 
-    uint32_t getDisplayTime() const override; // Return the display time in ms
-    WidgetsAction getAction() const override; // Return the widget action
+    uint32_t getDisplayTime() const override;                                                            // Return the display time in ms
+    WidgetFlags getAction() const override;                                                            // Return the widget action
+    inline void setDisplayTime(uint32_t displayTime) override { _displayTime = displayTime; } // Set display time
+    
+    inline void setAction(uint8_t action) override { _action = static_cast<WidgetFlags>(action); }      // Set the widget action
+    inline void addAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action | action); }     // Add an action to the widget
+    inline void removeAction(uint8_t action) override { _action = static_cast<WidgetFlags>(_action & ~action); } // Remove an action from the widget
+
+
 
     void setDisplayModule(i2cDisplay *displayModule) override; // Set the display module
     i2cDisplay *getDisplayModule() const override;             // Get the display module
 
   private:
     uint32_t _displayTime;        // Time to display the widget in ms
-    WidgetsAction _action;        // Widget action
+    WidgetFlags _action;        // Widget action
     uint32_t _lastUpdateTime = 0; // Last update time
     WidgetState _state;           // Current state of the widget
     i2cDisplay *_display;         // Display object

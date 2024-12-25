@@ -2,7 +2,7 @@
 #include "OpenKNX.h"
 
 // Constructor
-WidgetStarfield::WidgetStarfield(uint32_t displayTime, WidgetsAction action, uint8_t intensity)
+WidgetStarfield::WidgetStarfield(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(intensity), _state(WidgetState::STOPPED), _lastUpdateTime(0), _display(nullptr)
 {
     memset(stars, 0, sizeof(stars));
@@ -82,7 +82,7 @@ void WidgetStarfield::loop()
 }
 
 uint32_t WidgetStarfield::getDisplayTime() const { return _displayTime; }
-WidgetsAction WidgetStarfield::getAction() const { return _action; }
+WidgetFlags WidgetStarfield::getAction() const { return _action; }
 
 void WidgetStarfield::setDisplayModule(i2cDisplay *displayModule) { _display = displayModule; }
 i2cDisplay *WidgetStarfield::getDisplayModule() const { return _display; }
