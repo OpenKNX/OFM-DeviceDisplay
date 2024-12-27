@@ -15,13 +15,20 @@ class WidgetsManager
     Widget* getWidgetFromQueue(const char* widgetName);
     Widget* getWidgetFromQueue(Widget* widget);
     std::queue<Widget*> getWidgetQueue() { return _widgetQueue; }
-    void clearWidgetQueue() { while (!_widgetQueue.empty()) _widgetQueue.pop(); }
+    void clearWidgetQueue()
+    {
+        while (!_widgetQueue.empty())
+            _widgetQueue.pop();
+    }
 
   private:
     std::queue<Widget*> _widgetQueue;     // Queue of widgets
     Widget* _currentWidget = nullptr;     // Pointer to the current widget
     uint32_t _currentTime = 0;            // Time when the widget should be removed
     i2cDisplay* _displayModule = nullptr; // Pointer to the display manager
+
+    uint32_t _lastInteractionTime = 0; // Timestamp of the last interaction
+    uint32_t _idleTimeout = 1000;      // Timeout before the default widget is shown (Start immediately - 1s Wait)!
 
     void removeWidgetFromQueue(const char* widgetName);
     void removeWidgetFromQueue(Widget* widget);

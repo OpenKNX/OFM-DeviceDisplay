@@ -9,7 +9,8 @@ typedef enum : uint8_t
     AutoRemove = 2,        // Automatische Entfernung nach Anzeige
     ManagedExternally = 4, // Extern verwaltet, bleibt aktiv, bis deaktiviert
     DisplayEnabled = 8,    // Intern aktiv, wird auf dem Display angezeigt
-    Background = 16        // Widget läuft im Hintergrund
+    Background = 16,        // Widget läuft im Hintergrund
+    DefaultWidget = 32     // Widget wird als Default verwendet
 } WidgetFlags;
 
 enum class WidgetState
