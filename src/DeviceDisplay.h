@@ -33,7 +33,6 @@
 #endif
 
 #define DeviceDisplay_Display_Name "DeviceDisplay"
-#define DeviceDisplay_Display_Version "0.0.1"
 
 #define DISPLAY_DIM_TIMER 60000 // DIm the display after 60 seconds of inactivity
 #define DEMO_WIDGET_CMD_TESTS   // Enable the demo widget command tests
@@ -81,8 +80,8 @@ class DeviceDisplay : public OpenKNX::Module
     void loop(bool configured) override;           // Update display in the loop
     void processInputKo(GroupObject& ko) override; // Process GroupObjects
 
-    inline const std::string name() { return DeviceDisplay_Display_Name; }       // Library name
-    inline const std::string version() { return DeviceDisplay_Display_Version; } // Library version
+    inline const std::string name() { return DeviceDisplay_Display_Name; }      // Library name
+    inline const std::string version() { return MODULE_DeviceDisplay_Version; } // Library version
 
     void addWidget(Widgets* widget, uint32_t duration, std::string name = "", uint8_t action = NoAction); // Add a widget to the queue
     bool removeWidget(const std::string& name);                                                           // Remove a widget from the queue
