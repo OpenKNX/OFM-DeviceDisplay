@@ -36,7 +36,7 @@ class WidgetOpenKNXLogo : public Widget
     WidgetFlags _action;                 // Widget action
     i2cDisplay *_display;                // Display object
     bool _needsRedraw;                   // Redraw flag
-    std::string _name = "DefaultWidget"; // Name of the widget
+    std::string _name = "OpenKNXLogo"; // Name of the widget
 
     /** state of partial drawing:
      * 0    = no drawing / done,

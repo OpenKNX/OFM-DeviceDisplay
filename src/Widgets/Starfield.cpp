@@ -10,17 +10,13 @@ WidgetStarfield::WidgetStarfield(uint32_t displayTime, WidgetFlags action, uint8
 
 void WidgetStarfield::setup()
 {
-    logInfoP("Setting up Starfield Widget...");
+    logInfoP("Setup...");
 
     if (_display == nullptr)
     {
-        // logErrorP("WidgetStarfield: Display is NULL.");
-        logInfoP("Display is NULL!");
-
+        logErrorP("Display is NULL!");
         return;
     }
-    // logDebugP("WidgetStarfield: Setup completed.");
-    logInfoP("Setup completed.");
 }
 
 void WidgetStarfield::start()
