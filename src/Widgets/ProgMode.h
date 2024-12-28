@@ -42,4 +42,11 @@ class WidgetProgMode : public Widget
     bool _showProgMode;             // Current blink state
 
     void draw(); // Draws the program mode content on the display
+
+    /** state of partial drawing:
+     * 0    = no drawing / done,
+     * 1..n = drawing step
+     */
+    uint8_t _drawStep = 0;    
+
 };
