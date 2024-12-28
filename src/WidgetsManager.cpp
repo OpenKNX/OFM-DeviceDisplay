@@ -63,6 +63,13 @@ void WidgetsManager::loop()
             if (state == WidgetState::STOPPED) _currentWidget->start(); // Start Widget
             _currentWidget->loop();
             _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
+
+            // 6. If a display module is available, update it.
+            if (_displayModule)
+            {
+                _displayModule->loop();
+            }       
+
             return;                             // StatusWidget has highest priority, so skip the rest of the code.
         }
         // b. If it is a `ManagedExternally` and `DisplayEnabled`, keep it active and continue running.
