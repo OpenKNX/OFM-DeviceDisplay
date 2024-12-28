@@ -28,7 +28,7 @@ class WidgetsManager
     i2cDisplay* _displayModule = nullptr; // Pointer to the display manager
 
     uint32_t _lastInteractionTime = 0; // Timestamp of the last interaction
-    uint32_t _idleTimeout = 1000;      // Timeout before the default widget is shown (Start immediately - 1s Wait)!
+    uint32_t _idleTimeout = 5000;      // Timeout before the default widget is shown (Start immediately - 1s Wait)!
 
     void removeWidgetFromQueue(const char* widgetName);
     void removeWidgetFromQueue(Widget* widget);
