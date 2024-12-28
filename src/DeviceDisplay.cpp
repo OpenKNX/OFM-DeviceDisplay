@@ -111,7 +111,7 @@ void DeviceDisplay::setup(bool configured)
     WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
     widgetManager.addWidget(matrixClassicWidget);
 
-    WidgetClock* clockWidget = new WidgetClock(3000, WidgetFlags::AutoRemove, true); // Create a new Clock widget
+    WidgetClock* clockWidget = new WidgetClock(3000, WidgetFlags::DefaultWidget, true); // Create a new Clock widget
     widgetManager.addWidget(clockWidget);
 
     WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
@@ -126,7 +126,7 @@ void DeviceDisplay::setup(bool configured)
     WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(5000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
     widgetManager.addWidget(bootLogoWidget);
 
-    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally, // Is managed externally
+    MenuWidget* menuWidget = new MenuWidget(20000, WidgetFlags::ManagedExternally, // Is managed externally
                                             0x0107,                           // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
                                             0x0105,                           // DD_CTRL_PIN5_DOWN_BUTTON,
                                             0x0106                            // DD_CTRL_PIN6_OK_BUTTON
@@ -135,16 +135,12 @@ void DeviceDisplay::setup(bool configured)
     setMenuWidget(menuWidget);                                                // For Internal use in this class
     widgetManager.addWidget(menuWidget);
 
-    //WidgetClock* defaultWidget = new WidgetClock(3000, WidgetFlags::AutoRemove, true); // Create a new Clock widget
-    //defaultWidget->setName("DefaultWClock");
-    //defaultWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::DisplayEnabled); // This widget is enabled and external managed. You need to  stop and remove it manually
-    //widgetManager.addWidget(defaultWidget);
-
     WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
     progModeWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);
     widgetManager.addWidget(progModeWidget);
 
-    widgetManager.start();
+    //widgetManager.setup(); // Setup the widgets ToDo! CHeck whats going wrong here
+    widgetManager.start(); // Start the widgets 
 #endif
 }
 

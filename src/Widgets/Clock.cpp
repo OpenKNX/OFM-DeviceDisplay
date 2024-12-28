@@ -40,8 +40,6 @@ void WidgetClock::stop()
     {
         logInfoP("Stop...");
         _state = WidgetState::STOPPED;
-        _display->display->clearDisplay();
-        _display->displayBuff();
     }
 }
 

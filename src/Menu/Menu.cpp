@@ -43,6 +43,7 @@ void MenuWidget::setDisplayModule(i2cDisplay* displayModule)
 
 void MenuWidget::setup()
 {
+    logInfoP("Setup...");
     if (!_display)
     {
         logErrorP("Display is NULL");
@@ -158,7 +159,7 @@ void MenuWidget::start()
     _state = WidgetState::RUNNING;
     _needsRedraw = true;
 
-    setAction(WidgetFlags::DisplayEnabled);
+    addAction(WidgetFlags::DisplayEnabled);
     removeAction(WidgetFlags::Background);
 }
 

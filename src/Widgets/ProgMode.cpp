@@ -25,7 +25,7 @@ void WidgetProgMode::start()
     logInfoP("start...");
     _state = WidgetState::RUNNING;
     _lastBlinkTime = millis();
-    draw(); // Initial draw
+    _drawStep = 1; // Start initial draw in next loop
 }
 
 void WidgetProgMode::stop()
@@ -50,7 +50,7 @@ void WidgetProgMode::resume()
     logInfoP("resume...");
     _state = WidgetState::RUNNING;
     _lastBlinkTime = millis();
-    draw(); // Redraw after resuming
+    _drawStep = 1; // Start redraw in next loop
 }
 
 void WidgetProgMode::loop()
@@ -59,47 +59,69 @@ void WidgetProgMode::loop()
 
     unsigned long currentTime = millis();
 
+    // TODO cleanup split implementation...
+
     // Check if it's time to toggle the blink state
     if (currentTime - _lastBlinkTime >= PROG_MODE_BLINK_DELAY)
     {
         _lastBlinkTime = currentTime;
         _showProgMode = !_showProgMode; // Toggle the blink state
-        draw();                         // Update the display
+        _drawStep = 1;
     }
+    else if (_drawStep == 0)
+    {
+        // nothing to draw
+        return;
+    }
+
+    draw();                         // Update the display
 }
 
 void WidgetProgMode::draw()
 {
     if (!_display) return;
 
-    _display->display->clearDisplay(); // Clear the display
-    _display->display->setTextColor(SSD1306_WHITE);
-
-    // Header: "OpenKNX" (always visible)
-    _display->display->setTextSize(1);
-    _display->display->setCursor(0, 0);
-    _display->display->print("   www.OpenKNX.de   ");
-
-    // "ProgMode" message (blinking)
-    if (_showProgMode)
+    // Partial drawing, step by step in loop()-calls
+    switch (_drawStep++)
     {
-        _display->display->setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+        case 1:
+            _display->display->clearDisplay(); // Clear the display
+            _display->display->setTextColor(SSD1306_WHITE);
+            break;
+        case 2:
+            // Header: "OpenKNX" (always visible)
+            _display->display->setTextSize(1);
+            _display->display->setCursor(0, 0);
+            _display->display->print("   www.OpenKNX.de   ");
+            break;
+        case 3:
+            // "ProgMode" message (blinking)
+            if (_showProgMode)
+            {
+                _display->display->setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+            }
+            else
+            {
+                _display->display->setTextColor(SSD1306_WHITE);
+            }        
+
+            _display->display->setTextSize(2);
+            _display->display->setCursor(0, 20);
+            _display->display->print(" ProgMode!");
+            break;
+        case 4:
+            // Footer: "Ready to use ETS..."
+            _display->display->setTextColor(SSD1306_WHITE);
+            _display->display->setTextSize(1);
+            _display->display->setCursor(0, 45);
+            _display->display->println(" Ready to use ETS to  program the Device! ");
+            break;
+        case 5:
+            // Update the display
+            _display->displayBuff();
+            // fall trough
+        default:
+            _drawStep = 0; // completed
+            break;
     }
-    else
-    {
-        _display->display->setTextColor(SSD1306_WHITE);
-    }
-
-    _display->display->setTextSize(2);
-    _display->display->setCursor(0, 20);
-    _display->display->print(" ProgMode!");
-
-    // Footer: "Ready to use ETS..."
-    _display->display->setTextColor(SSD1306_WHITE);
-    _display->display->setTextSize(1);
-    _display->display->setCursor(0, 45);
-    _display->display->println(" Ready to use ETS to  program the Device! ");
-
-    // Update the display
-    _display->displayBuff();
 }
