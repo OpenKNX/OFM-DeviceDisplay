@@ -9,35 +9,17 @@
  */
 
 // WIDGETS
-#define QRCODE_WIDGET      // Enable the QR code widget
-#define MATRIX_SCREENSAVER // Enable the matrix screensaver
 #define DD_CONSOLE_CMDS    // Enable the console commands for the display module
 
 #include "i2c-Display.h"  // Include 1st
 #include "icons/logo.h"
 #include "OpenKNX/Stat/RuntimeStat.h"
 
-#ifdef QRCODE_WIDGET
-    #include "QRCodeGen.hpp" // Include 3rd
-#endif
-
 // Maximum 100 characters per line for scrolling text
 #define MAX_CHARS_PER_LINE_SCROLL 100
 #define SCROLL_DELAY 250 // Scrolling speed (in milliseconds)
-
-// Default widget settings
-#define PROG_MODE_BLINK_DELAY 500 // Blink delay for "Prog Mode active" text
-#define BOOT_LOGO_TIMEOUT 5000    // Timeout for showing the boot logo
-
 // Default settings for the display
 #define MAX_TEXT_LINES 8 // Maximum number of text lines on a 128x64 display with default font
-
-// Matrix screensaver settings
-#ifdef MATRIX_SCREENSAVER
-    #define COLUMN_WIDTH 8 // Width of a column in pixels
-    #define FALL_SPEED 50  // Falling speed in milliseconds
-    #define MAX_DROPS 5    // Maximum number of falling characters per column
-#endif
 
 #define WIDGET_INACTIVE 0 // Widgets is inactive
 
@@ -96,25 +78,7 @@ class Widgets
   public:
     enum class DisplayMode
     {
-        DYNAMIC_TEXT,   // Dynamic text lines depending on the lines of the display and their position or settings
-        ICON_WITH_TEXT, // Icon with text mode
-        OPENKNX_LOGO,   // OpenKNX logo
-        PROG_MODE,      // Programming mode
-#ifdef QRCODE_WIDGET
-        QR_CODE, // QR Code
-#endif
-#ifdef MATRIX_SCREENSAVER
-        SCREEN_SAVER, // Matrix screensaver
-        SCREEN_SAVER_MATRIX,
-        SCREEN_SAVER_CLOCK,
-        SCREEN_SAVER_PONG,
-        SCREEN_SAVER_RAIN,
-        SCREEN_SAVER_STARFIELD,
-        SCREEN_SAVER_3DCUBE,
-        SCREEN_SAVER_LIFE,
-        OPENKNX_TEAM_INTRO,
-#endif
-        BOOT_LOGO // Boot logo
+        DYNAMIC_TEXT   // Dynamic text lines depending on the lines of the display and their position or settings
     };
 
 
@@ -141,42 +105,15 @@ class Widgets
     uint16_t calculateCursorX(i2cDisplay *display, const lcdText *line);                                                                                                                                                // Calculate the X position of the cursor for a text line
     uint16_t calculateCursorY(i2cDisplay *display, const lcdText *line, uint16_t &totalHeightTop, uint16_t &totalHeightBottom, uint16_t &middleStartY, uint16_t availableMiddleHeight);                                 // Calculate the Y position of the cursor for a text line
 
-    // Boot logo and OpenKNX logo
-    void OpenKNXLogo(i2cDisplay *display);  // Show the OpenKNX logo on the display
-    void ShowBootLogo(i2cDisplay *display); // Show the boot logo on the display
-
-    // Programming mode
-    ulong _showProgrammingMode_last_Blink = 0;     // Last time the blink state was updated
-    bool _showProgrammingMode_showProgMode = true; // Toggle between showing/hiding "Prog Mode active"
-    void showProgrammingMode(i2cDisplay *display); // Show the programming mode on the display
-
-#ifdef MATRIX_SCREENSAVER
     // Matrix screensaver
     ulong _lastUpdateScreenSaver = 0;                                          // Last time the screensaver was updated
-    void showMatrixScreensaver(i2cDisplay *display);                           // Show the matrix screensaver on the display
-    void showPongScreensaver(i2cDisplay *display);                             // Show the pong screensaver on the display
-    void showClockScreensaver(i2cDisplay *display, bool rounded = false);      // Show the clock screensaver on the display
-    void showRainfallScreensaver(i2cDisplay *display, uint8_t intensity = 10); // Show the rainfall screensaver on the display
-    void showMatrixScreensaverP(i2cDisplay *display, uint8_t intensity = 10);  // Show the matrix screensaver on the display
-    void show3DCubeScreensaver(i2cDisplay *display);                           // Show the 3D cube screensaver on the display
-    void showStarfieldScreensaver(i2cDisplay *display, uint8_t intensity = 8); // Show the starfield screensaver on the display
-    void showLifeScreensaver(i2cDisplay *display);                             // Show the life screensaver on the display
-
     void showOpenKNXTeamIntro(i2cDisplay *display, const std::vector<std::string> &names, const std::string &logoText); // Show the OpenKNX intro on the display
     std::vector<std::string> developerNames = {"traxanos", "jeff25", "Ing-Dom", "mumpf", "thewhobox", "willisurf", "cornelius-koepp", "ab-tools", "GeminiServer", "mgeramb", "Smart-MF"};
     std::string logoText = "Powered by OpenKNX";
 
-#endif
-#ifdef QRCODE_WIDGET
-    void showQRCode(i2cDisplay *display); // Show the QR code on the display
-#endif                                    // QRCODE_WIDGET
-
   public:
     inline void setAllowEmptyTextLines(bool empty) { _AllowEmtyTextLines = empty; } // Set the initial empty text lines flag
 
-#ifdef QRCODE_WIDGET
-    QRCodeWidget qrCodeWidget;            // QR Code Widgets
-#endif                                    // QRCODE_WIDGET
     void appendLine(std::string newLine); // Append a new line to the widget. Only works for dynamic text mode and use case is console output
 
     Widgets(DisplayMode mode = DisplayMode::DYNAMIC_TEXT);             // Constructor

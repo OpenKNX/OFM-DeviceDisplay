@@ -11,7 +11,10 @@ class MenuWidget : public Widget
                WidgetFlags action,
                uint16_t buttonUp,
                uint16_t buttonDown,
-               uint16_t buttonSelect);
+               uint16_t buttonSelect, 
+               uint16_t buttonLeft,
+               uint16_t buttonRight);
+
 
     // Widget interface implementation
     void start() override;
@@ -58,6 +61,10 @@ class MenuWidget : public Widget
     void navigateUp();
     void navigateDown();
     void selectItem();
+    void navigateLeft();
+    void navigateRight();
+
+
     void addDefaultMenus();
     void clearDisplay();
     void drawMenu();
@@ -73,6 +80,9 @@ class MenuWidget : public Widget
     const uint16_t _buttonUp;
     const uint16_t _buttonDown;
     const uint16_t _buttonSelect;
+    const uint16_t _buttonLeft;
+    const uint16_t _buttonRight;
+
     uint32_t _lastButtonCheck = 0;
     uint32_t _lastRedrawTime = 0;
     uint32_t _lastButtonPressTime = 0;

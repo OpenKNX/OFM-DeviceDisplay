@@ -1,4 +1,14 @@
 #pragma once
+/**
+ * @file        Widget.h
+ * @brief       This module offers a widget manager for displays on the OpenKNX ecosystem
+ * @version     0.0.1
+ * @date        2024-12-28
+ * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@çolak.de)
+ *              Licensed under GNU GPL v3.0
+ */
+
+#pragma once
 #include "i2c-Display.h"
 #include <cstdint>
 
@@ -9,8 +19,8 @@ typedef enum : uint8_t
     AutoRemove = 2,        // Automatische Entfernung nach Anzeige
     ManagedExternally = 4, // Extern verwaltet, bleibt aktiv, bis deaktiviert
     DisplayEnabled = 8,    // Intern aktiv, wird auf dem Display angezeigt
-    Background = 16,        // Widget läuft im Hintergrund
-    DefaultWidget = 32     // Widget wird als Default verwendet
+    Background = 16,       // Widget läuft im Hintergrund
+    DefaultWidget = 32     // Widget wird als Default verwendet (ToDo - Check Highlander-Prinzip)
 } WidgetFlags;
 
 enum class WidgetState

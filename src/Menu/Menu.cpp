@@ -3,12 +3,14 @@
 #include "MenuConfig_json.h"
 #include "OpenKNX.h"
 
-MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action, uint16_t buttonUp, uint16_t buttonDown, uint16_t buttonSelect)
+MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action, uint16_t buttonUp, uint16_t buttonDown, uint16_t buttonSelect, uint16_t buttonLeft, uint16_t buttonRight)
     : _displayTime(displayTime),
       _action(action),
       _buttonUp(buttonUp),
       _buttonDown(buttonDown),
       _buttonSelect(buttonSelect),
+      _buttonLeft(buttonLeft),
+      _buttonRight(buttonRight),
       _selectedIndex(0),
       _lastButtonPressTime(0),
       _lastButtonCheck(0),
@@ -63,7 +65,7 @@ void MenuWidget::setup()
         _FrontPlateEnabled = true;
         logInfoP("GPIO Module initialized");
         // Initialize buttons
-        const uint16_t pins[] = {_buttonUp, _buttonDown, _buttonSelect};
+        const uint16_t pins[] = {_buttonUp, _buttonDown, _buttonSelect, _buttonLeft, _buttonRight, 0x0103};
         for (auto pin : pins)
         {
             openknxGPIOModule.pinMode(pin, INPUT, true, 0);
@@ -75,7 +77,8 @@ void MenuWidget::setup()
             uint16_t pin;
             bool state;
         } outputs[] = {
-            {0x0101, LOW}, {0x0102, LOW}, {0x0103, HIGH}, {0x0104, LOW}};
+            {0x0101, HIGH},  // Prog LED
+            {0x0102, HIGH}}; // Info LED
 
         for (const auto& out : outputs)
         {
@@ -104,12 +107,13 @@ void MenuWidget::addDefaultMenus()
 
 bool MenuWidget::readButton(uint16_t pin)
 {
-    openknxGPIOModule.pinMode(pin, OUTPUT);
-    openknxGPIOModule.digitalWrite(pin, HIGH);
-    openknxGPIOModule.pinMode(pin, INPUT);
-    bool state = !openknxGPIOModule.digitalRead(pin);
-    openknxGPIOModule.digitalWrite(pin, HIGH);
-    return !state;
+    //openknxGPIOModule.pinMode(pin, OUTPUT);
+    //openknxGPIOModule.digitalWrite(pin, HIGH);
+    //openknxGPIOModule.pinMode(pin, INPUT);
+    //bool state = !openknxGPIOModule.digitalRead(pin);
+    //openknxGPIOModule.digitalWrite(pin, HIGH);
+    //return !state;
+    return openknxGPIOModule.digitalRead(pin);
 }
 
 void MenuWidget::loop()
@@ -137,9 +141,23 @@ void MenuWidget::loop()
     {
         _lastButtonCheck = currentTime;
 
-        if (_FrontPlateEnabled && readButton(_buttonUp)) navigateUp();
-        if (_FrontPlateEnabled && readButton(_buttonDown)) navigateDown();
+        if (_FrontPlateEnabled && readButton(_buttonUp)) { 
+          navigateUp();
+          openknxGPIOModule.digitalWrite(0x0101, LOW); // Prog LED
+        }
+        if (_FrontPlateEnabled && readButton(_buttonDown)) { 
+          navigateDown();
+          openknxGPIOModule.digitalWrite(0x0102, LOW); // Info LED
+        }
         if (_FrontPlateEnabled && readButton(_buttonSelect)) selectItem();
+        if (_FrontPlateEnabled && !readButton(_buttonLeft)) {
+          navigateLeft();
+          openknxGPIOModule.digitalWrite(0x0101, HIGH); // Prog LED
+        }
+        if (_FrontPlateEnabled && readButton(_buttonRight)) { 
+          navigateRight();
+          openknxGPIOModule.digitalWrite(0x0102, HIGH); // Info LED
+        }
     }
 
     if (_state != WidgetState::RUNNING) return; // Skip the rest if not running
@@ -227,6 +245,30 @@ void MenuWidget::navigateDown()
         ++_selectedIndex;
         _needsRedraw = true;
         logInfoP("Navigated down to index %d", _selectedIndex);
+    }
+}
+
+void MenuWidget::navigateLeft()
+{
+    logInfoP("Navigate left");
+    _lastButtonPressTime = millis();
+    if (_selectedIndex > 0)
+    {
+        //--_selectedIndex;
+        //_needsRedraw = true;
+        //logInfoP("Navigated left to index %d", _selectedIndex);
+    }
+}
+
+void MenuWidget::navigateRight()
+{
+    logInfoP("Navigate right");
+    _lastButtonPressTime = millis();
+    if (_selectedIndex < _currentMenu.size() - 1)
+    {
+        //++_selectedIndex;
+        //_needsRedraw = true;
+        //logInfoP("Navigated right to index %d", _selectedIndex);
     }
 }
 
@@ -327,14 +369,14 @@ void MenuWidget::drawMenu()
         switch (item.type)
         {
             case MenuConfig::MenuElementType::Checkbox:
-                _display->display->setCursor(90, yPos + 2);
+                _display->display->setCursor(_screenWidth - 12, yPos + 2);
                 _display->display->print(item.defaultValue.getBool() ? "ON" : "OFF");
                 break;
 
             case MenuConfig::MenuElementType::Dropdown:
                 if (size_t idx = item.defaultValue.getSizeT(); idx < item.dropdownOptions.size())
                 {
-                    _display->display->setCursor(90, yPos + 2);
+                    _display->display->setCursor(_screenWidth - 12, yPos + 2);
                     _display->display->print(item.dropdownOptions[idx].c_str());
                 }
                 break;
@@ -345,11 +387,10 @@ void MenuWidget::drawMenu()
                 break;
 
             case MenuConfig::MenuElementType::Back:
-                _display->display->setCursor(90, yPos + 2);
+                _display->display->setCursor(_screenWidth - 12, yPos + 2);
                 _display->display->print("<");
                 break;
         }
     }
-
     _display->displayBuff();
 }

@@ -53,6 +53,8 @@ bool i2cDisplay::InitDisplay()
         return false; // Display not found or not initialized. Check the wiring and i2c address
     }
 
+    display->ssd1306_command(SSD1306_SEGREMAP);    // Spiegele die Spaltenanordnung
+    display->ssd1306_command(SSD1306_COMSCANINC);  // Ändere die Zeilenrichtung
     display->clearDisplay(); // Clear initialy the display buffer. Previous arcifacts could be displayed
     display->display();      // Display the cleared buffer
 
