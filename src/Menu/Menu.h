@@ -100,7 +100,7 @@ class MenuWidget : public Widget
     std::vector<std::vector<MenuConfig::MenuOption>> _menuStack;
     MenuConfig _menuConfig;
     size_t _selectedIndex = 0;
-    bool _needsRedraw = true;
+    bool _needsRedraw = false;
     bool _isPaused = false;
     bool _FrontPlateEnabled = false;
 };

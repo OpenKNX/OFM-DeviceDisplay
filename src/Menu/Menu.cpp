@@ -121,10 +121,11 @@ void MenuWidget::loop()
     uint32_t currentTime = millis();
     if (_state != WidgetState::RUNNING && _state != WidgetState::BACKGROUND) return;
 
-    if ((currentTime - _lastButtonPressTime) < _displayTime)
+    if (_lastButtonPressTime > 0 && (currentTime - _lastButtonPressTime) < _displayTime)
     {
         if (_state != WidgetState::RUNNING)
         {
+            logInfoP("Menu is running due to button press.");
             start();
         }
     }
@@ -339,7 +340,8 @@ void MenuWidget::drawMenu()
     if (!_display || !_display->display) return;
 
     _display->display->clearDisplay();
-
+    _display->display->setTextSize(1); // Normal 1:1 pixel scale
+    
     const uint8_t ITEM_HEIGHT = 10;
     const uint8_t ITEM_MARGIN = 2;
     const uint8_t MAX_VISIBLE_ITEMS = _screenHeight / (ITEM_HEIGHT + ITEM_MARGIN);
