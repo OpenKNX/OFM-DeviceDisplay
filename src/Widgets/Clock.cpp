@@ -140,14 +140,15 @@ void WidgetClock::drawClock()
     else
     {
         // Draw digital clock
-        const uint8_t FONT_HEIGHT = 8, FONT_WIDTH = 6;
+        const uint8_t TextSize = 2;
+        const uint8_t FONT_HEIGHT = 8*TextSize, FONT_WIDTH = 6*TextSize;
         char timeString[9];
         snprintf(timeString, sizeof(timeString), "%02u:%02u:%02u", hours, minutes, seconds);
         int16_t startX = (SCREEN_WIDTH - strlen(timeString) * FONT_WIDTH) / 2;
         int16_t startY = (SCREEN_HEIGHT - FONT_HEIGHT) / 2;
 
         _display->display->setCursor(startX, startY);
-        _display->display->setTextSize(1);
+        _display->display->setTextSize(TextSize);
         _display->display->setTextColor(WHITE);
         _display->display->print(timeString);
     }
