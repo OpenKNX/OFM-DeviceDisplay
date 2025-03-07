@@ -14,7 +14,7 @@ i2cDisplay *WidgetClock::getDisplayModule() const { return _display; }
 
 void WidgetClock::setup()
 {
-    if(_state == WidgetState::RUNNING) return;
+    if (_state == WidgetState::RUNNING) return;
 
     logInfoP("Setup...");
     if (_display == nullptr)
@@ -108,11 +108,12 @@ void WidgetClock::drawClock()
     const uint16_t SCREEN_WIDTH = _display->GetDisplayWidth();
     const uint16_t SCREEN_HEIGHT = _display->GetDisplayHeight();
     const uint16_t CENTER_X = SCREEN_WIDTH / 2;
-    const uint16_t CENTER_Y = SCREEN_HEIGHT / 2;
+    const uint16_t CENTER_Y = (SCREEN_HEIGHT / 2) + 10;
     const uint16_t CLOCK_RADIUS = min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2 - 5;
 
     uint16_t hours, minutes, seconds;
     fetchTime(hours, minutes, seconds);
+    int16_t textWidth = 0;
 
     _display->display->clearDisplay();
 
@@ -136,21 +137,74 @@ void WidgetClock::drawClock()
         _display->display->drawLine(CENTER_X, CENTER_Y,
                                     CENTER_X + CLOCK_RADIUS * cos(angleSecond),
                                     CENTER_Y + CLOCK_RADIUS * sin(angleSecond), WHITE);
+
+        /*
+        // 12, 3, 6 und 9 Markierungen zeichnen
+        int markLength = 3; // Länge der Markierungslinien
+
+        // 12 Uhr (oben)
+        _display->display->drawLine(CENTER_X, CENTER_Y - CLOCK_RADIUS,
+                                    CENTER_X, CENTER_Y - CLOCK_RADIUS + markLength, WHITE);
+
+        // 3 Uhr (rechts)
+        _display->display->drawLine(CENTER_X + CLOCK_RADIUS, CENTER_Y,
+                                    CENTER_X + CLOCK_RADIUS - markLength, CENTER_Y, WHITE);
+
+        // 6 Uhr (unten)
+        _display->display->drawLine(CENTER_X, CENTER_Y + CLOCK_RADIUS,
+                                    CENTER_X, CENTER_Y + CLOCK_RADIUS - markLength, WHITE);
+
+        // 9 Uhr (links)
+        _display->display->drawLine(CENTER_X - CLOCK_RADIUS, CENTER_Y,
+                                    CENTER_X - CLOCK_RADIUS + markLength, CENTER_Y, WHITE);
+        */
     }
     else
     {
         // Draw digital clock
-        const uint8_t TextSize = 2;
-        const uint8_t FONT_HEIGHT = 8*TextSize, FONT_WIDTH = 6*TextSize;
+        uint8_t TextSize = 2;
+        uint8_t FONT_HEIGHT = 8 * TextSize, FONT_WIDTH = 6 * TextSize;
         char timeString[9];
         snprintf(timeString, sizeof(timeString), "%02u:%02u:%02u", hours, minutes, seconds);
         int16_t startX = (SCREEN_WIDTH - strlen(timeString) * FONT_WIDTH) / 2;
         int16_t startY = (SCREEN_HEIGHT - FONT_HEIGHT) / 2;
 
-        _display->display->setCursor(startX, startY);
+        _display->display->setCursor(startX, startY-4);
         _display->display->setTextSize(TextSize);
         _display->display->setTextColor(WHITE);
         _display->display->print(timeString);
+
+// Draw device ID on top
+#ifdef DEVICE_ID
+        TextSize = 1;
+        const char *deviceId = DEVICE_ID;
+        FONT_WIDTH = 6 * TextSize;
+        _display->display->setTextWrap(false);
+        _display->display->setCursor((SCREEN_WIDTH - strlen(deviceId) * FONT_WIDTH) / 2, 0);
+        _display->display->setTextSize(TextSize);
+        _display->display->print(deviceId);
+#endif
+
+        // Draw the KNX address with configuration status (vorletzte Zeile)
+        const char *knxAddress = openknx.info.humanIndividualAddress().c_str();
+        const char *knxStatus = knx.configured() ? "" : " [!]";
+        char knxString[30]; // Buffer für die KNX-Adresse + Status
+        snprintf(knxString, sizeof(knxString), "Addr.: %s%s", knxAddress, knxStatus);
+
+        // Berechnung der tatsächlichen Pixelbreite für genauere Zentrierung
+        int16_t textWidth = (strlen(knxString)) * FONT_WIDTH;
+        startX = (SCREEN_WIDTH - textWidth) / 2;
+        startY = SCREEN_HEIGHT - 18; // Vorletzte Zeile
+
+        _display->display->setCursor(startX, startY);
+        _display->display->print(knxString);
+
+        // Draw Serial number on bottom (letzte Zeile)
+        const char *deviceSN = openknx.info.humanSerialNumber().c_str();
+        startX = (SCREEN_WIDTH - strlen(deviceSN) * FONT_WIDTH) / 2;
+        startY = SCREEN_HEIGHT - 8; // Letzte Zeile
+        _display->display->setCursor(startX, startY);
+        _display->display->print(deviceSN);
     }
 
     _display->displayBuff();
