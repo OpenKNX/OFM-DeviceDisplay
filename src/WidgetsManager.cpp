@@ -34,17 +34,23 @@ void WidgetsManager::setup()
 
 void WidgetsManager::start()
 {
-    if (!_widgetQueue.empty())
-    {
-        _currentWidget = _widgetQueue.front();
-        _widgetQueue.push(_currentWidget);
-        _widgetQueue.pop();
-        if (_currentWidget && !(_currentWidget->getAction() & Background))
-        {
-            _currentWidget->start();
-            _currentTime = millis() + _currentWidget->getDisplayTime();
-        }
-    }
+    // Widget will be initialized in the loop() method
+    //TEST
+    /*
+      if (!_widgetQueue.empty())
+      {
+          _currentWidget = _widgetQueue.front(); // Get the first widget from the queue
+          _widgetQueue.push(_currentWidget);    // Add the widget to the end of the queue
+          _widgetQueue.pop();                  // Remove the widget from the front of the queue
+          if (_currentWidget && !(_currentWidget->getAction() & WidgetFlags::Background) &&
+                                !(_currentWidget->getAction() & WidgetFlags::ManagedExternally))
+          {
+              _currentWidget->start();
+              logInfoP("Initial Starting the widget: %s", _currentWidget->getName().c_str());
+              _currentTime = millis() + _currentWidget->getDisplayTime();
+          }
+      }
+    */
 }
 
 void WidgetsManager::loop()
@@ -59,9 +65,17 @@ void WidgetsManager::loop()
         // a. If it is a `StatusWidget` and `DisplayEnabled`, keep it active and continue running.
         if ((flags & StatusWidget) && (flags & DisplayEnabled))
         {
-            if (state == WidgetState::PAUSED) _currentWidget->resume(); // Resume Widget
-            if (state == WidgetState::STOPPED) _currentWidget->start(); // Start Widget
-            _lastInteractionTime = currentTime;                         // Internal interaction detected. Reset the timeout.
+            if (state == WidgetState::PAUSED)
+            {
+                _currentWidget->resume(); // Resume Widget
+                //logInfoP("Resuming paused StatusWidget: %s", _currentWidget->getName().c_str());
+            }
+            if (state == WidgetState::STOPPED)
+            {
+                _currentWidget->start(); // Start Widget
+                //logInfoP("Starting stopped StatusWidget: %s", _currentWidget->getName().c_str());
+            }
+            _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
             _currentWidget->loop();
             if (_displayModule) _displayModule->loop(); // Update the displaymodule, since the status widget ignore the rest.
             return;                                     // StatusWidget has highest priority, so skip the rest of the code.
@@ -69,8 +83,16 @@ void WidgetsManager::loop()
         // b. If it is a `ManagedExternally` and `DisplayEnabled`, keep it active and continue running.
         if ((flags & ManagedExternally) && (flags & DisplayEnabled))
         {
-            if (state == WidgetState::PAUSED) _currentWidget->resume(); // Resume Widget
-            if (state == WidgetState::STOPPED) _currentWidget->start(); // Start Widget
+            if (state == WidgetState::PAUSED)
+            {
+                //logInfoP("Resuming paused widget: %s", _currentWidget->getName().c_str());
+                _currentWidget->resume(); // Resume Widget
+            }
+            if (state == WidgetState::STOPPED)
+            {
+                _currentWidget->start(); // Start Widget
+                //logInfoP("Starting stopped widget: %s", _currentWidget->getName().c_str());
+            }
             _currentWidget->loop();
             _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
             // External managed widgets are always active. No exit, since we need to check for StatusWidgets
@@ -122,7 +144,7 @@ void WidgetsManager::loop()
     }
 
     // 3. If no status widget was prioritized, activate a normal widget.
-    if (!_currentWidget && !_widgetQueue.empty())
+    if (!_currentWidget && !_widgetQueue.empty() && currentTime >= _currentTime)
     {
         _currentWidget = _widgetQueue.front();
         _widgetQueue.push(_currentWidget);
