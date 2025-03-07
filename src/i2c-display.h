@@ -12,6 +12,15 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
+// Define SSD13xx controller commands ToDo: Check if SSD1315 is correct supported
+#ifdef SSD1315
+#define SSD13XX_SETCONTRAST 0xD9
+#define SSD13XX_SETVCOMDETECT 0xDB
+#else 
+#define SSD13XX_SETCONTRAST SSD1306_SETCONTRAST
+#define SSD13XX_SETVCOMDETECT SSD1306_SETVCOMDETECT
+#endif
+
 class i2cDisplay
 {
   public:

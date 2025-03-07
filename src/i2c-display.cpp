@@ -220,7 +220,7 @@ void i2cDisplay::SetDisplaySettings(uint8_t width, uint8_t height, uint8_t i2cad
  */
 void i2cDisplay::SetDisplayContrast(uint8_t contrast) // Set the contrast of the display
 {
-    display->ssd1306_command(SSD1306_SETCONTRAST);
+    display->ssd1306_command(SSD13XX_SETCONTRAST);
     display->ssd1306_command(contrast);
 }
 
@@ -237,7 +237,7 @@ void i2cDisplay::SetDisplayVCOMDetect(uint8_t vcomh) // Set the VCOMH regulator 
     if (vcomh < 0 || vcomh > 0xFF)
         return;
 
-    display->ssd1306_command(SSD1306_SETVCOMDETECT);
+    display->ssd1306_command(SSD13XX_SETVCOMDETECT);
     display->ssd1306_command(vcomh);
 }
 
