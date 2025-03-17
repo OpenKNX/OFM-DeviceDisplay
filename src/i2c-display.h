@@ -12,6 +12,10 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
+#ifdef ARDUINO_ARCH_ESP32
+  #define i2c_inst_t TwoWire
+#endif
+
 // Define SSD13xx controller commands ToDo: Check if SSD1315 is correct supported
 #ifdef SSD1315
 #define SSD13XX_SETCONTRAST 0xD9

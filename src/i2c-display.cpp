@@ -45,7 +45,12 @@ bool i2cDisplay::InitDisplay()
         return false; // Width and height must be set
     }
 
+#ifdef ARDUINO_ARCH_ESP32
+    CustomI2C = lcdSettings.i2cInst;
+    CustomI2C->begin(lcdSettings.sda, lcdSettings.scl);
+#else
     CustomI2C = new TwoWire(lcdSettings.i2cInst, lcdSettings.sda, lcdSettings.scl);
+#endif
     display = new Adafruit_SSD1306(lcdSettings.width, lcdSettings.height, CustomI2C, lcdSettings.reset, 1000000UL, 1000000UL);
 
     if (!display->begin(SSD1306_SWITCHCAPVCC, lcdSettings.i2cadress, true, true))
@@ -53,10 +58,10 @@ bool i2cDisplay::InitDisplay()
         return false; // Display not found or not initialized. Check the wiring and i2c address
     }
 
-    display->ssd1306_command(SSD1306_SEGREMAP);    // Spiegele die Spaltenanordnung
-    display->ssd1306_command(SSD1306_COMSCANINC);  // Ändere die Zeilenrichtung
-    display->clearDisplay(); // Clear initialy the display buffer. Previous arcifacts could be displayed
-    display->display();      // Display the cleared buffer
+    display->ssd1306_command(SSD1306_SEGREMAP);   // Spiegele die Spaltenanordnung
+    display->ssd1306_command(SSD1306_COMSCANINC); // Ändere die Zeilenrichtung
+    display->clearDisplay();                      // Clear initialy the display buffer. Previous arcifacts could be displayed
+    display->display();                           // Display the cleared buffer
 
     return true;
 }
@@ -318,7 +323,7 @@ void i2cDisplay::displayBuff()
     else
     {
         memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
-        for (int page = 0; page < lcdSettings.height / 8; page++) // Loop through the pages of the display
+        for (int page = 0; page < lcdSettings.height / 8; page++)    // Loop through the pages of the display
         {
             int startColumn = lcdSettings.width; // Set the start column to the width of the display
             int endColumn = -1;                  // Set the end column to -1
