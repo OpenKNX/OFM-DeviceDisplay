@@ -96,6 +96,7 @@ void WidgetClock::fetchTime(uint16_t &days, uint16_t &hours, uint16_t &minutes, 
     hours = uptimeSecs % 24;
     uptimeSecs /= 24;
     days = uptimeSecs;
+  }
 }
 
 void WidgetClock::drawClock()
@@ -165,7 +166,7 @@ void WidgetClock::drawClock()
         uint8_t TextSize = 2;
         uint8_t FONT_HEIGHT = 8 * TextSize, FONT_WIDTH = 6 * TextSize;
         char timeString[9];
-        if (days > 0)
+        if (!openknx.time.isValid() && days > 0)
             snprintf(timeString, sizeof(timeString), "%02u %02u:%02u:%02u", days, hours, minutes, seconds);
         else
             snprintf(timeString, sizeof(timeString), "%02u:%02u:%02u", hours, minutes, seconds);
