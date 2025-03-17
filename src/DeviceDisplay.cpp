@@ -61,7 +61,7 @@ void DeviceDisplay::init()
     if (displayModule.InitDisplay(displayModule.lcdSettings) && displayModule.display != nullptr)
     {
         logInfoP("Display initialized.");
-        logDebugP("Display i2c Settings - i2cInt: %p, SDA: %d, SCL: %d, Address: 0x%02X, Width: %d, Height: %d",
+        logInfoP("Display i2c Settings - i2cInt: %p, SDA: %d, SCL: %d, Address: 0x%02X, Width: %d, Height: %d",
                   displayModule.lcdSettings.i2cInst, displayModule.lcdSettings.sda, displayModule.lcdSettings.scl,
                   displayModule.lcdSettings.i2cadress, displayModule.lcdSettings.width, displayModule.lcdSettings.height);
     }
@@ -86,47 +86,48 @@ void DeviceDisplay::setup(bool configured)
     initializeWidgets(); // Setup default widget queue
 #else
     widgetManager.setDisplayModule(&displayModule); // The display module for the widgets
+    WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(3000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
+    widgetManager.addWidget(bootLogoWidget);
 
-    WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
-    widgetManager.addWidget(lifeWidget);
+    //WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
+    //widgetManager.addWidget(lifeWidget);
 
-    WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
-    widgetManager.addWidget(starfieldWidget);
+    //WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
+    //widgetManager.addWidget(starfieldWidget);
+
+    //WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
+    //widgetManager.addWidget(cube3DWidget);
+
+    //WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
+    //widgetManager.addWidget(pongWidget);
+
+    //WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
+    //widgetManager.addWidget(rainWidget);
+
+    //WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
+    //widgetManager.addWidget(matrixWidget);
+
+    //WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
+    //widgetManager.addWidget(matrixClassicWidget);
+
+    //WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
+    //widgetManager.addWidget(sysInfoLiteWidget);
+
+    //WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
+    //widgetManager.addWidget(openknxLogoWidget);
+
+    //WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
+    //widgetManager.addWidget(fireworksWidget);
+
+ 
 
     WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::AutoRemove, "https://www.openknx.de", false); // Create a new QRcode widget
     widgetManager.addWidget(qrcodeWidget);
 
-    WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
-    widgetManager.addWidget(cube3DWidget);
-
-    WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
-    widgetManager.addWidget(pongWidget);
-
-    WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
-    widgetManager.addWidget(rainWidget);
-
-    WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
-    widgetManager.addWidget(matrixWidget);
-
-    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
-    widgetManager.addWidget(matrixClassicWidget);
-
-    WidgetClock* clockWidget = new WidgetClock(3000, WidgetFlags::DefaultWidget, true); // Create a new Clock widget
+    WidgetClock* clockWidget = new WidgetClock(1000, WidgetFlags::DefaultWidget, false); // Create a new Clock widget
     widgetManager.addWidget(clockWidget);
 
-    WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
-    widgetManager.addWidget(sysInfoLiteWidget);
-
-    WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
-    widgetManager.addWidget(openknxLogoWidget);
-
-    WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
-    widgetManager.addWidget(fireworksWidget);
-
-    WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(5000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
-    widgetManager.addWidget(bootLogoWidget);
-
-    MenuWidget* menuWidget = new MenuWidget(20000, WidgetFlags::ManagedExternally,  // Is managed externally
+    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally,  // Is managed externally
     0x107,  // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
     0x104,  // DD_CTRL_PIN4_DOWN_BUTTON,
     0x106,  // DD_CTRL_PIN6_OK_BUTTON,
