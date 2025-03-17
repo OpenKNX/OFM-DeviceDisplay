@@ -341,7 +341,8 @@ void MenuWidget::drawMenu()
 
     _display->display->clearDisplay();
     _display->display->setTextSize(1); // Normal 1:1 pixel scale
-    
+    _display->display->setTextWrap(false);
+
     const uint8_t ITEM_HEIGHT = 10;
     const uint8_t ITEM_MARGIN = 2;
     const uint8_t MAX_VISIBLE_ITEMS = _screenHeight / (ITEM_HEIGHT + ITEM_MARGIN);
