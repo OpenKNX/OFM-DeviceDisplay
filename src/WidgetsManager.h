@@ -1,5 +1,8 @@
 #pragma once
 #include "widget.h"
+#ifdef ARDUINO_ARCH_ESP32
+    #include <queue>
+#endif
 
 class WidgetsManager
 {
