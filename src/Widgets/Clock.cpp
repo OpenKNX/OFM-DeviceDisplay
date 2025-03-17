@@ -77,24 +77,25 @@ void WidgetClock::loop()
 uint32_t WidgetClock::getDisplayTime() const { return _displayTime; }
 WidgetFlags WidgetClock::getAction() const { return _action; }
 
-void WidgetClock::fetchTime(uint16_t &hours, uint16_t &minutes, uint16_t &seconds)
+void WidgetClock::fetchTime(uint16_t &days, uint16_t &hours, uint16_t &minutes, uint16_t &seconds)
 {
-    if (openknx.time.isValid())
-    {
-        auto time = openknx.time.getUtcTime();
-        hours = time.hour;
-        minutes = time.minute;
-        seconds = time.second;
-    }
-    else
-    {
-        uint32_t uptimeSecs = uptime();
-        seconds = uptimeSecs % 60;
-        uptimeSecs /= 60;
-        minutes = uptimeSecs % 60;
-        uptimeSecs /= 60;
-        hours = uptimeSecs % 24;
-    }
+  if (openknx.time.isValid())
+  {
+    auto time = openknx.time.getUtcTime();
+    hours = time.hour;
+    minutes = time.minute;
+    seconds = time.second;
+  }
+  else
+  {
+    uint32_t uptimeSecs = uptime();
+    seconds = uptimeSecs % 60;
+    uptimeSecs /= 60;
+    minutes = uptimeSecs % 60;
+    uptimeSecs /= 60;
+    hours = uptimeSecs % 24;
+    uptimeSecs /= 24;
+    days = uptimeSecs;
 }
 
 void WidgetClock::drawClock()
@@ -111,9 +112,8 @@ void WidgetClock::drawClock()
     const uint16_t CENTER_Y = (SCREEN_HEIGHT / 2) + 10;
     const uint16_t CLOCK_RADIUS = min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2 - 5;
 
-    uint16_t hours, minutes, seconds;
-    fetchTime(hours, minutes, seconds);
-    int16_t textWidth = 0;
+    uint16_t days=0, hours=0, minutes=0, seconds=0;
+    fetchTime(days, hours, minutes, seconds);
 
     _display->display->clearDisplay();
 
@@ -165,11 +165,15 @@ void WidgetClock::drawClock()
         uint8_t TextSize = 2;
         uint8_t FONT_HEIGHT = 8 * TextSize, FONT_WIDTH = 6 * TextSize;
         char timeString[9];
-        snprintf(timeString, sizeof(timeString), "%02u:%02u:%02u", hours, minutes, seconds);
+        if (days > 0)
+            snprintf(timeString, sizeof(timeString), "%02u %02u:%02u:%02u", days, hours, minutes, seconds);
+        else
+            snprintf(timeString, sizeof(timeString), "%02u:%02u:%02u", hours, minutes, seconds);
+
         int16_t startX = (SCREEN_WIDTH - strlen(timeString) * FONT_WIDTH) / 2;
         int16_t startY = (SCREEN_HEIGHT - FONT_HEIGHT) / 2;
 
-        _display->display->setCursor(startX, startY-4);
+        _display->display->setCursor(startX, startY - 4);
         _display->display->setTextSize(TextSize);
         _display->display->setTextColor(WHITE);
         _display->display->print(timeString);
@@ -192,8 +196,7 @@ void WidgetClock::drawClock()
         snprintf(knxString, sizeof(knxString), "Addr.: %s%s", knxAddress, knxStatus);
 
         // Berechnung der tatsächlichen Pixelbreite für genauere Zentrierung
-        int16_t textWidth = (strlen(knxString)) * FONT_WIDTH;
-        startX = (SCREEN_WIDTH - textWidth) / 2;
+        startX = (SCREEN_WIDTH - (strlen(knxString)) * FONT_WIDTH) / 2;
         startY = SCREEN_HEIGHT - 18; // Vorletzte Zeile
 
         _display->display->setCursor(startX, startY);

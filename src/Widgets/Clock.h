@@ -40,5 +40,5 @@ class WidgetClock : public Widget
     std::string _name = "Clock"; // Name of the widget
 
     void drawClock();                                                      // Draw the clock on the display
-    void fetchTime(uint16_t &hours, uint16_t &minutes, uint16_t &seconds); // Get current time
+    void fetchTime(uint16_t &days, uint16_t &hours, uint16_t &minutes, uint16_t &seconds); // Get current time
 };
