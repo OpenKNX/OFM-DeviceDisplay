@@ -112,6 +112,7 @@ void WidgetProgMode::draw()
         case 4:
             // Footer: "Ready to use ETS..."
             _display->display->setTextColor(SSD1306_WHITE);
+            _display->display->setTextWrap(true);
             _display->display->setTextSize(1);
             _display->display->setCursor(0, 45);
             _display->display->println(" Ready to use ETS to  program the Device! ");
