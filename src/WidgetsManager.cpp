@@ -35,7 +35,7 @@ void WidgetsManager::setup()
 void WidgetsManager::start()
 {
     // Widget will be initialized in the loop() method
-    //TEST
+    // TEST
     /*
       if (!_widgetQueue.empty())
       {
@@ -68,12 +68,12 @@ void WidgetsManager::loop()
             if (state == WidgetState::PAUSED)
             {
                 _currentWidget->resume(); // Resume Widget
-                //logInfoP("Resuming paused StatusWidget: %s", _currentWidget->getName().c_str());
+                // logInfoP("Resuming paused StatusWidget: %s", _currentWidget->getName().c_str());
             }
             if (state == WidgetState::STOPPED)
             {
                 _currentWidget->start(); // Start Widget
-                //logInfoP("Starting stopped StatusWidget: %s", _currentWidget->getName().c_str());
+                // logInfoP("Starting stopped StatusWidget: %s", _currentWidget->getName().c_str());
             }
             _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
             _currentWidget->loop();
@@ -85,13 +85,13 @@ void WidgetsManager::loop()
         {
             if (state == WidgetState::PAUSED)
             {
-                //logInfoP("Resuming paused widget: %s", _currentWidget->getName().c_str());
+                // logInfoP("Resuming paused widget: %s", _currentWidget->getName().c_str());
                 _currentWidget->resume(); // Resume Widget
             }
             if (state == WidgetState::STOPPED)
             {
                 _currentWidget->start(); // Start Widget
-                //logInfoP("Starting stopped widget: %s", _currentWidget->getName().c_str());
+                // logInfoP("Starting stopped widget: %s", _currentWidget->getName().c_str());
             }
             _currentWidget->loop();
             _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
@@ -105,11 +105,18 @@ void WidgetsManager::loop()
             _currentWidget = nullptr; // Widget deaktivieren
         }
         // d. If `AutoRemove` and the time has expired, remove the widget.
-        if (flags & AutoRemove && currentTime >= _currentTime)
+        if ((flags & AutoRemove) && currentTime >= _currentTime)
         {
             logInfoP("AutoRemove widget expired: %s", _currentWidget->getName().c_str());
             removeWidgetFromQueue(_currentWidget); // Widget entfernen
             _currentWidget = nullptr;
+        }
+
+        // e. if `DefaultWidget` and the time has expired, stop the widget.
+        if ((flags & DefaultWidget) && currentTime >= _currentTime /*|| currentTime - _lastInteractionTime < _idleTimeout*/)
+        {
+            logInfoP("Default Widget expired: %s", _currentWidget->getName().c_str());
+            _currentWidget->stop();
         }
     } // End of current widget check
 
@@ -172,24 +179,41 @@ void WidgetsManager::loop()
     for (size_t i = 0; i < _widgetQueue.size(); ++i)
     {
         Widget *widget = _widgetQueue.front();
-        WidgetFlags flag = widget->getAction();
         // a. If the widget is a background widget, run the loop() method.
-        if (widget && flag & Background)
+        if (widget && widget->getAction() & Background)
         {
             widget->loop(); // Run the loop() method of the background widget
+
+            // ToDo - DIRTY: Currently the best solution to switch between the Menu and the DefaultWidget
+            if (widget->getName().compare("Menu") == 0 &&
+                widget->getState() == WidgetState::RUNNING &&
+                _currentWidget != widget)
+            {
+                _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
+                logInfoP("Menu is activated (button press. Setting current widget to Menu.");
+                _currentWidget->stop();
+                _currentWidget = widget;
+                _currentWidget->loop();
+            }
         }
         else
         {
             // b. If the widget is a default widget, start it and set the display time.
-            if (widget && flag & DefaultWidget)
+            if ((currentTime - _lastInteractionTime >= _idleTimeout) && // Only if we are in idle mode, then start the default widgets
+                widget && (widget->getAction() & DefaultWidget))
             {
                 WidgetState state = widget->getState();
-                if (currentTime - _lastInteractionTime >= _idleTimeout)
+                if (_currentTime < currentTime) // check if we are in
                 {
-                    if (state != WidgetState::RUNNING)
+                    if (_currentWidget != widget) // Get the next DefaultWidget
                     {
-                        logInfoP("Starting default widget: %s", widget->getName().c_str());
-                        widget->start();
+                        _currentWidget = widget;
+                        if (state != WidgetState::RUNNING)
+                        {
+                            logInfoP("Starting DefaultWidget: %s", _currentWidget->getName().c_str());
+                            _currentWidget->start();
+                            _currentTime = currentTime + _currentWidget->getDisplayTime();
+                        }
                     }
                     if (state == WidgetState::RUNNING)
                     {
