@@ -78,7 +78,7 @@ class DeviceDisplay : public OpenKNX::Module
     void init();                                   // Initialize the display module
     void setup(bool configured) override;          // Initialize display and widgets
     void loop(bool configured) override;           // Update display in the loop
-    void processInputKo(GroupObject& ko) override; // Process GroupObjects
+    void processInputKo(GroupObject& ko); // override; // Process GroupObjects
 
     inline const std::string name() { return DeviceDisplay_Display_Name; }      // Library name
     inline const std::string version() { return MODULE_DeviceDisplay_Version; } // Library version

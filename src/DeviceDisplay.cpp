@@ -119,14 +119,17 @@ void DeviceDisplay::setup(bool configured)
     //WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
     //widgetManager.addWidget(fireworksWidget);
 
- 
+    //WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::AutoRemove, "https://www.openknx.de", false); // Create a new QRcode widget
+    //widgetManager.addWidget(qrcodeWidget);
 
-    WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::AutoRemove, "https://www.openknx.de", false); // Create a new QRcode widget
-    widgetManager.addWidget(qrcodeWidget);
 
-    WidgetClock* clockWidget = new WidgetClock(1000, WidgetFlags::DefaultWidget, false); // Create a new Clock widget
+    // Default Widgets
+
+    // Clock Widget, which will be displayed for 5 seconds, if there is no other widget in the queue, infitely.
+    WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::DefaultWidget, false); // Create a new Clock widget
     widgetManager.addWidget(clockWidget);
 
+    // Menu Widget, which will be displayed Initially, if there is no other widget in the queue, infitely.
     MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally,  // Is managed externally
     0x107,  // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
     0x104,  // DD_CTRL_PIN4_DOWN_BUTTON,
