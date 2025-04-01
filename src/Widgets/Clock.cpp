@@ -16,7 +16,7 @@ void WidgetClock::setup()
 {
     if (_state == WidgetState::RUNNING) return;
 
-    logInfoP("Setup...");
+    logDebugP("Setup...");
     if (_display == nullptr)
     {
         logErrorP("Display is NULL.");
@@ -28,7 +28,7 @@ void WidgetClock::start()
 {
     if (_state == WidgetState::STOPPED)
     {
-        logInfoP("Start...");
+        logDebugP("Start...");
         _state = WidgetState::RUNNING;
         _lastUpdateTime = millis();
     }
@@ -38,7 +38,7 @@ void WidgetClock::stop()
 {
     if (_state != WidgetState::STOPPED)
     {
-        logInfoP("Stop...");
+        logDebugP("Stop...");
         _state = WidgetState::STOPPED;
     }
 }
@@ -47,7 +47,7 @@ void WidgetClock::pause()
 {
     if (_state == WidgetState::RUNNING)
     {
-        logInfoP("Pause...");
+        logDebugP("Pause...");
         _state = WidgetState::PAUSED;
     }
 }
@@ -56,7 +56,7 @@ void WidgetClock::resume()
 {
     if (_state == WidgetState::PAUSED)
     {
-        logInfoP("Resume...");
+        logDebugP("Resume...");
         _state = WidgetState::RUNNING;
         _lastUpdateTime = millis();
     }
@@ -212,5 +212,5 @@ void WidgetClock::drawClock()
     }
 
     _display->displayBuff();
-    logDebugP("WidgetClock: Clock updated.");
+    //logDebugP("WidgetClock: Clock updated.");
 }

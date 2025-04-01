@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 /**
  * @file        DeviceDisplay.h
@@ -146,3 +147,4 @@ class DeviceDisplay : public OpenKNX::Module
 };
 
 extern DeviceDisplay openknxDisplayModule; // Display module instance
+#endif // DEVICE_DISPLAY_MODULE

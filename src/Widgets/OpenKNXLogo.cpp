@@ -7,7 +7,7 @@ WidgetOpenKNXLogo::WidgetOpenKNXLogo(uint32_t displayTime, WidgetFlags action)
 
 void WidgetOpenKNXLogo::setup()
 {
-    logInfoP("Setup...");
+    logDebugP("Setup...");
     if (_display == nullptr)
     {
         logErrorP("Display ist NULL.");
@@ -17,7 +17,7 @@ void WidgetOpenKNXLogo::setup()
 
 void WidgetOpenKNXLogo::start()
 {
-    logInfoP("Start...");
+    logDebugP("Start...");
     _drawStep = 1;
     _needsRedraw = true;
     _state = WidgetState::RUNNING;
@@ -25,7 +25,7 @@ void WidgetOpenKNXLogo::start()
 
 void WidgetOpenKNXLogo::stop()
 {
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     _drawStep = 0;
     _needsRedraw = false;
     _state = WidgetState::STOPPED;
@@ -33,14 +33,14 @@ void WidgetOpenKNXLogo::stop()
 
 void WidgetOpenKNXLogo::pause()
 {
-    logInfoP("Pause...");
+    logDebugP("Pause...");
     _needsRedraw = false;
     _state = WidgetState::PAUSED;
 }
 
 void WidgetOpenKNXLogo::resume()
 {
-    logInfoP("Resume...");
+    logDebugP("Resume...");
     _drawStep = 1; // TODO check
     _needsRedraw = true;
     _state = WidgetState::RUNNING;

@@ -1,4 +1,5 @@
 // MenuWidget.h
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 #include "MenuConfig.h"
@@ -104,3 +105,4 @@ class MenuWidget : public Widget
     bool _isPaused = false;
     bool _FrontPlateEnabled = false;
 };
+#endif // DEVICE_DISPLAY_MODULE

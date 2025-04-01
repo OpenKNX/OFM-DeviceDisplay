@@ -17,7 +17,7 @@
 #endif
 
 // Define SSD13xx controller commands ToDo: Check if SSD1315 is correct supported
-#ifdef SSD1315
+#ifdef DEVICE_DISPLAY_MODULE_SSD1315
 #define SSD13XX_SETCONTRAST 0xD9
 #define SSD13XX_SETVCOMDETECT 0xDB
 #else 

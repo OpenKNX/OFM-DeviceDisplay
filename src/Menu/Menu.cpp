@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Menu.h"
 #include "GPIO_PCA9557.h"
 #include "MenuConfig_json.h"
@@ -55,7 +56,7 @@ void MenuWidget::setup()
     _screenHeight = _display->GetDisplayHeight();
     _screenWidth = _display->GetDisplayWidth();
     addDefaultMenus();
-
+#ifdef USE_GPIO_MODULE
     if (!openknxGPIOModule.initialized(1))
     {
         logErrorP("GPIO Module not initialized");
@@ -86,6 +87,7 @@ void MenuWidget::setup()
             openknxGPIOModule.digitalWrite(out.pin, out.state);
         }
     }
+#endif
     _state = WidgetState::BACKGROUND; // Start Menu in background! Will be started by button press.
 }
 
@@ -113,7 +115,11 @@ bool MenuWidget::readButton(uint16_t pin)
     //bool state = !openknxGPIOModule.digitalRead(pin);
     //openknxGPIOModule.digitalWrite(pin, HIGH);
     //return !state;
+#ifdef USE_GPIO_MODULE
     return openknxGPIOModule.digitalRead(pin);
+#else
+    return false;
+#endif
 }
 
 void MenuWidget::loop()
@@ -144,20 +150,28 @@ void MenuWidget::loop()
 
         if (_FrontPlateEnabled && readButton(_buttonUp)) { 
           navigateUp();
+          #ifdef USE_GPIO_MODULE
           openknxGPIOModule.digitalWrite(0x0101, LOW); // Prog LED
+          #endif
         }
         if (_FrontPlateEnabled && readButton(_buttonDown)) { 
           navigateDown();
+          #ifdef USE_GPIO_MODULE
           openknxGPIOModule.digitalWrite(0x0102, LOW); // Info LED
+          #endif
         }
         if (_FrontPlateEnabled && readButton(_buttonSelect)) selectItem();
         if (_FrontPlateEnabled && !readButton(_buttonLeft)) {
           navigateLeft();
+          #ifdef USE_GPIO_MODULE
           openknxGPIOModule.digitalWrite(0x0101, HIGH); // Prog LED
+          #endif
         }
         if (_FrontPlateEnabled && readButton(_buttonRight)) { 
           navigateRight();
+          #ifdef USE_GPIO_MODULE
           openknxGPIOModule.digitalWrite(0x0102, HIGH); // Info LED
+          #endif
         }
     }
 
@@ -397,3 +411,4 @@ void MenuWidget::drawMenu()
     }
     _display->displayBuff();
 }
+#endif // DEVICE_DISPLAY_MODULE

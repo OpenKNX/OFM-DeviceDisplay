@@ -13,7 +13,7 @@ void WidgetQRCode::start()
 {
     if (_state != WidgetState::STOPPED) return;
 
-    logInfoP("Start...");
+    logDebugP("Start...");
     _state = WidgetState::RUNNING;
     _qrCodeText = _defaultText; // Reset to default text when starting
     _needsRedraw = true;        // Mark as needing redraw
@@ -23,7 +23,7 @@ void WidgetQRCode::start()
 void WidgetQRCode::stop()
 {
     if (_state == WidgetState::STOPPED) return;
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     _state = WidgetState::STOPPED;
     if (_display) _display->display->clearDisplay(); // Clear the display
 }
@@ -32,7 +32,7 @@ void WidgetQRCode::stop()
 void WidgetQRCode::pause()
 {
     if (_state != WidgetState::RUNNING) return;
-    logInfoP("Pause...");
+    logDebugP("Pause...");
     _state = WidgetState::PAUSED;
 }
 
@@ -41,7 +41,7 @@ void WidgetQRCode::resume()
 {
     if (_state != WidgetState::PAUSED) return;
 
-    logInfoP("Resume...");
+    logDebugP("Resume...");
     _state = WidgetState::RUNNING;
     _needsRedraw = true; // Ensure it redraws on resume
 }
@@ -49,10 +49,10 @@ void WidgetQRCode::resume()
 // Setup the widget
 void WidgetQRCode::setup()
 {
-    logInfoP("Setup...");
+    logDebugP("Setup...");
     if (_display == nullptr)
     {
-        logInfoP("Display is NULL!");
+        logDebugP("Display is NULL!");
         return;
     }
 }
@@ -97,12 +97,12 @@ i2cDisplay *WidgetQRCode::getDisplayModule() const
 void WidgetQRCode::setQRCodeText(const std::string &text)
 {
     // Set external QR code text
-    logInfoP("Setting QR code text...");
+    logDebugP("Setting QR code text...");
     if (_qrCodeText != text)
     { // Only trigger a redraw if the text changed
         _qrCodeText = text;
         _needsRedraw = true;
-        logInfoP("QR code text set.");
+        logDebugP("QR code text set.");
     }
 
 }

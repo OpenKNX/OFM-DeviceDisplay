@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "DeviceDisplay.h"
 #include "OpenKNX.h"
 
@@ -47,8 +48,11 @@ void DeviceDisplay::init()
 #ifndef OKNXHW_DEVICE_DISPLAY_HEIGHT
     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_HEIGHT);
 #endif
-
+#ifdef ARDUINO_ARCH_ESP32
+    displayModule.lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
+#else
     displayModule.lcdSettings.i2cInst = OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
+#endif
     displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;      // Set the Hardware specific SDA pin for the display
     displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL;      // Set the Hardware specific SCL pin for the display
 
@@ -771,3 +775,4 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
     }
     return bRet;
 }
+#endif

@@ -22,7 +22,7 @@ void WidgetProgMode::setup()
 
 void WidgetProgMode::start()
 {
-    logInfoP("start...");
+    logDebugP("start...");
     _state = WidgetState::RUNNING;
     _lastBlinkTime = millis();
     _drawStep = 1; // Start initial draw in next loop
@@ -30,7 +30,7 @@ void WidgetProgMode::start()
 
 void WidgetProgMode::stop()
 {
-    logInfoP("stop...");
+    logDebugP("stop...");
     _state = WidgetState::STOPPED;
     if (_display)
     {
@@ -41,13 +41,13 @@ void WidgetProgMode::stop()
 
 void WidgetProgMode::pause()
 {
-    logInfoP("paused...");
+    logDebugP("paused...");
     _state = WidgetState::PAUSED;
 }
 
 void WidgetProgMode::resume()
 {
-    logInfoP("resume...");
+    logDebugP("resume...");
     _state = WidgetState::RUNNING;
     _lastBlinkTime = millis();
     _drawStep = 1; // Start redraw in next loop
