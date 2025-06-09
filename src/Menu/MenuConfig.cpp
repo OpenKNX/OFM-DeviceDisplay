@@ -23,14 +23,14 @@ void MenuConfig::loadDefaultMenu(std::string_view jsonString) {
     menu.clear();
     menu.shrink_to_fit();
     
-    const nlohmann::json_abi_v3_11_3::json jsonData = json::parse(jsonString);
+    const nlohmann::json jsonData = json::parse(jsonString);
     if (jsonData.contains(KEY_MENU)) {
         processMenuItems(jsonData[KEY_MENU], menu);
     }
 }
 
 void MenuConfig::loadExternalMenu(std::string_view jsonString) {
-    const nlohmann::json_abi_v3_11_3::json jsonData = json::parse(jsonString);
+    const nlohmann::json jsonData = json::parse(jsonString);
     if (jsonData.contains(KEY_MENU)) {
         processMenuItems(jsonData[KEY_MENU], menu);
     }
@@ -39,7 +39,7 @@ void MenuConfig::loadExternalMenu(std::string_view jsonString) {
 void MenuConfig::processMenuItems(const json& menuItems, std::vector<MenuOption>& targetMenu) {
     targetMenu.reserve(targetMenu.size() + menuItems.size());
     
-    for (const nlohmann::json_abi_v3_11_3::json &item : menuItems) {
+    for (const nlohmann::json &item : menuItems) {
         MenuOption option;
         option.label = item[KEY_LABEL].get<std::string>();
         option.type = parseMenuElementType(item[KEY_TYPE].get<std::string>());
@@ -49,7 +49,7 @@ void MenuConfig::processMenuItems(const json& menuItems, std::vector<MenuOption>
         }
 
         if (item.contains(KEY_VISIBLE_IF)) {
-            const nlohmann::json_abi_v3_11_3::json &condition = item[KEY_VISIBLE_IF];
+            const nlohmann::json &condition = item[KEY_VISIBLE_IF];
             const std::string &key = condition[KEY_KEY].get<std::string>();
             
             if (condition[KEY_VALUE].is_boolean()) {
