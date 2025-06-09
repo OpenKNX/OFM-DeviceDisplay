@@ -1,3 +1,18 @@
+## ToDo:
+
+* [ ] Ensure the MenuWidget provides an easy and flexible API for custom menu entries and actions.
+* [ ] Improve the Widget Manager, making it robust and reducing complexity.
+* [ ] Provide Custom Widget examples.
+* [ ] Conduct an overall performance check.
+* [ ] Finalize the documentation.
+
+**Info:**
+
+- **Implementation State:** in progress... (current branch: WidgetManager)
+- **Documentation State:** DRAFT
+
+---
+
 # OFM-DeviceDisplay
 
 `OFM-DeviceDisplay` is a flexible library for managing i2c Displays (Adafruit SSD1306 kompatible) on OpenKNX devices. This library supports multiple widgets, dynamic text, icons and QR codes. It is specifically designed for integration into the OpenKNX framework and provides modular components for defining custom display widgets.
@@ -13,12 +28,15 @@
 - **Customizable Display Parameters**: Define display resolution, I2C settings, and text properties.
 
 ## Planned Feature!
+
 - **Dynamic icon and Text Alignment**: Customize icon and text alignment, pos of icon and text including the Dynamic Text and Alignment features.
 - **Animated Transitions**: Transitions between widgets with slide animations (horizontal or vertical).
 - **ETS Application**: Production XML with varius settings.
 
 ## Multible Widget Management
+
 Here is the list of the Widget Management Features:
+
 - **Status Widgets**: Status widgets are displayed immediately and only once for the given duration.
 - **Regular Widgets**: Regular widgets are displayed based on the duration and order in the queue.
 - **Auto-Remove Widgets**: Auto-remove widgets are displayed (immediately combined with Status Widget) and removed after display.
@@ -27,13 +45,12 @@ Here is the list of the Widget Management Features:
   - Widgets can be marked for removal after display.
   - Widgets can be controlled externally to disable or enable them. For Example, if you wnat to show a event.
 
-
-
 ## Installation
 
 1. Clone the `OFM-DeviceDisplay` library from GitHub.
 2. Unzip the library and copy or link it to the `lib` directory of your OpenKNX application project.
 3. Include the library in your OpenKNX Application projekt main:
+
 ```cpp
 #include <DeviceDisplay.h>
 ```
@@ -51,8 +68,8 @@ Make sure you have the following dependencies installed (which normly be install
 
 Here are some example of how to use the OFM-DeviceDisplay library:
 In Main.Cpp:
-```cpp
 
+```cpp
 #include <DeviceDisplay.h>
 
 
@@ -90,9 +107,11 @@ void loop() {
 ```
 
 ## Widget Management Example: Status Widget with Auto Remove and external Managed
-This is a example of a Status Widget, which can be created to show the Informations you want, when you want. It will be then automaticaly removed! 
+
+This is a example of a Status Widget, which can be created to show the Informations you want, when you want. It will be then automaticaly removed!
+
 ```cpp
-    // Set the widget! In your Setup, or where you want to do it. 
+// Set the widget! In your Setup, or where you want to do it. 
      Widget* cmdWidget = new Widget(Widget::DisplayMode::DYNAMIC_TEXT);
      addWidget(cmdWidget, 5000, "cmdWidget", DeviceDisplay::WidgetAction::StatusFlag |      // This is a status widget
                                              DeviceDisplay::WidgetAction::ExternalManaged | // This widget is externally managed
@@ -113,42 +132,42 @@ This is a example of a Status Widget, which can be created to show the Informati
 
         cmdWidget->InternalEnabled = true; // Enable the widget! It will show the message for 5 seconds on the display! 
       }
-    
 ```
 
 ## Classes and Methods
 
 1. **DeviceDisplay (Main Library Class)**
-    - Manages widgets and display settings.
-    - Controls transitions, programming mode, and display updates.
-    - Methods:
-        - `void addWidget(Widget* widget, uint32_t duration, const std::string& name, WidgetAction action)`: Adds a widget to the display.
-        - `void removeWidget(const std::string& name)`: Removes a widget from the display.
-        - `void updateWidgetStatus(WidgetInfo& widgetInfo, WidgetStatus status)`: Updates the status of a widget.
-        - `void printWidgetStatus(const WidgetInfo& widgetInfo) const`: Prints the current status of a widget.
-
+   
+   - Manages widgets and display settings.
+   - Controls transitions, programming mode, and display updates.
+   - Methods:
+     - `void addWidget(Widget* widget, uint32_t duration, const std::string& name, WidgetAction action)`: Adds a widget to the display.
+     - `void removeWidget(const std::string& name)`: Removes a widget from the display.
+     - `void updateWidgetStatus(WidgetInfo& widgetInfo, WidgetStatus status)`: Updates the status of a widget.
+     - `void printWidgetStatus(const WidgetInfo& widgetInfo) const`: Prints the current status of a widget.
 2. **i2cDisplay (Facade for Display Management)**
-    - Manages active widgets and transitions between them.
-    - Methods:
-        - `void initDisplay(int width, int height, int sda, int scl, int reset)`: Initializes the display.
-        - `void showText(const std::string& text)`: Displays text on the screen.
-
+   
+   - Manages active widgets and transitions between them.
+   - Methods:
+     - `void initDisplay(int width, int height, int sda, int scl, int reset)`: Initializes the display.
+     - `void showText(const std::string& text)`: Displays text on the screen.
 3. **Widget (Base Class for All Widgets)**
-    - Defines the basic properties and methods for widgets.
-    - Methods:
-        - `virtual void draw() = 0`: Draws the widget on the display.
-        - `virtual void update() = 0`: Updates the state of the widget.
-
+   
+   - Defines the basic properties and methods for widgets.
+   - Methods:
+     - `virtual void draw() = 0`: Draws the widget on the display.
+     - `virtual void update() = 0`: Updates the state of the widget.
 4. **TextWidget (Widget for Text Display)**
-    - Extends the base Widget class for displaying text.
-    - Methods:
-        - `void setText(const std::string& text)`: Sets the text to be displayed.
-        - `void setAlignment(TextAlignment alignment)`: Sets the text alignment.
-        - `void setScroll(bool scroll)`: Enables or disables text scrolling.
+   
+   - Extends the base Widget class for displaying text.
+   - Methods:
+     - `void setText(const std::string& text)`: Sets the text to be displayed.
+     - `void setAlignment(TextAlignment alignment)`: Sets the text alignment.
+     - `void setScroll(bool scroll)`: Enables or disables text scrolling.
 
 ## Configuration in ETS
 
-ToDo: 
+ToDo:
 
 ## License
 
