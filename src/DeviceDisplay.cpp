@@ -25,12 +25,12 @@ void DeviceDisplay::init()
 
 // Setup the display module with the default settings from the selected hardware
 // Ensure all necessary hardware configuration macros are defined
-#ifndef OKNXHW_DEVICE_DISPLAY_I2C_0_1
-    // ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_0_1);
+#ifndef OKNXHW_DEVICE_DISPLAY_I2C_INST
+     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_INST);
 #endif
 
 #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
-    // ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
+     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
 #endif
 
 #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL

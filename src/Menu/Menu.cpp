@@ -1,6 +1,7 @@
 #ifdef DEVICE_DISPLAY_MODULE
+#define USE_GPIO_MODULE
 #include "Menu.h"
-#include "GPIO_PCA9557.h"
+//#include "GPIO_PCA9557.h"
 #include "MenuConfig_json.h"
 #include "OpenKNX.h"
 
@@ -57,9 +58,10 @@ void MenuWidget::setup()
     _screenWidth = _display->GetDisplayWidth();
     addDefaultMenus();
 #ifdef USE_GPIO_MODULE
-    if (!openknxGPIOModule.initialized(1))
+    if (!openknx.gpio.isInitialized(1))
     {
         logErrorP("GPIO Module not initialized");
+        return;
     }
     else
     {
@@ -69,7 +71,7 @@ void MenuWidget::setup()
         const uint16_t pins[] = {_buttonUp, _buttonDown, _buttonSelect, _buttonLeft, _buttonRight, 0x0103};
         for (auto pin : pins)
         {
-            openknxGPIOModule.pinMode(pin, INPUT, true, 0);
+            openknx.gpio.pinMode(pin, INPUT, true, 0);
         }
 
         // Initialize LED outputs
@@ -83,8 +85,8 @@ void MenuWidget::setup()
 
         for (const auto& out : outputs)
         {
-            openknxGPIOModule.pinMode(out.pin, OUTPUT, false, 0);
-            openknxGPIOModule.digitalWrite(out.pin, out.state);
+            openknx.gpio.pinMode(out.pin, OUTPUT, false, 0);
+            openknx.gpio.digitalWrite(out.pin, out.state);
         }
     }
 #endif
@@ -109,14 +111,14 @@ void MenuWidget::addDefaultMenus()
 
 bool MenuWidget::readButton(uint16_t pin)
 {
-    //openknxGPIOModule.pinMode(pin, OUTPUT);
-    //openknxGPIOModule.digitalWrite(pin, HIGH);
-    //openknxGPIOModule.pinMode(pin, INPUT);
-    //bool state = !openknxGPIOModule.digitalRead(pin);
-    //openknxGPIOModule.digitalWrite(pin, HIGH);
+    //openknx.gpio.pinMode(pin, OUTPUT);
+    //openknx.gpio.digitalWrite(pin, HIGH);
+    //openknx.gpio.pinMode(pin, INPUT);
+    //bool state = !openknx.gpio.digitalRead(pin);
+    //openknx.gpio.digitalWrite(pin, HIGH);
     //return !state;
 #ifdef USE_GPIO_MODULE
-    return openknxGPIOModule.digitalRead(pin);
+    return openknx.gpio.digitalRead(pin);
 #else
     return false;
 #endif
@@ -151,26 +153,26 @@ void MenuWidget::loop()
         if (_FrontPlateEnabled && readButton(_buttonUp)) { 
           navigateUp();
           #ifdef USE_GPIO_MODULE
-          openknxGPIOModule.digitalWrite(0x0101, LOW); // Prog LED
+          openknx.gpio.digitalWrite(0x0101, LOW); // Prog LED
           #endif
         }
         if (_FrontPlateEnabled && readButton(_buttonDown)) { 
           navigateDown();
           #ifdef USE_GPIO_MODULE
-          openknxGPIOModule.digitalWrite(0x0102, LOW); // Info LED
+          openknx.gpio.digitalWrite(0x0102, LOW); // Info LED
           #endif
         }
         if (_FrontPlateEnabled && readButton(_buttonSelect)) selectItem();
         if (_FrontPlateEnabled && !readButton(_buttonLeft)) {
           navigateLeft();
           #ifdef USE_GPIO_MODULE
-          openknxGPIOModule.digitalWrite(0x0101, HIGH); // Prog LED
+          openknx.gpio.digitalWrite(0x0101, HIGH); // Prog LED
           #endif
         }
         if (_FrontPlateEnabled && readButton(_buttonRight)) { 
           navigateRight();
           #ifdef USE_GPIO_MODULE
-          openknxGPIOModule.digitalWrite(0x0102, HIGH); // Info LED
+          openknx.gpio.digitalWrite(0x0102, HIGH); // Info LED
           #endif
         }
     }
