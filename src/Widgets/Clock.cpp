@@ -212,5 +212,5 @@ void WidgetClock::drawClock()
     }
 
     _display->displayBuff();
-    //logDebugP("WidgetClock: Clock updated.");
+    logDebugP("WidgetClock: Clock updated.");
 }

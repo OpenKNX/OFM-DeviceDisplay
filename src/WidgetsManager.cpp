@@ -68,12 +68,12 @@ void WidgetsManager::loop()
             if (state == WidgetState::PAUSED)
             {
                 _currentWidget->resume(); // Resume Widget
-                // logDebugP("Resuming paused StatusWidget: %s", _currentWidget->getName().c_str());
+                logDebugP("Resuming paused StatusWidget: %s", _currentWidget->getName().c_str());
             }
             if (state == WidgetState::STOPPED)
             {
                 _currentWidget->start(); // Start Widget
-                // logDebugP("Starting stopped StatusWidget: %s", _currentWidget->getName().c_str());
+                logDebugP("Starting stopped StatusWidget: %s", _currentWidget->getName().c_str());
             }
             _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
             _currentWidget->loop();
@@ -85,13 +85,13 @@ void WidgetsManager::loop()
         {
             if (state == WidgetState::PAUSED)
             {
-                // logDebugP("Resuming paused widget: %s", _currentWidget->getName().c_str());
+                logDebugP("Resuming paused widget: %s", _currentWidget->getName().c_str());
                 _currentWidget->resume(); // Resume Widget
             }
             if (state == WidgetState::STOPPED)
             {
                 _currentWidget->start(); // Start Widget
-                // logDebugP("Starting stopped widget: %s", _currentWidget->getName().c_str());
+                logDebugP("Starting stopped widget: %s", _currentWidget->getName().c_str());
             }
             _currentWidget->loop();
             _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
@@ -113,11 +113,11 @@ void WidgetsManager::loop()
         }
 
         // e. if `DefaultWidget` and the time has expired, stop the widget.
-        if ((flags & DefaultWidget) && currentTime >= _currentTime /*|| currentTime - _lastInteractionTime < _idleTimeout*/)
-        {
-            logDebugP("Default Widget expired: %s", _currentWidget->getName().c_str());
-            _currentWidget->stop();
-        }
+        // if ((flags & DefaultWidget) && currentTime >= _currentTime /*|| currentTime - _lastInteractionTime < _idleTimeout*/)
+        //{
+        //    logDebugP("Default Widget expired: %s", _currentWidget->getName().c_str());
+        //    _currentWidget->stop();
+        //}
     } // End of current widget check
 
     // 2. Search for a prioritized status widget in the queue.
@@ -157,7 +157,9 @@ void WidgetsManager::loop()
         _widgetQueue.push(_currentWidget);
         _widgetQueue.pop();
 
-        if (_currentWidget && !(_currentWidget->getAction() & DefaultWidget))
+        if (_currentWidget && !(_currentWidget->getAction() & DefaultWidget) &&
+            !(_currentWidget->getAction() & Background) &&
+            !(_currentWidget->getAction() & ManagedExternally))
         {
             logDebugP("Starting normal widget: %s", _currentWidget->getName().c_str());
             _currentWidget->start();
