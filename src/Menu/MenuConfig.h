@@ -67,6 +67,9 @@ public:
         std::optional<std::pair<std::string, MenuValue>> visibleIf;
         std::vector<MenuOption> submenu;
         std::function<void()> action;
+        // Für Wertverarbeitung
+        std::function<void(const MenuOption&, const MenuValue&)> onValueChanged;
+
     };
 
     MenuConfig();
@@ -79,10 +82,14 @@ public:
 
     void loadDefaultMenu(std::string_view jsonString);
     void loadExternalMenu(std::string_view jsonString);
+
     const MenuValue& getValue(std::string_view key) const;
     void setValue(const std::string& key, MenuValue value);
+    
     bool isMenuOptionVisible(const MenuOption& option) const;
-    const std::vector<MenuOption>& getMenu() const { return menu; }
+    inline const std::vector<MenuOption>& getMenu() const { return menu; }
+    //void registerAction(const std::string& key, std::function<void()> action);
+    inline void setMenu(std::vector<MenuOption> newMenu) { menu = std::move(newMenu); }
 
 private:
     void processMenuItems(const json& menuItems, std::vector<MenuOption>& targetMenu);
@@ -92,4 +99,8 @@ private:
 
     std::vector<MenuOption> menu;
     std::unordered_map<std::string, MenuValue> dataStore;
+
+    MenuOption* findOptionByKey(std::vector<MenuOption>& list, const std::string& key);
+
+    
 };

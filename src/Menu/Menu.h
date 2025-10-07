@@ -50,6 +50,11 @@ class MenuWidget : public Widget
 
     // Logger prefix
     const std::string logPrefix() { return "MenuWidget"; }
+    
+    // Action registration
+    void registerAction(const std::string& key, std::function<void()> action);
+    void registerOnValueChanged(const std::string& key, std::function<void(const MenuConfig::MenuOption&, const MenuValue&)> callback);
+    
 
   private:
     // UI Constants
@@ -67,6 +72,9 @@ class MenuWidget : public Widget
 
 
     void addDefaultMenus();
+    void addDefaultActions();
+    void addDefaultOnValueChanged();
+
     void clearDisplay();
     void drawMenu();
     bool readButton(uint16_t pin);
@@ -104,5 +112,10 @@ class MenuWidget : public Widget
     bool _needsRedraw = false;
     bool _isPaused = false;
     bool _FrontPlateEnabled = false;
+
+    std::unordered_map<std::string, std::function<void()>> actionRegistry;
+    std::unordered_map<std::string, std::function<void(const MenuConfig::MenuOption&, const MenuValue&)>> onValueChangedRegistry;
+    void assignRegisteredActions(std::vector<MenuConfig::MenuOption>& menuOptions);
+    void assignOnValueChangedHandlers(std::vector<MenuConfig::MenuOption>& menuOptions);
 };
 #endif // DEVICE_DISPLAY_MODULE

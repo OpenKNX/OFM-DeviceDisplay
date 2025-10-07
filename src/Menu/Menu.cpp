@@ -1,9 +1,8 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#define USE_GPIO_MODULE
-#include "Menu.h"
-//#include "GPIO_PCA9557.h"
-#include "MenuConfig_json.h"
-#include "OpenKNX.h"
+    #define USE_GPIO_MODULE
+    #include "Menu.h"
+    #include "MenuConfig_json.h"
+    #include "OpenKNX.h"
 
 MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action, uint16_t buttonUp, uint16_t buttonDown, uint16_t buttonSelect, uint16_t buttonLeft, uint16_t buttonRight)
     : _displayTime(displayTime),
@@ -56,8 +55,10 @@ void MenuWidget::setup()
 
     _screenHeight = _display->GetDisplayHeight();
     _screenWidth = _display->GetDisplayWidth();
+
     addDefaultMenus();
-#ifdef USE_GPIO_MODULE
+
+    #ifdef USE_GPIO_MODULE
     if (!openknx.gpio.isInitialized(1))
     {
         logErrorP("GPIO Module not initialized");
@@ -89,19 +90,22 @@ void MenuWidget::setup()
             openknx.gpio.digitalWrite(out.pin, out.state);
         }
     }
-#endif
+    #endif
     _state = WidgetState::BACKGROUND; // Start Menu in background! Will be started by button press.
 }
 
 void MenuWidget::addDefaultMenus()
 {
-    _menuConfig.loadDefaultMenu(defaultMenuJson);
+    _menuConfig.setMenu(DefaultMenu::buildMenu().submenu);
     _currentMenu = _menuConfig.getMenu();
     if (!_currentMenu.empty())
     {
         _selectedIndex = 0;
         _needsRedraw = true;
         logInfoP("Default menus loaded successfully");
+
+        addDefaultActions();
+        addDefaultOnValueChanged();
     }
     else
     {
@@ -109,19 +113,135 @@ void MenuWidget::addDefaultMenus()
     }
 }
 
+void MenuWidget::addDefaultActions()
+{
+    // Register default actions here if needed
+    registerAction("reboot_device", []() {
+        openknx.common.restart();
+    });
+    registerAction("prog_mode", []() {
+        knx.toggleProgMode();
+    });
+
+    // Finally assign actions to menu items
+    assignRegisteredActions(_currentMenu);
+}
+
+void MenuWidget::addDefaultOnValueChanged()
+{
+    registerOnValueChanged("dhcp_enabled", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
+        if (val.isBool()) {
+            // std::cout << "DHCP geändert auf: " << (val.getBool() ? "Enabled" : "Disabled") << std::endl;
+            if (val.getBool()) {
+                //openknx.network.enableDhcp();
+                logInfoP("DHCP enabled");
+            } else {
+                //openknx.network.disableDhcp();
+                logInfoP("DHCP disabled");
+            }
+        }
+    });
+    registerOnValueChanged("timezone", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
+        if (val.isSizeT()) {
+            // openknx.common.setTimeZone(opt.dropdownOptions[val.getSizeT()]);
+          logInfoP("Zeitzone geändert auf: %s", opt.dropdownOptions[val.getSizeT()].c_str());
+        }
+    });
+    registerOnValueChanged("brightness_level", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
+        if (val.isSizeT()) {
+            // Auswahl ist 0-4, also 5%, 25%, 50%, 75%, 100%
+            const int selectedOption = static_cast<int>(std::clamp(val.getSizeT(), static_cast<size_t>(0), static_cast<size_t>(4)));
+            const int percentages[] = {5, 25, 50, 75, 100};
+            const int percentage = percentages[selectedOption];
+            int contrast = static_cast<int>(std::round(percentage * 255.0 / 100.0));
+            _display->SetDisplayContrast(contrast);
+            logInfoP("Helligkeit geändert auf: %s%% (%d)", opt.dropdownOptions[val.getSizeT()].c_str(), contrast);
+        }
+    });
+    registerOnValueChanged("auto_dimming", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
+        if (val.isBool()) {
+            if (val.getBool()) {
+                _display->display->dim(true);
+                logInfoP("Auto Dimming enabled");
+            } else {
+                _display->display->dim(false);
+                logInfoP("Auto Dimming disabled");
+            }
+        }
+    });
+
+    // Finally assign handlers to menu items
+    assignOnValueChangedHandlers(_currentMenu);
+}
+
+void MenuWidget::registerAction(const std::string& key, std::function<void()> action)
+{
+    actionRegistry[key] = std::move(action);
+}
+
+void MenuWidget::assignRegisteredActions(std::vector<MenuConfig::MenuOption>& menuOptions)
+{
+    for (auto& option : menuOptions)
+    {
+        if (!option.key.empty())
+        {
+            const auto it = actionRegistry.find(option.key);
+            if (it != actionRegistry.end())
+            {
+                option.action = it->second;
+            }
+        }
+
+        if (!option.submenu.empty())
+        {
+            assignRegisteredActions(option.submenu);
+        }
+    }
+}
+
+void MenuWidget::registerOnValueChanged(const std::string& key, std::function<void(const MenuConfig::MenuOption&, const MenuValue&)> handler)
+{
+    onValueChangedRegistry[key] = std::move(handler);
+}
+
+void MenuWidget::assignOnValueChangedHandlers(std::vector<MenuConfig::MenuOption>& menuOptions)
+{
+    for (auto& option : menuOptions)
+    {
+        if (!option.key.empty())
+        {
+            logInfoP("assign OnValueChanged for key: %s", option.key.c_str());
+            const auto it = onValueChangedRegistry.find(option.key);
+            if (it != onValueChangedRegistry.end())
+            {
+                option.onValueChanged = it->second;
+                logInfoP("OnValueChanged handler assigned for key: %s", option.key.c_str());
+            } else
+            {
+                logInfoP("No OnValueChanged handler found for key: %s", option.key.c_str());
+            }
+        }
+
+        if (!option.submenu.empty())
+        {
+            assignOnValueChangedHandlers(option.submenu);
+        }
+    }
+}
+
 bool MenuWidget::readButton(uint16_t pin)
 {
-    //openknx.gpio.pinMode(pin, OUTPUT);
-    //openknx.gpio.digitalWrite(pin, HIGH);
-    //openknx.gpio.pinMode(pin, INPUT);
-    //bool state = !openknx.gpio.digitalRead(pin);
-    //openknx.gpio.digitalWrite(pin, HIGH);
-    //return !state;
-#ifdef USE_GPIO_MODULE
+    // openknx.gpio.pinMode(pin, OUTPUT);
+    // openknx.gpio.digitalWrite(pin, HIGH);
+    // openknx.gpio.pinMode(pin, INPUT);
+    // bool state = !openknx.gpio.digitalRead(pin);
+    // openknx.gpio.digitalWrite(pin, HIGH);
+    // return !state;
+    #ifdef USE_GPIO_MODULE
     return openknx.gpio.digitalRead(pin);
-#else
+    #else
     return false;
-#endif
+    #endif
 }
 
 void MenuWidget::loop()
@@ -150,30 +270,34 @@ void MenuWidget::loop()
     {
         _lastButtonCheck = currentTime;
 
-        if (_FrontPlateEnabled && readButton(_buttonUp)) { 
-          navigateUp();
-          #ifdef USE_GPIO_MODULE
-          openknx.gpio.digitalWrite(0x0101, LOW); // Prog LED
-          #endif
+        if (_FrontPlateEnabled && readButton(_buttonUp))
+        {
+            navigateUp();
+    #ifdef USE_GPIO_MODULE
+            openknx.gpio.digitalWrite(0x0101, LOW); // Prog LED
+    #endif
         }
-        if (_FrontPlateEnabled && readButton(_buttonDown)) { 
-          navigateDown();
-          #ifdef USE_GPIO_MODULE
-          openknx.gpio.digitalWrite(0x0102, LOW); // Info LED
-          #endif
+        if (_FrontPlateEnabled && readButton(_buttonDown))
+        {
+            navigateDown();
+    #ifdef USE_GPIO_MODULE
+            openknx.gpio.digitalWrite(0x0102, LOW); // Info LED
+    #endif
         }
         if (_FrontPlateEnabled && readButton(_buttonSelect)) selectItem();
-        if (_FrontPlateEnabled && !readButton(_buttonLeft)) {
-          navigateLeft();
-          #ifdef USE_GPIO_MODULE
-          openknx.gpio.digitalWrite(0x0101, HIGH); // Prog LED
-          #endif
+        if (_FrontPlateEnabled && !readButton(_buttonLeft))
+        {
+            navigateLeft();
+    #ifdef USE_GPIO_MODULE
+            openknx.gpio.digitalWrite(0x0101, HIGH); // Prog LED
+    #endif
         }
-        if (_FrontPlateEnabled && readButton(_buttonRight)) { 
-          navigateRight();
-          #ifdef USE_GPIO_MODULE
-          openknx.gpio.digitalWrite(0x0102, HIGH); // Info LED
-          #endif
+        if (_FrontPlateEnabled && readButton(_buttonRight))
+        {
+            navigateRight();
+    #ifdef USE_GPIO_MODULE
+            openknx.gpio.digitalWrite(0x0102, HIGH); // Info LED
+    #endif
         }
     }
 
@@ -273,7 +397,7 @@ void MenuWidget::navigateLeft()
     {
         //--_selectedIndex;
         //_needsRedraw = true;
-        //logInfoP("Navigated left to index %d", _selectedIndex);
+        // logInfoP("Navigated left to index %d", _selectedIndex);
     }
 }
 
@@ -285,7 +409,7 @@ void MenuWidget::navigateRight()
     {
         //++_selectedIndex;
         //_needsRedraw = true;
-        //logInfoP("Navigated right to index %d", _selectedIndex);
+        // logInfoP("Navigated right to index %d", _selectedIndex);
     }
 }
 
@@ -295,20 +419,29 @@ void MenuWidget::selectItem()
 
     if (_currentMenu.empty()) return;
 
-    logInfoP("Select item");
     auto& item = _currentMenu[_selectedIndex];
+    logInfoP("Select item: %s (type: %d) at index %d", item.label.c_str(), static_cast<int>(item.type), _selectedIndex);
     switch (item.type)
     {
         case MenuConfig::MenuElementType::Action:
-            if (item.action) item.action();
+            if (item.action)
+            {
+                item.action();
+                logInfoP("Action (%s) executed for item: %s", item.key.c_str(), item.label.c_str());
+            }
+            else
+                logInfoP("No action assigned to this item: %s", item.label.c_str());
             break;
 
         case MenuConfig::MenuElementType::Submenu:
             if (!item.submenu.empty())
             {
-                _menuStack.push_back(std::move(_currentMenu));
-                _currentMenu = std::move(item.submenu);
+                logInfoP("Navigating to submenu: %s", item.label.c_str());
+                _menuStack.push_back(_currentMenu); 
+                _currentMenu = item.submenu;
                 _selectedIndex = 0;
+            } else {
+                logInfoP("Submenu is empty for item: %s", item.label.c_str());
             }
             break;
 
@@ -326,6 +459,13 @@ void MenuWidget::selectItem()
             if (!item.key.empty())
             {
                 _menuConfig.setValue(item.key, item.defaultValue);
+                if (item.onValueChanged) {
+                    item.onValueChanged(item, item.defaultValue);
+                    logInfoP("OnValueChanged called for key: %s", item.key.c_str());
+                } else
+                {
+                    logInfoP("No OnValueChanged handler for key: %s", item.key.c_str());
+                }
             }
             break;
 
@@ -336,9 +476,23 @@ void MenuWidget::selectItem()
             if (!item.key.empty())
             {
                 _menuConfig.setValue(item.key, item.defaultValue);
+                if (item.onValueChanged) {
+                    item.onValueChanged(item, item.defaultValue);
+                    logInfoP("OnValueChanged called for key: %s", item.key.c_str());
+                } else
+                {
+                    logInfoP("No OnValueChanged handler for key: %s", item.key.c_str());
+                }
             }
             break;
         }
+        case MenuConfig::MenuElementType::TextInput:
+            // Not implemented in this example
+            logInfoP("TextInput not implemented");
+            break;
+        default:
+            logInfoP("Unknown menu item type");
+            break;
     }
 
     _needsRedraw = true;
