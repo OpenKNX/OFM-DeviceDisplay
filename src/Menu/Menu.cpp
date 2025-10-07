@@ -1,7 +1,7 @@
 #ifdef DEVICE_DISPLAY_MODULE
     #define USE_GPIO_MODULE
     #include "Menu.h"
-    #include "MenuConfig_DefaultMenu.h"
+    #include "DefaultMenus.h"
     #include "OpenKNX.h"
 
 MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action, uint16_t buttonUp, uint16_t buttonDown, uint16_t buttonSelect, uint16_t buttonLeft, uint16_t buttonRight)
