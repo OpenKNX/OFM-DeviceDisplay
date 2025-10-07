@@ -1,7 +1,7 @@
 #ifdef DEVICE_DISPLAY_MODULE
     #define USE_GPIO_MODULE
     #include "Menu.h"
-    #include "MenuConfig_json.h"
+    #include "MenuConfig_DefaultMenu.h"
     #include "OpenKNX.h"
 
 MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action, uint16_t buttonUp, uint16_t buttonDown, uint16_t buttonSelect, uint16_t buttonLeft, uint16_t buttonRight)
@@ -150,7 +150,8 @@ void MenuWidget::addDefaultOnValueChanged()
     registerOnValueChanged("brightness_level", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
         if (val.isSizeT()) {
             // Auswahl ist 0-4, also 5%, 25%, 50%, 75%, 100%
-            const int selectedOption = static_cast<int>(std::clamp(val.getSizeT(), static_cast<size_t>(0), static_cast<size_t>(4)));
+            //const int selectedOption = static_cast<int>(std::clamp(val.getSizeT(), static_cast<size_t>(0), static_cast<size_t>(4)));
+            const int selectedOption = static_cast<int>(std::min(static_cast<size_t>(4), std::max(static_cast<size_t>(0), val.getSizeT())));
             const int percentages[] = {5, 25, 50, 75, 100};
             const int percentage = percentages[selectedOption];
             int contrast = static_cast<int>(std::round(percentage * 255.0 / 100.0));
