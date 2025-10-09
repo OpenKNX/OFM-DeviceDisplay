@@ -20,7 +20,7 @@ typedef enum : uint8_t
     ManagedExternally = 4, // Extern verwaltet, bleibt aktiv, bis deaktiviert
     DisplayEnabled = 8,    // Intern aktiv, wird auf dem Display angezeigt
     Background = 16,       // Widget läuft im Hintergrund
-    DefaultWidget = 32     // Widget wird als Default verwendet (ToDo - Check Highlander-Prinzip)
+    DefaultWidget = 32     // Standard-Widget, wird angezeigt, wenn kein anderes Widget aktiv ist
 } WidgetFlags;
 
 enum class WidgetState
@@ -40,6 +40,7 @@ class Widget
     virtual void pause() = 0;                       // pause the widget (will pause the current state and all internal timers, values, etc.)
     virtual void resume() = 0;                      // resume the widget (will continue the current state and all internal timers, values, etc.)
     virtual void loop() = 0;                        // loop the widget
+    virtual void background() {}                    // Optional - put the widget in background mode (will continue to run, but not be displayed)
     virtual const WidgetState getState() const = 0; // Get the current state of the widget
 
     virtual uint32_t getDisplayTime() const = 0;           // Time to display the widget in ms

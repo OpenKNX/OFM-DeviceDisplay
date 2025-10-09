@@ -34,23 +34,25 @@ void WidgetsManager::setup()
 
 void WidgetsManager::start()
 {
-    // Widget will be initialized in the loop() method
-    // TEST
-    /*
-      if (!_widgetQueue.empty())
-      {
-          _currentWidget = _widgetQueue.front(); // Get the first widget from the queue
-          _widgetQueue.push(_currentWidget);    // Add the widget to the end of the queue
-          _widgetQueue.pop();                  // Remove the widget from the front of the queue
-          if (_currentWidget && !(_currentWidget->getAction() & WidgetFlags::Background) &&
-                                !(_currentWidget->getAction() & WidgetFlags::ManagedExternally))
-          {
-              _currentWidget->start();
-              logInfoP("Initial Starting the widget: %s", _currentWidget->getName().c_str());
-              _currentTime = millis() + _currentWidget->getDisplayTime();
-          }
-      }
-    */
+    size_t queueSize = _widgetQueue.size();
+
+    for (size_t i = 0; i < queueSize; ++i)
+    {
+        Widget *widget = _widgetQueue.front();
+        _widgetQueue.pop();
+        _widgetQueue.push(widget);
+
+        if (!widget) continue;
+
+        const WidgetFlags flags = widget->getAction();
+
+        // Only start background widgets initially in background mode!!
+        if (flags & WidgetFlags::Background)
+        {
+            logInfoP("Initial starting background widget: %s", widget->getName().c_str());
+            widget->background();
+        }
+    }
 }
 
 void WidgetsManager::loop()
@@ -137,7 +139,12 @@ void WidgetsManager::loop()
             else
             {
                 logDebugP("Pausing current widget: %s", _currentWidget->getName().c_str());
-                _currentWidget->pause();
+
+                // Pause only running widgets that are not background widgets.
+                if (_currentWidget->getState() == WidgetState::RUNNING)
+                {
+                    _currentWidget->pause();
+                }
             }
         }
         // ii. Activate the prioritized status widget.
@@ -181,26 +188,35 @@ void WidgetsManager::loop()
     for (size_t i = 0; i < _widgetQueue.size(); ++i)
     {
         Widget *widget = _widgetQueue.front();
-        // a. If the widget is a background widget, run the loop() method.
-        if (widget && widget->getAction() & Background)
+        // a. If the widget is a background widget, run the loop() method and activate it if it requests display.
+        if (widget && (widget->getAction() & Background))
         {
-            widget->loop(); // Run the loop() method of the background widget
+            // background loop need to run always
+            widget->loop();
 
-            // ToDo - DIRTY: Currently the best solution to switch between the Menu and the DefaultWidget
-            if (widget->getName().compare("Menu") == 0 &&
-                widget->getState() == WidgetState::RUNNING &&
-                _currentWidget != widget)
+            // Check if the widget wants to activate itself
+            if (widget->getAction() & DisplayEnabled)
             {
-                _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
-                logDebugP("Menu is activated (button press. Setting current widget to Menu.");
-                _currentWidget->stop();
-                _currentWidget = widget;
-                _currentWidget->loop();
+                // If another widget is active and not this one, stop it
+                if (_currentWidget && _currentWidget != widget)
+                {
+                    logDebugP("Stopping current widget: %s", _currentWidget->getName().c_str());
+                    _currentWidget->stop();
+                }
+
+                // If this widget is not active yet, activate it
+                if (_currentWidget != widget)
+                {
+                    logDebugP("Activating background widget: %s", widget->getName().c_str());
+                    _currentWidget = widget;
+                    _currentWidget->start();
+                    _currentTime = millis() + _currentWidget->getDisplayTime();
+                    _lastInteractionTime = millis();
+                }
             }
         }
-        else
+        else // b. If the widget is a default widget, start it and set the display time.
         {
-            // b. If the widget is a default widget, start it and set the display time.
             if ((currentTime - _lastInteractionTime >= _idleTimeout) && // Only if we are in idle mode, then start the default widgets
                 widget && (widget->getAction() & DefaultWidget))
             {
@@ -235,6 +251,7 @@ void WidgetsManager::loop()
         _widgetQueue.push(widget);
         _widgetQueue.pop();
     }
+
     // 6. If a display module is available, update it.
     if (_displayModule)
     {

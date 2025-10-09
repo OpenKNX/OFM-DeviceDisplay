@@ -1,9 +1,12 @@
 // MenuWidget.h
 #ifdef DEVICE_DISPLAY_MODULE
-#pragma once
-#include "../Widget.h"
-#include "MenuConfig.h"
+    #pragma once
+    #include "../Widget.h"
+    #include "MenuConfig.h"
 
+    // Define the frontplate LED (ToDo: Needs to be configured in Hardware Config)
+    #define FRONTPLATE_LED_RED 0x0101  // Dummy pin for frontplate LED RED (not used, just for reference)
+    #define FRONTPLATE_LED_GREEN 0x0102 // Dummy pin for frontplate LED GREEN (not used, just for reference)
 class MenuWidget : public Widget
 {
   public:
@@ -12,10 +15,9 @@ class MenuWidget : public Widget
                WidgetFlags action,
                uint16_t buttonUp,
                uint16_t buttonDown,
-               uint16_t buttonSelect, 
+               uint16_t buttonSelect,
                uint16_t buttonLeft,
                uint16_t buttonRight);
-
 
     // Widget interface implementation
     void start() override;
@@ -24,7 +26,8 @@ class MenuWidget : public Widget
     void resume() override;
     void setup() override;
     void loop() override;
-    
+    void background() override;
+
     // Getters & Setters
     inline const WidgetState getState() const override { return _state; }
     inline const std::string getName() const override { return _name; }
@@ -47,14 +50,17 @@ class MenuWidget : public Widget
     void externalPause();
     void externalResume();
     void externalStop();
+    // Front plate control
+    bool isAnyButtonPressed();
+    bool setLED(uint16_t pin, bool state);
+    
 
     // Logger prefix
     const std::string logPrefix() { return "MenuWidget"; }
-    
+
     // Action registration
     void registerAction(const std::string& key, std::function<void()> action);
     void registerOnValueChanged(const std::string& key, std::function<void(const MenuConfig::MenuOption&, const MenuValue&)> callback);
-    
 
   private:
     // UI Constants
@@ -70,7 +76,6 @@ class MenuWidget : public Widget
     void navigateLeft();
     void navigateRight();
 
-
     void addDefaultMenus();
     void addDefaultActions();
     void addDefaultOnValueChanged();
@@ -78,7 +83,7 @@ class MenuWidget : public Widget
     void clearDisplay();
     void drawMenu();
     bool readButton(uint16_t pin);
-    void background();
+    bool processButtonPress();
 
     // Display properties
     i2cDisplay* _display = nullptr;
@@ -103,7 +108,6 @@ class MenuWidget : public Widget
     WidgetState _state = WidgetState::STOPPED;
     WidgetState _stateLast = WidgetState::STOPPED;
 
-
     // Menu state
     std::vector<MenuConfig::MenuOption> _currentMenu;
     std::vector<std::vector<MenuConfig::MenuOption>> _menuStack;
@@ -117,5 +121,14 @@ class MenuWidget : public Widget
     std::unordered_map<std::string, std::function<void(const MenuConfig::MenuOption&, const MenuValue&)>> onValueChangedRegistry;
     void assignRegisteredActions(std::vector<MenuConfig::MenuOption>& menuOptions);
     void assignOnValueChangedHandlers(std::vector<MenuConfig::MenuOption>& menuOptions);
+
+    void showOverlay(std::function<void()> drawFn);
+    bool _infoOverlayActive = false;
+    const uint32_t _infoOverlayTimeout = 500; // Prevent overlay from being dismissed too quickly (1 second)
+    const uint32_t _infoOverlayMaxTimeout = 60000; // Prevent overlay from being active for more than 60 seconds
+    std::function<void()> _overlayDrawFunction;
+    
+
+
 };
 #endif // DEVICE_DISPLAY_MODULE

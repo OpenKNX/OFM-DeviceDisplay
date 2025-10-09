@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MenuConfig.h"
-namespace DefaultMenu {
+namespace DefaultMenus {
 
 using MenuOption = MenuConfig::MenuOption;
 
@@ -130,156 +130,20 @@ inline MenuOption buildMenu() {
     progMode.type = MenuConfig::MenuElementType::Action;
     progMode.key = "prog_mode";
 
+    // --- Show Device Info Overlay ---
+    MenuOption showDeviceInfo;
+    showDeviceInfo.label = "Show Device Info";
+    showDeviceInfo.type = MenuConfig::MenuElementType::Action;
+    showDeviceInfo.key = "show_device_info_overlay";
+
     // --- Root Menu ---
     MenuOption rootMenu;
     rootMenu.label = "Root";
     rootMenu.type = MenuConfig::MenuElementType::Submenu;
-    rootMenu.submenu = {mainSettings, advancedSettings, progMode};
+    //rootMenu.submenu = {mainSettings, advancedSettings, progMode, showDeviceInfo};
+    rootMenu.submenu = { advancedSettings, progMode, showDeviceInfo};
 
     return rootMenu;
 }
 
-} // namespace DefaultMenu
-
-static constexpr const char* defaultMenuJson = R"({
-        "menu": [
-            {
-                "label": "Main Settings",
-                "type": "Submenu",
-                "submenu": [
-                    {
-                        "label": "Network Settings",
-                        "type": "Submenu",
-                        "submenu": [
-                            {
-                                "label": "DHCP",
-                                "type": "Checkbox",
-                                "defaultValue": true
-                            },
-                            {
-                                "label": "IP Address",
-                                "type": "Action",
-                                "isVisible": false
-                            },
-                            {
-                                "label": "Subnet Mask",
-                                "type": "Action",
-                                "isVisible": true
-                            },
-                            {
-                                "label": "DNS Settings",
-                                "type": "Submenu",
-                                "submenu": [
-                                    {
-                                        "label": "Primary DNS",
-                                        "type": "Action"
-                                    },
-                                    {
-                                        "label": "Secondary DNS",
-                                        "type": "Action"
-                                    },
-                                    {
-                                        "label": "Back",
-                                        "type": "Back"
-                                    }
-                                ]
-                            },
-                            {
-                                "label": "Back",
-                                "type": "Back"
-                            }
-                        ]
-                    },
-                    {
-                        "label": "System Settings",
-                        "type": "Submenu",
-                        "submenu": [
-                            {
-                                "label": "Time Zone",
-                                "type": "Dropdown",
-                                "defaultValue": 2,
-                                "options": ["UTC-12", "UTC-11", "UTC+0", "UTC+1", "UTC+2"]
-                            },
-                            {
-                                "label": "Date/Time",
-                                "type": "Action"
-                            },
-                            {
-                                "label": "Reboot Device",
-                                "type": "Action"
-                            },
-                            {
-                                "label": "Back",
-                                "type": "Back"
-                            }
-                        ]
-                    },
-                    {
-                        "label": "Device Info",
-                        "type": "Submenu",
-                        "submenu": [
-                            {
-                                "label": "Device Name",
-                                "type": "Action"
-                            },
-                            {
-                                "label": "Firmware Version",
-                                "type": "Action"
-                            },
-                            {
-                                "label": "Serial Number",
-                                "type": "Action"
-                            },
-                            {
-                                "label": "Back",
-                                "type": "Back"
-                            }
-                        ]
-                    },
-                    {
-                        "label": "Back",
-                        "type": "Back"
-                    }
-                ]
-            },
-            {
-                "label": "Advanced Settings",
-                "type": "Submenu",
-                "submenu": [
-                    {
-                        "label": "Display",
-                        "type": "Submenu",
-                        "submenu": [
-                            {
-                                "label": "Brightness",
-                                "type": "Dropdown",
-                                "defaultValue": 2,
-                                "options": ["25%", "50%", "75%", "100%"], 
-                                "key": "brightness_level"
-                            },
-                            {
-                                "label": "Auto Dimming",
-                                "type": "Checkbox",
-                                "defaultValue": true
-                            }
-                        ]
-                    },
-                    {
-                        "label": "Reboot",
-                        "type": "Action", 
-                        "key": "reboot_device"
-                        
-                    },
-                    {
-                        "label": "Back",
-                        "type": "Back"
-                    }
-                ]
-            },
-            {
-                "label": "Prog-Mode",
-                "type": "Action", 
-                "key": "prog_mode"
-            }
-        ]
-    })";
+} // namespace DefaultMenus
