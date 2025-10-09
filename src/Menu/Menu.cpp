@@ -335,7 +335,7 @@ void MenuWidget::loop()
 
     // Das Menü darf nur laufen, wenn es im RUNNING oder BACKGROUND ist
     if (_state != WidgetState::RUNNING && _state != WidgetState::BACKGROUND){
-      logDebugP("MenuWidget is not active, skipping loop.");
+      //logDebugP("MenuWidget is not active, skipping loop.");
       return;
     }
 

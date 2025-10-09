@@ -225,6 +225,11 @@ void WidgetsManager::loop()
                 {
                     if (_currentWidget != widget) // Get the next DefaultWidget
                     {
+                        if (_currentWidget && _currentWidget->getAction() & DefaultWidget) // Only stop if the current widget is also a DefaultWidget
+                        {
+                            logDebugP("Stopping current: DefaultWidget: %s", _currentWidget->getName().c_str());
+                            _currentWidget->stop(); // Stop the current DefaultWidget
+                        }
                         _currentWidget = widget;
                         if (state != WidgetState::RUNNING)
                         {
@@ -247,7 +252,7 @@ void WidgetsManager::loop()
                     }
                 }
             }
-        }
+        } // Ende DefaultWidget Check
         _widgetQueue.push(widget);
         _widgetQueue.pop();
     }

@@ -123,7 +123,7 @@ void DeviceDisplay::setup(bool configured)
     //WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
     //widgetManager.addWidget(fireworksWidget);
 
-    //WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::AutoRemove, "https://www.openknx.de", false); // Create a new QRcode widget
+    //WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::DefaultWidget, "https://www.openknx.de", false); // Create a new QRcode widget
     //widgetManager.addWidget(qrcodeWidget);
 
 
