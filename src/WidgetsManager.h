@@ -35,4 +35,10 @@ class WidgetsManager
     void removeWidgetFromQueue(const char* widgetName);
     void removeWidgetFromQueue(Widget* widget);
     Widget* getNextPriorityWidget();
+
+
+    void handleCurrentWidget(uint32_t currentTime);
+    bool activatePriorityWidget(uint32_t currentTime);
+    void activateNormalWidget(uint32_t currentTime);
+    void handleBackgroundAndDefaultWidgets(uint32_t currentTime);
 };
