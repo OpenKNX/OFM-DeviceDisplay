@@ -1,12 +1,11 @@
-// MenuWidget.h
 #ifdef DEVICE_DISPLAY_MODULE
     #pragma once
     #include "../Widget.h"
     #include "MenuConfig.h"
 
     // Define the frontplate LED (ToDo: Needs to be configured in Hardware Config)
-    #define FRONTPLATE_LED_RED 0x0101  // Dummy pin for frontplate LED RED (not used, just for reference)
-    #define FRONTPLATE_LED_GREEN 0x0102 // Dummy pin for frontplate LED GREEN (not used, just for reference)
+    #define FRONTPLATE_LED_RED 0x0101   // Pin for frontplate LED RED (not used, just for reference)
+    #define FRONTPLATE_LED_GREEN 0x0102 // Pin for frontplate LED GREEN (not used, just for reference)
 class MenuWidget : public Widget
 {
   public:
@@ -53,7 +52,6 @@ class MenuWidget : public Widget
     // Front plate control
     bool isAnyButtonPressed();
     bool setLED(uint16_t pin, bool state);
-    
 
     // Logger prefix
     const std::string logPrefix() { return "MenuWidget"; }
@@ -108,7 +106,7 @@ class MenuWidget : public Widget
     WidgetState _state = WidgetState::STOPPED;
     WidgetState _stateLast = WidgetState::STOPPED;
 
-    // Menu state
+    // Menu
     std::vector<MenuConfig::MenuOption> _currentMenu;
     std::vector<std::vector<MenuConfig::MenuOption>> _menuStack;
     MenuConfig _menuConfig;
@@ -124,11 +122,8 @@ class MenuWidget : public Widget
 
     void showOverlay(std::function<void()> drawFn);
     bool _infoOverlayActive = false;
-    const uint32_t _infoOverlayTimeout = 500; // Prevent overlay from being dismissed too quickly (1 second)
-    const uint32_t _infoOverlayMaxTimeout = 60000; // Prevent overlay from being active for more than 60 seconds
+    const uint32_t _infoOverlayTimeout = 500;      // Prevent overlay from being dismissed too quickly (<1 second)
+    const uint32_t _infoOverlayMaxTimeout = 60000; // Prevent overlay from being active for more than 60 seconds (auto close)
     std::function<void()> _overlayDrawFunction;
-    
-
-
 };
 #endif // DEVICE_DISPLAY_MODULE

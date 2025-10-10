@@ -67,7 +67,7 @@ void MenuWidget::setup()
     else
     {
         _FrontPlateEnabled = true;
-        logInfoP("GPIO Module initialized");
+        logDebugP("GPIO Module initialized");
 
         // Initialize buttons
         const uint16_t pins[] = {_buttonUp, _buttonDown, _buttonSelect, _buttonLeft, _buttonRight, 0x0103};
@@ -88,12 +88,199 @@ void MenuWidget::setup()
     _state = WidgetState::BACKGROUND; // Start Menu in background! Will be started by button press.
 }
 
-void MenuWidget::showOverlay(std::function<void()> drawFn)
+bool MenuWidget::readButton(uint16_t pin)
 {
-    _overlayDrawFunction = std::move(drawFn);
-    _infoOverlayActive = true;
+    // openknx.gpio.pinMode(pin, OUTPUT);
+    // openknx.gpio.digitalWrite(pin, HIGH);
+    // openknx.gpio.pinMode(pin, INPUT);
+    // bool state = !openknx.gpio.digitalRead(pin);
+    // openknx.gpio.digitalWrite(pin, HIGH);
+    // return !state;
+    #ifdef USE_GPIO_MODULE
+    return openknx.gpio.digitalRead(pin);
+    #else
+    return false;
+    #endif
+}
+
+bool MenuWidget::setLED(uint16_t pin, bool state)
+{
+    #ifdef USE_GPIO_MODULE
+    openknx.gpio.digitalWrite(pin, state ? HIGH : LOW);
+    return true;
+    #else
+    return false;
+    #endif
+}
+
+bool MenuWidget::isAnyButtonPressed()
+{
+    // Info: _buttonLeft is active LOW. We need to invert the reading.
+    return readButton(_buttonUp) || readButton(_buttonDown) || readButton(_buttonSelect) || !readButton(_buttonLeft) || readButton(_buttonRight);
+}
+
+bool MenuWidget::processButtonPress() // We need to call this periodically in loop(), to check for button presses
+{
+    bool bRet = false;
+    if (_FrontPlateEnabled) // Only process if front plate is present (Buttons available)
+        if (readButton(_buttonUp))
+        {
+            navigateUp();
+            bRet = true;
+            setLED(FRONTPLATE_LED_RED, LOW); // Switch off Prog LED (RED)
+        }
+        else if (readButton(_buttonDown))
+        {
+            navigateDown();
+            bRet = true;
+            setLED(FRONTPLATE_LED_GREEN, LOW); // Switch off Info LED (GREEN)
+        }
+        else if (readButton(_buttonSelect))
+        {
+            selectItem();
+            bRet = true;
+        }
+        else if (!readButton(_buttonLeft))
+        {
+            navigateLeft();
+            bRet = true;
+            setLED(FRONTPLATE_LED_RED, HIGH); // Switch on Prog LED (RED)
+        }
+        else if (readButton(_buttonRight))
+        {
+            navigateRight();
+            bRet = true;
+            setLED(FRONTPLATE_LED_GREEN, HIGH); // Switch on Info LED (GREEN)
+        }
+    return bRet;
+}
+
+void MenuWidget::loop()
+{
+    uint32_t currentTime = millis();
+    if (_state != WidgetState::RUNNING && _state != WidgetState::BACKGROUND)
+    {
+        return;
+    }
+
+    // If the menu is in the background but has set DisplayEnabled, it waits to be activated by the widget manager.
+    if (_state == WidgetState::BACKGROUND && (getAction() & WidgetFlags::DisplayEnabled))
+    {
+        logDebugP("MenuWidget requested activation, waiting for manager...");
+        // The button checks continue, but the menu will only become active when the manager activates it.
+    }
+
+    if ((_infoOverlayActive && isAnyButtonPressed() && // Close overlay on any button press
+         (currentTime - _lastButtonPressTime) > _infoOverlayTimeout) ||
+        (_infoOverlayActive && (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout))
+    {
+        _lastButtonPressTime = currentTime;
+        _infoOverlayActive = false;
+        _needsRedraw = true;
+
+        if ((_infoOverlayActive && (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout))
+            logDebugP("Overlay closed automatically after infoOverlayMaxTimeout of %d ms", _infoOverlayMaxTimeout);
+        else
+            logDebugP("Overlay closed by button press");
+        return;
+    }
+
+    // Automatic activation on button interaction
+    if (_lastButtonPressTime > 0 && (currentTime - _lastButtonPressTime) < _displayTime)
+    {
+        if (_state != WidgetState::RUNNING)
+        {
+            logDebugP("Menu is running due to button press.");
+            resume(); // Will set _needsRedraw = true;
+        }
+    }
+    // Automatic background setting on inactivity
+    else if ((currentTime - _lastButtonPressTime) >= _displayTime && !_infoOverlayActive)
+    {
+        if (_state == WidgetState::RUNNING)
+        {
+            background(); // Removes DisplayEnabled, manager recognizes this
+            return;
+        }
+    }
+
+    // Button checks
+    if (currentTime - _lastButtonCheck >= BUTTON_CHECK_INTERVAL)
+    {
+        _lastButtonCheck = currentTime;
+        if (processButtonPress())
+        {
+            _lastButtonPressTime = currentTime;
+            _needsRedraw = true;
+        }
+    }
+
+    if (_state == WidgetState::RUNNING && _needsRedraw)
+    {
+        drawMenu();
+        _needsRedraw = false;
+        _lastRedrawTime = currentTime;
+    }
+}
+
+void MenuWidget::start()
+{
+    logDebugP("Start...");
+    _stateLast = _state;
+    _state = WidgetState::RUNNING;
     _needsRedraw = true;
-    logInfoP("Showing overlay");
+
+    // addAction(WidgetFlags::DisplayEnabled);
+    // removeAction(WidgetFlags::Background);
+}
+
+void MenuWidget::stop()
+{
+    _stateLast = _state;
+    _state = WidgetState::STOPPED;
+    _infoOverlayActive = false; // Ensure overlay is reseted
+    _needsRedraw = false;
+    // Clean up the memory
+    _menuStack.clear();
+    _currentMenu.clear();
+    _selectedIndex = 0;
+    clearDisplay();
+    logDebugP("Stop...");
+}
+
+void MenuWidget::pause()
+{
+    /*
+      _stateLast = _state;
+      _state = WidgetState::PAUSED; // No pausing for menu, just go to background
+      _infoOverlayActive = false; // Ensure overlay is reseted
+    */
+
+    logDebugP("Pause requested, going to background...");
+    background();
+}
+
+void MenuWidget::resume()
+{
+    _state = _stateLast;
+    _state = WidgetState::RUNNING;
+    _needsRedraw = true;
+    addAction(WidgetFlags::DisplayEnabled);
+    // removeAction(WidgetFlags::Background);
+    logDebugP("Resume...");
+}
+
+void MenuWidget::background()
+{
+    _stateLast = _state;
+    _state = WidgetState::BACKGROUND;
+    _infoOverlayActive = false; // Ensure overlay is reseted
+    _needsRedraw = false;
+
+    // addAction(WidgetFlags::Background);
+    removeAction(WidgetFlags::DisplayEnabled);
+    clearDisplay();
+    logDebugP("Menu is running in background due to inactivity.");
 }
 
 void MenuWidget::addDefaultMenus()
@@ -104,7 +291,7 @@ void MenuWidget::addDefaultMenus()
     {
         _selectedIndex = 0;
         _needsRedraw = true;
-        logInfoP("Default menus loaded successfully");
+        logDebugP("Default menus loaded successfully");
 
         addDefaultActions();
         addDefaultOnValueChanged();
@@ -143,8 +330,6 @@ void MenuWidget::addDefaultActions()
             logDebugP("Device Info overlay displayed");
         });
     });
-
-    // Finally assign actions to menu items
     assignRegisteredActions(_currentMenu);
 }
 
@@ -170,7 +355,7 @@ void MenuWidget::addDefaultOnValueChanged()
         if (val.isSizeT())
         {
             // openknx.common.setTimeZone(opt.dropdownOptions[val.getSizeT()]);
-            logInfoP("Zeitzone geändert auf: %s", opt.dropdownOptions[val.getSizeT()].c_str());
+            logDebugP("Zeitzone geändert auf: %s", opt.dropdownOptions[val.getSizeT()].c_str());
         }
     });
     registerOnValueChanged("brightness_level", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
@@ -183,7 +368,7 @@ void MenuWidget::addDefaultOnValueChanged()
             const int percentage = percentages[selectedOption];
             int contrast = static_cast<int>(std::round(percentage * 255.0 / 100.0));
             _display->SetDisplayContrast(contrast);
-            logInfoP("Helligkeit geändert auf: %s%% (%d)", opt.dropdownOptions[val.getSizeT()].c_str(), contrast);
+            logDebugP("Helligkeit geändert auf: %s%% (%d)", opt.dropdownOptions[val.getSizeT()].c_str(), contrast);
         }
     });
     registerOnValueChanged("auto_dimming", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
@@ -192,17 +377,16 @@ void MenuWidget::addDefaultOnValueChanged()
             if (val.getBool())
             {
                 _display->display->dim(true);
-                logInfoP("Auto Dimming enabled");
+                logDebugP("Auto Dimming enabled");
             }
             else
             {
                 _display->display->dim(false);
-                logInfoP("Auto Dimming disabled");
+                logDebugP("Auto Dimming disabled");
             }
         }
     });
 
-    // Finally assign handlers to menu items
     assignOnValueChangedHandlers(_currentMenu);
 }
 
@@ -242,16 +426,16 @@ void MenuWidget::assignOnValueChangedHandlers(std::vector<MenuConfig::MenuOption
     {
         if (!option.key.empty())
         {
-            logInfoP("assign OnValueChanged for key: %s", option.key.c_str());
+            logDebugP("assign OnValueChanged for key: %s", option.key.c_str());
             const auto it = onValueChangedRegistry.find(option.key);
             if (it != onValueChangedRegistry.end())
             {
                 option.onValueChanged = it->second;
-                logInfoP("OnValueChanged handler assigned for key: %s", option.key.c_str());
+                logDebugP("OnValueChanged handler assigned for key: %s", option.key.c_str());
             }
             else
             {
-                logInfoP("No OnValueChanged handler found for key: %s", option.key.c_str());
+                logDebugP("No OnValueChanged handler found for key: %s", option.key.c_str());
             }
         }
 
@@ -262,208 +446,12 @@ void MenuWidget::assignOnValueChangedHandlers(std::vector<MenuConfig::MenuOption
     }
 }
 
-bool MenuWidget::readButton(uint16_t pin)
+void MenuWidget::showOverlay(std::function<void()> drawFn)
 {
-    // openknx.gpio.pinMode(pin, OUTPUT);
-    // openknx.gpio.digitalWrite(pin, HIGH);
-    // openknx.gpio.pinMode(pin, INPUT);
-    // bool state = !openknx.gpio.digitalRead(pin);
-    // openknx.gpio.digitalWrite(pin, HIGH);
-    // return !state;
-    #ifdef USE_GPIO_MODULE
-    return openknx.gpio.digitalRead(pin);
-    #else
-    return false;
-    #endif
-}
-
-bool MenuWidget::setLED(uint16_t pin, bool state)
-{
-    #ifdef USE_GPIO_MODULE
-    openknx.gpio.digitalWrite(pin, state ? HIGH : LOW);
-    return true;
-    #else
-    return false;
-    #endif
-}
-
-bool MenuWidget::isAnyButtonPressed()
-{
-    // Info: _buttonLeft is active LOW. We need to invert the reading.
-    return readButton(_buttonUp) || readButton(_buttonDown) || readButton(_buttonSelect) || !readButton(_buttonLeft) || readButton(_buttonRight);
-}
-
-bool MenuWidget::processButtonPress() // Call this method periodically to check button states and to control the menu
-{
-    bool bRet = false;
-    if (_FrontPlateEnabled) // Only process if front plate is present (Buttons available)
-        if (readButton(_buttonUp))
-        {
-            navigateUp();
-            bRet = true;
-            setLED(FRONTPLATE_LED_RED, LOW); // Switch off Prog LED (RED)
-        }
-        else if (readButton(_buttonDown))
-        {
-            navigateDown();
-            bRet = true;
-            setLED(FRONTPLATE_LED_GREEN, LOW); // Switch off Info LED (GREEN)
-        }
-        else if (readButton(_buttonSelect))
-        {
-            selectItem();
-            bRet = true;
-        }
-        else if (!readButton(_buttonLeft))
-        {
-            navigateLeft();
-            bRet = true;
-            setLED(FRONTPLATE_LED_RED, HIGH); // Switch on Prog LED (RED)
-        }
-        else if (readButton(_buttonRight))
-        {
-            navigateRight();
-            bRet = true;
-            setLED(FRONTPLATE_LED_GREEN, HIGH); // Switch on Info LED (GREEN)
-        }
-    return bRet;
-}
-
-void MenuWidget::loop()
-{
-    uint32_t currentTime = millis();
-
-    // Das Menü darf nur laufen, wenn es im RUNNING oder BACKGROUND ist
-    if (_state != WidgetState::RUNNING && _state != WidgetState::BACKGROUND){
-      //logDebugP("MenuWidget is not active, skipping loop.");
-      return;
-    }
-
-    // Wenn das Menü im Hintergrund ist, aber DisplayEnabled gesetzt hat,
-    // wartet es darauf, vom Manager aktiviert zu werden.
-    if (_state == WidgetState::BACKGROUND && (getAction() & WidgetFlags::DisplayEnabled))
-    {
-        logDebugP("MenuWidget requested activation, waiting for manager...");
-        // Die button checks laufen weiter, aber das Menü wird erst aktiv, wenn der Manager es aktiviert.
-    }
-
-    // Overlay schließen bei Button-Interaktion oder Timeout
-    if ((_infoOverlayActive && isAnyButtonPressed() &&
-         (currentTime - _lastButtonPressTime) > _infoOverlayTimeout) ||
-        (_infoOverlayActive && (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout))
-    {
-        _lastButtonPressTime = currentTime;
-        _infoOverlayActive = false;
-        _needsRedraw = true;
-
-        if ((_infoOverlayActive && (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout))
-            logInfoP("Overlay closed automatically after infoOverlayMaxTimeout of %d ms", _infoOverlayMaxTimeout);
-        else
-            logInfoP("Overlay closed by button press");
-        return;
-    }
-
-    // Automatisches Aktivieren bei Button-Interaktion
-    if (_lastButtonPressTime > 0 && (currentTime - _lastButtonPressTime) < _displayTime)
-    {
-        if (_state != WidgetState::RUNNING)
-        {
-            logInfoP("Menu is running due to button press.");
-            resume(); // Setzt DisplayEnabled, Manager übernimmt Aktivierung
-        }
-    }
-    // Automatisches Hintergrundsetzen bei Inaktivität
-    else if ((currentTime - _lastButtonPressTime) >= _displayTime && !_infoOverlayActive)
-    {
-        if (_state == WidgetState::RUNNING)
-        {
-            background(); // Entfernt DisplayEnabled, Manager erkennt das
-            return;
-        }
-    }
-
-    // Button-Checks
-    if (currentTime - _lastButtonCheck >= BUTTON_CHECK_INTERVAL)
-    {
-        _lastButtonCheck = currentTime;
-        if (processButtonPress())
-        {
-            _lastButtonPressTime = currentTime;
-            _needsRedraw = true;
-        }
-    }
-
-    // Nur zeichnen, wenn aktiv
-    //if (_state != WidgetState::RUNNING) return;
-
-    if (_state == WidgetState::RUNNING && _needsRedraw)
-    {
-        drawMenu();
-        _needsRedraw = false;
-        _lastRedrawTime = currentTime;
-    }
-}
-
-
-// State management methods
-void MenuWidget::start()
-{
-    logInfoP("Start...");
-    _stateLast = _state;
-    _state = WidgetState::RUNNING;
+    _overlayDrawFunction = std::move(drawFn);
+    _infoOverlayActive = true;
     _needsRedraw = true;
-
-    //addAction(WidgetFlags::DisplayEnabled);
-    //removeAction(WidgetFlags::Background);
-}
-
-void MenuWidget::stop()
-{
-    _stateLast = _state;
-    _state = WidgetState::STOPPED;
-    _infoOverlayActive = false; // Ensure overlay is reseted
-    _needsRedraw = false;
-    // Clean up the memory
-    _menuStack.clear();
-    _currentMenu.clear();
-    _selectedIndex = 0;
-    clearDisplay();
-    logInfoP("Stop...");
-}
-
-void MenuWidget::pause()
-{
-    /*
-      _stateLast = _state;
-      _state = WidgetState::PAUSED; // No pausing for menu, just go to background
-      _infoOverlayActive = false; // Ensure overlay is reseted
-    */
-   
-    logInfoP("Pause requested, going to background...");
-    background();
-}
-
-void MenuWidget::resume()
-{
-    _state = _stateLast;
-    _state = WidgetState::RUNNING;
-    _needsRedraw = true;
-    addAction(WidgetFlags::DisplayEnabled);
-    //removeAction(WidgetFlags::Background);
-    logInfoP("Resume...");
-}
-
-void MenuWidget::background()
-{
-    _stateLast = _state;
-    _state = WidgetState::BACKGROUND;
-    _infoOverlayActive = false; // Ensure overlay is reseted
-    _needsRedraw = false;
-
-    //addAction(WidgetFlags::Background);
-    removeAction(WidgetFlags::DisplayEnabled);
-    clearDisplay();
-    logInfoP("Menu is running in background due to inactivity.");
+    logDebugP("Showing overlay");
 }
 
 // External navigation methods (just delegate to internal ones)
@@ -477,41 +465,41 @@ void MenuWidget::externalStop() { stop(); }
 // Core functionality
 void MenuWidget::navigateUp()
 {
-    logInfoP("Navigate up");
+    logDebugP("Navigate up");
     if (_selectedIndex > 0)
     {
         --_selectedIndex;
-        logInfoP("Navigated up to index %d", _selectedIndex);
+        logDebugP("Navigated up to index %d", _selectedIndex);
     }
 }
 
 void MenuWidget::navigateDown()
 {
-    logInfoP("Navigate down");
+    logDebugP("Navigate down");
     if (_selectedIndex < _currentMenu.size() - 1)
     {
         ++_selectedIndex;
-        logInfoP("Navigated down to index %d", _selectedIndex);
+        logDebugP("Navigated down to index %d", _selectedIndex);
     }
 }
 
 void MenuWidget::navigateLeft()
 {
-    logInfoP("Navigate left");
+    logDebugP("Navigate left");
     if (_selectedIndex > 0)
     {
         //--_selectedIndex;
-        // logInfoP("Navigated left to index %d", _selectedIndex);
+        // logDebugP("Navigated left to index %d", _selectedIndex);
     }
 }
 
 void MenuWidget::navigateRight()
 {
-    logInfoP("Navigate right");
+    logDebugP("Navigate right");
     if (_selectedIndex < _currentMenu.size() - 1)
     {
         //++_selectedIndex;
-        // logInfoP("Navigated right to index %d", _selectedIndex);
+        // logDebugP("Navigated right to index %d", _selectedIndex);
     }
 }
 
@@ -520,30 +508,30 @@ void MenuWidget::selectItem()
     if (_currentMenu.empty()) return;
 
     auto& item = _currentMenu[_selectedIndex];
-    logInfoP("Select item: %s (type: %d) at index %d", item.label.c_str(), static_cast<int>(item.type), _selectedIndex);
+    logDebugP("Select item: %s (type: %d) at index %d", item.label.c_str(), static_cast<int>(item.type), _selectedIndex);
     switch (item.type)
     {
         case MenuConfig::MenuElementType::Action:
             if (item.action)
             {
                 item.action();
-                logInfoP("Action (%s) executed for item: %s", item.key.c_str(), item.label.c_str());
+                logDebugP("Action (%s) executed for item: %s", item.key.c_str(), item.label.c_str());
             }
             else
-                logInfoP("No action assigned to this item: %s", item.label.c_str());
+                logErrorP("No action assigned to this item: %s", item.label.c_str());
             break;
 
         case MenuConfig::MenuElementType::Submenu:
             if (!item.submenu.empty())
             {
-                logInfoP("Navigating to submenu: %s", item.label.c_str());
+                logDebugP("Navigating to submenu: %s", item.label.c_str());
                 _menuStack.push_back(_currentMenu);
                 _currentMenu = item.submenu;
                 _selectedIndex = 0;
             }
             else
             {
-                logInfoP("Submenu is empty for item: %s", item.label.c_str());
+                logErrorP("Submenu is empty for item: %s", item.label.c_str());
             }
             break;
 
@@ -564,11 +552,11 @@ void MenuWidget::selectItem()
                 if (item.onValueChanged)
                 {
                     item.onValueChanged(item, item.defaultValue);
-                    logInfoP("OnValueChanged called for key: %s", item.key.c_str());
+                    logDebugP("OnValueChanged called for key: %s", item.key.c_str());
                 }
                 else
                 {
-                    logInfoP("No OnValueChanged handler for key: %s", item.key.c_str());
+                    logErrorP("No OnValueChanged handler for key: %s", item.key.c_str());
                 }
             }
             break;
@@ -583,21 +571,21 @@ void MenuWidget::selectItem()
                 if (item.onValueChanged)
                 {
                     item.onValueChanged(item, item.defaultValue);
-                    logInfoP("OnValueChanged called for key: %s", item.key.c_str());
+                    logDebugP("OnValueChanged called for key: %s", item.key.c_str());
                 }
                 else
                 {
-                    logInfoP("No OnValueChanged handler for key: %s", item.key.c_str());
+                    logErrorP("No OnValueChanged handler for key: %s", item.key.c_str());
                 }
             }
             break;
         }
         case MenuConfig::MenuElementType::TextInput:
             // Not implemented in this example
-            logInfoP("TextInput not implemented");
+            logDebugP("TextInput not implemented");
             break;
         default:
-            logInfoP("Unknown menu item type");
+            logErrorP("Unknown menu item type");
             break;
     }
 }

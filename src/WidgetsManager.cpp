@@ -35,12 +35,10 @@ void WidgetsManager::start()
     {
         if (!widget) continue;
 
-        const WidgetFlags flags = widget->getAction();
-
         // Only start background widgets initially in background mode!!
-        if (flags & WidgetFlags::Background)
+        if (widget->getAction() & WidgetFlags::Background)
         {
-            logInfoP("Initial starting background widget: %s", widget->getName().c_str());
+            logDebugP("Initial starting background widget: %s", widget->getName().c_str());
             widget->background();
         }
     }
@@ -50,23 +48,24 @@ void WidgetsManager::loop()
 {
     uint32_t currentTime = millis();
 
-    handleCurrentWidget(currentTime);
-
-    if (activatePriorityWidget(currentTime)) return;
-
-    activateNormalWidget(currentTime);
-
-    if (_currentWidget)
+    handleCurrentWidget(currentTime);                // 1. We handle the current widget first
+    
+    if (activatePriorityWidget(currentTime))         // 2. Then we check for priority widgets
     {
+      _currentWidget->loop(); 
+      return;
+    }
+    
+    activateNormalWidget(currentTime);               // 3. Then we check for normal widgets
+
+    handleBackgroundAndDefaultWidgets(currentTime);  // 4. Finally, handle background and default widgets
+    
+    if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING) 
+    {                                                // 5. Loop the current widget if exists and is running
         _currentWidget->loop();
     }
+    if (_displayModule) _displayModule->loop();      // 6. Always loop the display module if exists
 
-    handleBackgroundAndDefaultWidgets(currentTime);
-
-    if (_displayModule)
-    {
-        _displayModule->loop();
-    }
 }
 
 Widget* WidgetsManager::getNextPriorityWidget()
@@ -121,7 +120,6 @@ void WidgetsManager::removeWidgetFromQueue(Widget* widget)
     if (widget != nullptr) return removeWidgetFromQueue(widget->getName().c_str());
 }
 
-
 // Loop - functionality support
 void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
 {
@@ -143,8 +141,6 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
             logDebugP("Starting stopped StatusWidget: %s", _currentWidget->getName().c_str());
         }
         _lastInteractionTime = currentTime;
-        _currentWidget->loop();
-        if (_displayModule) _displayModule->loop();
         return;
     }
 
@@ -160,14 +156,12 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
             logDebugP("Starting stopped widget: %s", _currentWidget->getName().c_str());
             _currentWidget->start();
         }
-        _currentWidget->loop();
         _lastInteractionTime = currentTime;
     }
 
     if ((flags & ManagedExternally) && !(flags & DisplayEnabled) && !(flags & Background))
     {
         logDebugP("Widget no longer DisplayEnabled: %s", _currentWidget->getName().c_str());
-        _currentWidget->stop();
         _currentWidget = nullptr;
     }
 
@@ -206,7 +200,6 @@ bool WidgetsManager::activatePriorityWidget(uint32_t currentTime)
     _currentWidget = priorityWidget;
     _currentWidget->start();
     _currentTime = currentTime + _currentWidget->getDisplayTime();
-    _currentWidget->loop();
     _lastInteractionTime = currentTime;
     return true;
 }
@@ -219,10 +212,11 @@ void WidgetsManager::activateNormalWidget(uint32_t currentTime)
     _widgetQueue.push_back(_currentWidget);
     _widgetQueue.pop_front();
 
+    const WidgetFlags currentWidgetFlags = _currentWidget->getAction();
     if (_currentWidget &&
-        !(_currentWidget->getAction() & DefaultWidget) &&
-        !(_currentWidget->getAction() & Background) &&
-        !(_currentWidget->getAction() & ManagedExternally))
+        !(currentWidgetFlags & DefaultWidget) &&
+        !(currentWidgetFlags & Background) &&
+        !(currentWidgetFlags & ManagedExternally))
     {
         logDebugP("Starting normal widget: %s", _currentWidget->getName().c_str());
         _currentWidget->start();
@@ -297,6 +291,3 @@ void WidgetsManager::handleBackgroundAndDefaultWidgets(uint32_t currentTime)
         }
     }
 }
-
-
-

@@ -153,5 +153,5 @@ void WidgetQRCode::drawQRCode()
         }
     }
     _display->displayBuff(); // Send buffer to display
-    openknx.logger.log(logPrefix() + ": QR code drawn.");
+    logDebugP("QR code drawn.");
 }
