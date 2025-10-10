@@ -1,7 +1,7 @@
 #pragma once
 #include "widget.h"
 #ifdef ARDUINO_ARCH_ESP32
-    #include <queue>
+    #include <deque>
 #endif
 
 class WidgetsManager
@@ -12,26 +12,25 @@ class WidgetsManager
     void setup();                   // Setup all widgets
     void start();                   // Start the first widget
     void loop();                    // Main loop for the widgets
+
     inline void setDisplayModule(i2cDisplay* displayModule) { _displayModule = displayModule; }
     inline i2cDisplay* getDisplayModule() { return _displayModule; }
+
     Widget* getCurrentWidget() { return _currentWidget; }
     Widget* getWidgetFromQueue(const char* widgetName);
     Widget* getWidgetFromQueue(Widget* widget);
-    std::queue<Widget*> getWidgetQueue() { return _widgetQueue; }
-    void clearWidgetQueue()
-    {
-        while (!_widgetQueue.empty())
-            _widgetQueue.pop();
-    }
+    std::deque<Widget*> getWidgetQueue() { return _widgetQueue; }
+
+    void clearWidgetQueue() { _widgetQueue.clear(); }
 
   private:
-    std::queue<Widget*> _widgetQueue;     // Queue of widgets
+    std::deque<Widget*> _widgetQueue;     // Queue of widgets
     Widget* _currentWidget = nullptr;     // Pointer to the current widget
     uint32_t _currentTime = 0;            // Time when the widget should be removed
     i2cDisplay* _displayModule = nullptr; // Pointer to the display manager
 
-    uint32_t _lastInteractionTime = 0;    // Timestamp of the last interaction
-    uint32_t _idleTimeout = 500;          // Switch time - from Menu to DefaultWidget Timeout before the default widget is shown. Default:1500
+    uint32_t _lastInteractionTime = 0; // Timestamp of the last interaction
+    uint32_t _idleTimeout = 500;       // Timeout before the default widget is shown
 
     void removeWidgetFromQueue(const char* widgetName);
     void removeWidgetFromQueue(Widget* widget);

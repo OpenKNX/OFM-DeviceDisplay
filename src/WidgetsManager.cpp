@@ -1,7 +1,7 @@
 #include "WidgetsManager.h"
 #include "OpenKNX.h"
 
-void WidgetsManager::addWidget(Widget *widget)
+void WidgetsManager::addWidget(Widget* widget)
 {
     if (widget == nullptr || _displayModule == nullptr) return;
 
@@ -15,33 +15,24 @@ void WidgetsManager::addWidget(Widget *widget)
     widget->setDisplayModule(_displayModule);
     logDebugP("Widget added to queue: %s", widget->getName().c_str());
     widget->setup();
-    _widgetQueue.push(widget); // Keine Kopie, nur Zeiger wird in die Queue gelegt
+    _widgetQueue.push_back(widget); // Keine Kopie, nur Zeiger wird in die Queue gelegt
 }
 
 void WidgetsManager::setup()
 {
-    for (size_t i = 0; i < _widgetQueue.size(); ++i)
+    for (auto& widget : _widgetQueue)
     {
-        Widget *widget = _widgetQueue.front();
         if (widget != nullptr)
         {
             widget->setup();
-            _widgetQueue.push(widget);
-            _widgetQueue.pop();
         }
     }
 }
 
 void WidgetsManager::start()
 {
-    size_t queueSize = _widgetQueue.size();
-
-    for (size_t i = 0; i < queueSize; ++i)
+    for (auto& widget : _widgetQueue)
     {
-        Widget *widget = _widgetQueue.front();
-        _widgetQueue.pop();
-        _widgetQueue.push(widget);
-
         if (!widget) continue;
 
         const WidgetFlags flags = widget->getAction();
@@ -58,6 +49,7 @@ void WidgetsManager::start()
 void WidgetsManager::loop()
 {
     uint32_t currentTime = millis();
+
     // 1. If a current widget exists, check its flags and state.
     if (_currentWidget)
     {
@@ -82,6 +74,7 @@ void WidgetsManager::loop()
             if (_displayModule) _displayModule->loop(); // Update the displaymodule, since the status widget ignore the rest.
             return;                                     // StatusWidget has highest priority, so skip the rest of the code.
         }
+
         // b. If it is a `ManagedExternally` and `DisplayEnabled`, keep it active and continue running.
         if ((flags & ManagedExternally) && (flags & DisplayEnabled))
         {
@@ -92,13 +85,13 @@ void WidgetsManager::loop()
             }
             if (state == WidgetState::STOPPED)
             {
-                _currentWidget->start(); // Start Widget
                 logDebugP("Starting stopped widget: %s", _currentWidget->getName().c_str());
+                _currentWidget->start(); // Start Widget
             }
             _currentWidget->loop();
-            _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout.
-            // External managed widgets are always active. No exit, since we need to check for StatusWidgets
+            _lastInteractionTime = currentTime; // Internal interaction detected. Reset the timeout
         }
+
         // c. If it is a `ManagedExternally` and not `DisplayEnabled`, deactivate the widget.
         if ((flags & ManagedExternally) && !(flags & DisplayEnabled) && !(flags & Background))
         {
@@ -106,6 +99,7 @@ void WidgetsManager::loop()
             _currentWidget->stop();
             _currentWidget = nullptr; // Widget deaktivieren
         }
+
         // d. If `AutoRemove` and the time has expired, remove the widget.
         if ((flags & AutoRemove) && currentTime >= _currentTime)
         {
@@ -113,22 +107,15 @@ void WidgetsManager::loop()
             removeWidgetFromQueue(_currentWidget); // Widget entfernen
             _currentWidget = nullptr;
         }
-
-        // e. if `DefaultWidget` and the time has expired, stop the widget.
-        // if ((flags & DefaultWidget) && currentTime >= _currentTime /*|| currentTime - _lastInteractionTime < _idleTimeout*/)
-        //{
-        //    logDebugP("Default Widget expired: %s", _currentWidget->getName().c_str());
-        //    _currentWidget->stop();
-        //}
-    } // End of current widget check
+    }
 
     // 2. Search for a prioritized status widget in the queue.
-    Widget *priorityWidget = getNextPriorityWidget(); // Returns the first prioritized status widget in the queue.
+    Widget* priorityWidget = getNextPriorityWidget(); // Returns the first prioritized status widget in the queue.
+
     // a. If a prioritized status widget exists:
     if (priorityWidget)
     {
         // i. Pause the current widget, if available.
-
         if (_currentWidget)
         {
             if (_currentWidget->getAction() & DefaultWidget)
@@ -139,14 +126,13 @@ void WidgetsManager::loop()
             else
             {
                 logDebugP("Pausing current widget: %s", _currentWidget->getName().c_str());
-
-                // Pause only running widgets that are not background widgets.
                 if (_currentWidget->getState() == WidgetState::RUNNING)
                 {
                     _currentWidget->pause();
                 }
             }
         }
+
         // ii. Activate the prioritized status widget.
         logDebugP("Starting priority status widget: %s", priorityWidget->getName().c_str());
         _currentWidget = priorityWidget;
@@ -161,10 +147,8 @@ void WidgetsManager::loop()
     if (!_currentWidget && !_widgetQueue.empty() && currentTime >= _currentTime)
     {
         _currentWidget = _widgetQueue.front();
-        _widgetQueue.push(_currentWidget);
-        _widgetQueue.pop();
-
-        if (_currentWidget && !(_currentWidget->getAction() & DefaultWidget) &&
+        if (_currentWidget &&
+            !(_currentWidget->getAction() & DefaultWidget) &&
             !(_currentWidget->getAction() & Background) &&
             !(_currentWidget->getAction() & ManagedExternally))
         {
@@ -178,6 +162,7 @@ void WidgetsManager::loop()
             _currentWidget = nullptr;
         }
     }
+
     // 4. Run the `loop()` of the current widget if it is active.
     if (_currentWidget)
     {
@@ -185,10 +170,8 @@ void WidgetsManager::loop()
     }
 
     // 5. Check for Background widgets and run their loop() and set the default widget.
-    for (size_t i = 0; i < _widgetQueue.size(); ++i)
+    for (auto& widget : _widgetQueue)
     {
-        Widget *widget = _widgetQueue.front();
-        // a. If the widget is a background widget, run the loop() method and activate it if it requests display.
         if (widget && (widget->getAction() & Background))
         {
             // background loop need to run always
@@ -197,14 +180,12 @@ void WidgetsManager::loop()
             // Check if the widget wants to activate itself
             if (widget->getAction() & DisplayEnabled)
             {
-                // If another widget is active and not this one, stop it
                 if (_currentWidget && _currentWidget != widget)
                 {
                     logDebugP("Stopping current widget: %s", _currentWidget->getName().c_str());
                     _currentWidget->stop();
                 }
 
-                // If this widget is not active yet, activate it
                 if (_currentWidget != widget)
                 {
                     logDebugP("Activating background widget: %s", widget->getName().c_str());
@@ -215,17 +196,18 @@ void WidgetsManager::loop()
                 }
             }
         }
-        else // b. If the widget is a default widget, start it and set the display time.
+        else
         {
-            if ((currentTime - _lastInteractionTime >= _idleTimeout) && // Only if we are in idle mode, then start the default widgets
+            // b. If the widget is a default widget, start it and set the display time.
+            if ((currentTime - _lastInteractionTime >= _idleTimeout) &&
                 widget && (widget->getAction() & DefaultWidget))
             {
                 WidgetState state = widget->getState();
-                if (_currentTime < currentTime) // check if we are in
+                if (_currentTime < currentTime)
                 {
-                    if (_currentWidget != widget) // Get the next DefaultWidget
+                    if (_currentWidget != widget)
                     {
-                        if (_currentWidget && _currentWidget->getAction() & DefaultWidget) // Only stop if the current widget is also a DefaultWidget
+                        if (_currentWidget && _currentWidget->getAction() & DefaultWidget)
                         {
                             logDebugP("Stopping current: DefaultWidget: %s", _currentWidget->getName().c_str());
                             _currentWidget->stop(); // Stop the current DefaultWidget
@@ -243,6 +225,7 @@ void WidgetsManager::loop()
                         widget->loop();
                     }
                 }
+
                 if (currentTime - _lastInteractionTime < _idleTimeout)
                 {
                     if (state == WidgetState::RUNNING)
@@ -252,9 +235,7 @@ void WidgetsManager::loop()
                     }
                 }
             }
-        } // Ende DefaultWidget Check
-        _widgetQueue.push(widget);
-        _widgetQueue.pop();
+        }
     }
 
     // 6. If a display module is available, update it.
@@ -264,70 +245,54 @@ void WidgetsManager::loop()
     }
 }
 
-Widget *WidgetsManager::getNextPriorityWidget()
+Widget* WidgetsManager::getNextPriorityWidget()
 {
-    Widget *priorityWidget = nullptr;
-    size_t queueSize = _widgetQueue.size();
-
-    for (size_t i = 0; i < queueSize; ++i)
+    for (auto& widget : _widgetQueue)
     {
-        Widget *widget = _widgetQueue.front();
-        _widgetQueue.push(widget);
-        _widgetQueue.pop();
-
         WidgetFlags flags = widget->getAction();
-
         // Check if the widget is a status widget with `InternalEnabled`
         if ((flags & StatusWidget) && (flags & DisplayEnabled))
         {
-            priorityWidget = widget; // StatusWidget has highest priority
+            return widget; // StatusWidget has highest priority
         }
-    }
-    return priorityWidget;
-}
-
-Widget *WidgetsManager::getWidgetFromQueue(const char *widgetName)
-{
-    if (widgetName[0] == '\0' || _widgetQueue.empty()) return nullptr;
-    size_t queueSize = _widgetQueue.size();
-    for (size_t i = 0; i < queueSize; ++i)
-    {
-        Widget *widget = _widgetQueue.front();
-        if (widget->getName().compare(widgetName) == 0)
-        {
-            return widget;
-        }
-        _widgetQueue.push(_widgetQueue.front());
-        _widgetQueue.pop();
     }
     return nullptr;
 }
 
-Widget *WidgetsManager::getWidgetFromQueue(Widget *widget)
+Widget* WidgetsManager::getWidgetFromQueue(const char* widgetName)
+{
+    if (widgetName[0] == '\0' || _widgetQueue.empty()) return nullptr;
+    for (auto& widget : _widgetQueue)
+    {
+        if (widget->getName().compare(widgetName) == 0)
+        {
+            return widget;
+        }
+    }
+    return nullptr;
+}
+
+Widget* WidgetsManager::getWidgetFromQueue(Widget* widget)
 {
     if (widget != nullptr) return getWidgetFromQueue(widget->getName().c_str());
     return nullptr;
 }
 
-void WidgetsManager::removeWidgetFromQueue(const char *widgetName)
+void WidgetsManager::removeWidgetFromQueue(const char* widgetName)
 {
     if (widgetName[0] == '\0' || _widgetQueue.empty()) return;
-    size_t queueSize = _widgetQueue.size();
-    for (size_t i = 0; i < queueSize; ++i)
+    for (auto it = _widgetQueue.begin(); it != _widgetQueue.end(); ++it)
     {
-        Widget *widget = _widgetQueue.front();
-        if (widget->getName().compare(widgetName) == 0)
+        if ((*it)->getName().compare(widgetName) == 0)
         {
-            _widgetQueue.pop();
-            delete widget;
+            delete *it;
+            _widgetQueue.erase(it);
             return;
         }
-        _widgetQueue.push(_widgetQueue.front());
-        _widgetQueue.pop();
     }
 }
 
-void WidgetsManager::removeWidgetFromQueue(Widget *widget)
+void WidgetsManager::removeWidgetFromQueue(Widget* widget)
 {
     if (widget != nullptr) return removeWidgetFromQueue(widget->getName().c_str());
 }
