@@ -8,7 +8,6 @@
  * @copyright   Copyright (c) 2025, Erkan Çolak (erkan@çolak.de)
  *              Licensed under GNU GPL v3.0
  */
-
 #include "widget.h"
 #ifdef ARDUINO_ARCH_ESP32
     #include <deque>
@@ -27,11 +26,12 @@ class WidgetsManager
     inline i2cDisplay* getDisplayModule() { return _displayModule; }
 
     Widget* getCurrentWidget() { return _currentWidget; } // Get the current widget
-    Widget* getWidgetFromQueue(const char* widgetName); // Get a widget from the queue by name
+    Widget* getWidgetFromQueue(const std::string& widgetName); // Get a widget from the queue by name
     Widget* getWidgetFromQueue(Widget* widget); // Get a widget from the queue by pointer
     std::deque<Widget*> getWidgetQueue() { return _widgetQueue; } // Get the widget queue
 
     void clearWidgetQueue() { _widgetQueue.clear(); } // Clear the widget queue
+    void logWidgetQueue();
 
   private:
     std::deque<Widget*> _widgetQueue;     // Queue of widgets

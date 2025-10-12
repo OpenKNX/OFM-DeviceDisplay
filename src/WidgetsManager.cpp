@@ -48,24 +48,23 @@ void WidgetsManager::loop()
 {
     uint32_t currentTime = millis();
 
-    handleCurrentWidget(currentTime);                // 1. We handle the current widget first
-    
-    if (activatePriorityWidget(currentTime))         // 2. Then we check for priority widgets
-    {
-      _currentWidget->loop(); 
-      return;
-    }
-    
-    activateNormalWidget(currentTime);               // 3. Then we check for normal widgets
+    handleCurrentWidget(currentTime); // 1. We handle the current widget first
 
-    handleBackgroundAndDefaultWidgets(currentTime);  // 4. Finally, handle background and default widgets
-    
-    if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING) 
-    {                                                // 5. Loop the current widget if exists and is running
+    if (activatePriorityWidget(currentTime)) // 2. Then we check for priority widgets
+    {
+        _currentWidget->loop();
+        return;
+    }
+
+    activateNormalWidget(currentTime); // 3. Then we check for normal widgets
+
+    handleBackgroundAndDefaultWidgets(currentTime); // 4. Finally, handle background and default widgets
+
+    if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
+    { // 5. Loop the current widget if exists and is running
         _currentWidget->loop();
     }
-    if (_displayModule) _displayModule->loop();      // 6. Always loop the display module if exists
-
+    if (_displayModule) _displayModule->loop(); // 6. Always loop the display module if exists
 }
 
 Widget* WidgetsManager::getNextPriorityWidget()
@@ -82,12 +81,11 @@ Widget* WidgetsManager::getNextPriorityWidget()
     return nullptr;
 }
 
-Widget* WidgetsManager::getWidgetFromQueue(const char* widgetName)
+Widget* WidgetsManager::getWidgetFromQueue(const std::string& widgetName)
 {
-    if (widgetName[0] == '\0' || _widgetQueue.empty()) return nullptr;
     for (auto& widget : _widgetQueue)
     {
-        if (widget->getName().compare(widgetName) == 0)
+        if (widget && widget->getName() == widgetName)
         {
             return widget;
         }
@@ -97,7 +95,7 @@ Widget* WidgetsManager::getWidgetFromQueue(const char* widgetName)
 
 Widget* WidgetsManager::getWidgetFromQueue(Widget* widget)
 {
-    if (widget != nullptr) return getWidgetFromQueue(widget->getName().c_str());
+    if (widget != nullptr) return getWidgetFromQueue(widget->getName());
     return nullptr;
 }
 
@@ -108,7 +106,7 @@ void WidgetsManager::removeWidgetFromQueue(const char* widgetName)
     {
         if ((*it)->getName().compare(widgetName) == 0)
         {
-            delete *it;
+            // delete *it;
             _widgetQueue.erase(it);
             return;
         }
@@ -117,7 +115,7 @@ void WidgetsManager::removeWidgetFromQueue(const char* widgetName)
 
 void WidgetsManager::removeWidgetFromQueue(Widget* widget)
 {
-    if (widget != nullptr) return removeWidgetFromQueue(widget->getName().c_str());
+    if (widget != nullptr) removeWidgetFromQueue(widget->getName().c_str());
 }
 
 // Loop - functionality support
@@ -141,6 +139,14 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
             logDebugP("Starting stopped StatusWidget: %s", _currentWidget->getName().c_str());
         }
         _lastInteractionTime = currentTime;
+        return;
+    }
+
+    if ((flags & StatusWidget) && state == WidgetState::RUNNING && !(flags & DisplayEnabled))
+    {
+        logDebugP("StatusWidget no longer DisplayEnabled: %s", _currentWidget->getName().c_str());
+        _currentWidget->stop();
+        _currentWidget = nullptr;
         return;
     }
 
@@ -280,7 +286,7 @@ void WidgetsManager::handleBackgroundAndDefaultWidgets(uint32_t currentTime)
                 }
             }
 
-            if (currentTime - _lastInteractionTime < _idleTimeout)
+            if (currentTime - _lastInteractionTime >= _idleTimeout)
             {
                 if (state == WidgetState::RUNNING)
                 {
@@ -290,4 +296,32 @@ void WidgetsManager::handleBackgroundAndDefaultWidgets(uint32_t currentTime)
             }
         }
     }
+}
+
+void WidgetsManager::logWidgetQueue()
+{
+    logDebugP("=== Widget Queue Dump ===");
+    if (_widgetQueue.empty())
+    {
+        logDebugP("Queue is empty.");
+        return;
+    }
+
+    for (size_t i = 0; i < _widgetQueue.size(); ++i)
+    {
+        Widget* widget = _widgetQueue[i];
+        if (widget)
+        {
+            logDebugP("Index: %d | Name: %s | Flags: %d | State: %d",
+                      i,
+                      widget->getName().c_str(),
+                      widget->getAction(),
+                      widget->getState());
+        }
+        else
+        {
+            logDebugP("Index: %d | nullptr", i);
+        }
+    }
+    logDebugP("=========================");
 }
