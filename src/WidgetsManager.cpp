@@ -85,7 +85,7 @@ Widget* WidgetsManager::getWidgetFromQueue(const std::string& widgetName)
 {
     for (auto& widget : _widgetQueue)
     {
-        if (widget && widget->getName() == widgetName)
+        if (widget && widget->getName().compare(widgetName) == 0)
         {
             return widget;
         }
@@ -212,87 +212,123 @@ bool WidgetsManager::activatePriorityWidget(uint32_t currentTime)
 
 void WidgetsManager::activateNormalWidget(uint32_t currentTime)
 {
+    // Nur aktivieren, wenn kein Widget aktiv ist und die Zeit des letzten Widgets abgelaufen ist
     if (_currentWidget || _widgetQueue.empty() || currentTime < _currentTime) return;
 
-    _currentWidget = _widgetQueue.front();
-    _widgetQueue.push_back(_currentWidget);
-    _widgetQueue.pop_front();
+    // Prüfe, ob die Display-Zeit des letzten Widgets abgelaufen ist
+    if (currentTime < _currentTime) return;
 
-    const WidgetFlags currentWidgetFlags = _currentWidget->getAction();
-    if (_currentWidget &&
-        !(currentWidgetFlags & DefaultWidget) &&
-        !(currentWidgetFlags & Background) &&
-        !(currentWidgetFlags & ManagedExternally))
+    // Suche das erste Normal Widget in der Queue
+    for (auto it = _widgetQueue.begin(); it != _widgetQueue.end(); ++it)
     {
-        logDebugP("Starting normal widget: %s", _currentWidget->getName().c_str());
-        _currentWidget->start();
-        _currentTime = currentTime + _currentWidget->getDisplayTime();
-        _lastInteractionTime = currentTime;
-    }
-    else
-    {
-        _currentWidget = nullptr;
+        Widget* widget = *it;
+        if (!widget) continue;
+
+        const WidgetFlags flags = widget->getAction();
+
+        // Normal Widget = KEIN spezielles Flag gesetzt
+        if (!(flags & DefaultWidget) &&
+            !(flags & Background) &&
+            !(flags & ManagedExternally) &&
+            !(flags & StatusWidget))
+        {
+            logDebugP("Starting normal widget: %s", widget->getName().c_str());
+            _currentWidget = widget;
+            _currentWidget->start();
+            _currentTime = currentTime + _currentWidget->getDisplayTime();
+            _lastInteractionTime = currentTime;
+
+            // Widget ans Ende der Queue verschieben (Round-Robin)
+            _widgetQueue.erase(it);
+            _widgetQueue.push_back(widget);
+            return;
+        }
     }
 }
 
 void WidgetsManager::handleBackgroundAndDefaultWidgets(uint32_t currentTime)
 {
-    for (auto& widget : _widgetQueue)
+    for (auto it = _widgetQueue.begin(); it != _widgetQueue.end(); ++it)
     {
-        if (widget && (widget->getAction() & Background))
+        Widget* widget = *it;
+        if (!widget) continue;
+
+        const WidgetFlags flags = widget->getAction();
+
+        // Handle background widgets
+        if (flags & Background)
         {
-            widget->loop();
-            if (widget->getAction() & DisplayEnabled)
+            widget->loop(); // Background widgets ALWAYS loop
+
+            if (flags & DisplayEnabled)
             {
-                if (_currentWidget && _currentWidget != widget)
-                {
-                    logDebugP("Stopping current widget: %s", _currentWidget->getName().c_str());
-                    _currentWidget->stop();
-                }
+                // Background widget WANTS to be displayed
                 if (_currentWidget != widget)
                 {
+                    if (_currentWidget)
+                    {
+                        logDebugP("Stopping current widget for background widget: %s", _currentWidget->getName().c_str());
+                        _currentWidget->stop();
+                    }
                     logDebugP("Activating background widget: %s", widget->getName().c_str());
                     _currentWidget = widget;
                     _currentWidget->start();
-                    _currentTime = millis() + _currentWidget->getDisplayTime();
-                    _lastInteractionTime = millis();
+                    _currentTime = currentTime + _currentWidget->getDisplayTime();
+                    _lastInteractionTime = currentTime;
                 }
             }
-        }
-        else if ((currentTime - _lastInteractionTime >= _idleTimeout) &&
-                 widget && (widget->getAction() & DefaultWidget))
-        {
-            WidgetState state = widget->getState();
-            if (_currentTime < currentTime)
+            else if (_currentWidget == widget)
             {
-                if (_currentWidget != widget)
+                // Background widget NO LONGER wants to be displayed -> remove from focus
+                logDebugP("Background widget no longer DisplayEnabled, releasing focus: %s", widget->getName().c_str());
+                _currentWidget = nullptr;
+            }
+        }
+        // Handle default widgets (shown during idle timeout)
+        else if (flags & DefaultWidget)
+        {
+            const bool idleTimeoutReached = (currentTime - _lastInteractionTime >= _idleTimeout);
+            const WidgetState state = widget->getState();
+
+            // Idle timeout reached AND (no current widget OR current widget finished its display time)
+            if (idleTimeoutReached && (!_currentWidget || currentTime >= _currentTime))
+            {
+                // Only switch if no current widget OR current widget is also a DefaultWidget
+                if (!_currentWidget || (_currentWidget->getAction() & DefaultWidget))
                 {
-                    if (_currentWidget && _currentWidget->getAction() & DefaultWidget)
+                    // Switch to this DefaultWidget if it's not already current
+                    if (_currentWidget != widget)
                     {
-                        logDebugP("Stopping current: DefaultWidget: %s", _currentWidget->getName().c_str());
-                        _currentWidget->stop();
-                    }
-                    _currentWidget = widget;
-                    if (state != WidgetState::RUNNING)
-                    {
+                        if (_currentWidget)
+                        {
+                            logDebugP("Stopping current DefaultWidget: %s", _currentWidget->getName().c_str());
+                            _currentWidget->stop();
+                        }
+                        _currentWidget = widget;
                         logDebugP("Starting DefaultWidget: %s", _currentWidget->getName().c_str());
                         _currentWidget->start();
                         _currentTime = currentTime + _currentWidget->getDisplayTime();
+
+                        // Widget ans Ende der Queue verschieben (Round-Robin)
+                        Widget* temp = *it;
+                        _widgetQueue.erase(it);
+                        _widgetQueue.push_back(temp);
+                        return; // Wichtig: Nach Verschieben die Schleife verlassen!
                     }
-                }
-                if (state == WidgetState::RUNNING)
-                {
-                    widget->loop();
                 }
             }
 
-            if (currentTime - _lastInteractionTime >= _idleTimeout)
+            // If this widget is current and running -> loop it
+            if (_currentWidget == widget && state == WidgetState::RUNNING)
             {
-                if (state == WidgetState::RUNNING)
-                {
-                    logDebugP("Stopping DefaultWidget due to timeout: %s", widget->getName().c_str());
-                    widget->stop();
-                }
+                widget->loop();
+            }
+
+            // Idle timeout NOT reached -> DefaultWidget loses focus (but doesn't stop)
+            if (!idleTimeoutReached && _currentWidget == widget)
+            {
+                logDebugP("DefaultWidget loses focus due to interaction: %s", widget->getName().c_str());
+                _currentWidget = nullptr;
             }
         }
     }
