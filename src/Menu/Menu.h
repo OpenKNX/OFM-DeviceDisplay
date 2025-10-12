@@ -3,10 +3,7 @@
     #include "../Widget.h"
     #include "MenuConfig.h"
 
-    // Define the frontplate LED (ToDo: Needs to be configured in Hardware Config)
-    #define FRONTPLATE_LED_RED 0x0101   // Pin for frontplate LED RED (not used, just for reference)
-    #define FRONTPLATE_LED_GREEN 0x0102 // Pin for frontplate LED GREEN (not used, just for reference)
-class MenuWidget : public Widget
+    class MenuWidget : public Widget
 {
   public:
     // Constructor

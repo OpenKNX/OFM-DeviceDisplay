@@ -70,19 +70,18 @@ void MenuWidget::setup()
         logDebugP("GPIO Module initialized");
 
         // Initialize buttons
-        const uint16_t pins[] = {_buttonUp, _buttonDown, _buttonSelect, _buttonLeft, _buttonRight, 0x0103};
+        const uint16_t pins[] =
+            {
+                _buttonUp, _buttonDown, _buttonSelect, //
+                _buttonLeft, _buttonRight, 0x0103      //
+            };
         for (auto pin : pins)
         {
             openknx.gpio.pinMode(pin, INPUT, true, 0);
         }
 
-        // Initialize LEDs
-        openknx.gpio.pinMode(FRONTPLATE_LED_RED, OUTPUT, false, 0);
-        openknx.gpio.pinMode(FRONTPLATE_LED_GREEN, OUTPUT, false, 0);
-
-        // Turn on both LEDs to indicate that the MenuWidget is active
-        setLED(FRONTPLATE_LED_RED, HIGH);   // Switch on the Prog LED (RED)
-        setLED(FRONTPLATE_LED_GREEN, HIGH); // Switch on the Info LED
+        //openknx.info1Led.blinking(); // Initialize INFO1 LED (RED) to blinking
+        //openknx.info2Led.blinking(); // Initialize INFO2 LED (GREEN) to blinking
     }
     #endif
     _state = WidgetState::BACKGROUND; // Start Menu in background! Will be started by button press.
@@ -127,13 +126,17 @@ bool MenuWidget::processButtonPress() // We need to call this periodically in lo
         {
             navigateUp();
             bRet = true;
-            setLED(FRONTPLATE_LED_RED, LOW); // Switch off Prog LED (RED)
+    #ifdef USE_GPIO_MODULE
+            //openknx.info1Led.on(true); // Use the RED LED for indication
+    #endif
         }
         else if (readButton(_buttonDown))
         {
             navigateDown();
             bRet = true;
-            setLED(FRONTPLATE_LED_GREEN, LOW); // Switch off Info LED (GREEN)
+    #ifdef USE_GPIO_MODULE
+            //openknx.info2Led.on(true); // Use the GREEN LED for indication
+    #endif
         }
         else if (readButton(_buttonSelect))
         {
@@ -144,13 +147,17 @@ bool MenuWidget::processButtonPress() // We need to call this periodically in lo
         {
             navigateLeft();
             bRet = true;
-            setLED(FRONTPLATE_LED_RED, HIGH); // Switch on Prog LED (RED)
+    #ifdef USE_GPIO_MODULE
+            //openknx.info1Led.on(true); // Use the RED LED for indication
+    #endif
         }
         else if (readButton(_buttonRight))
         {
             navigateRight();
             bRet = true;
-            setLED(FRONTPLATE_LED_GREEN, HIGH); // Switch on Info LED (GREEN)
+    #ifdef USE_GPIO_MODULE
+            //openknx.info2Led.on(true); // Use the GREEN LED for indication
+    #endif
         }
     return bRet;
 }
