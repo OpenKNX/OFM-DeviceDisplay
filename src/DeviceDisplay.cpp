@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "DeviceDisplay.h"
-#include "OpenKNX.h"
+    #include "DeviceDisplay.h"
+    #include "OpenKNX.h"
 
 DeviceDisplay openknxDisplayModule;
 i2cDisplay* displayModule = new i2cDisplay();
@@ -23,38 +23,38 @@ void DeviceDisplay::init()
 {
     logInfoP("Init started...");
 
-// Setup the display module with the default settings from the selected hardware
-// Ensure all necessary hardware configuration macros are defined
-#ifndef OKNXHW_DEVICE_DISPLAY_I2C_INST
-     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_INST);
-#endif
+    // Setup the display module with the default settings from the selected hardware
+    // Ensure all necessary hardware configuration macros are defined
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_INST
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_INST);
+    #endif
 
-#ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
-     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
-#endif
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
+    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
+    #endif
 
-#ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL
     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SCL);
-#endif
+    #endif
 
-#ifndef OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS
+    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS
     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS);
-#endif
+    #endif
 
-#ifndef OKNXHW_DEVICE_DISPLAY_WIDTH
+    #ifndef OKNXHW_DEVICE_DISPLAY_WIDTH
     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_WIDTH);
-#endif
+    #endif
 
-#ifndef OKNXHW_DEVICE_DISPLAY_HEIGHT
+    #ifndef OKNXHW_DEVICE_DISPLAY_HEIGHT
     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_HEIGHT);
-#endif
-#ifdef ARDUINO_ARCH_ESP32
+    #endif
+    #ifdef ARDUINO_ARCH_ESP32
     displayModule.lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
-#else
+    #else
     displayModule.lcdSettings.i2cInst = OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
-#endif
-    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;      // Set the Hardware specific SDA pin for the display
-    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL;      // Set the Hardware specific SCL pin for the display
+    #endif
+    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA; // Set the Hardware specific SDA pin for the display
+    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL; // Set the Hardware specific SCL pin for the display
 
     displayModule.lcdSettings.i2cadress = OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS; // Set here the i2c address of the display. I.e. 0x3C
     displayModule.lcdSettings.width = OKNXHW_DEVICE_DISPLAY_WIDTH;           // Set here the width of the display. I.e. 128
@@ -66,8 +66,8 @@ void DeviceDisplay::init()
     {
         logInfoP("Display initialized.");
         logInfoP("Display i2c Settings - i2cInt: %p, SDA: %d, SCL: %d, Address: 0x%02X, Width: %d, Height: %d",
-                  displayModule.lcdSettings.i2cInst, displayModule.lcdSettings.sda, displayModule.lcdSettings.scl,
-                  displayModule.lcdSettings.i2cadress, displayModule.lcdSettings.width, displayModule.lcdSettings.height);
+                 displayModule.lcdSettings.i2cInst, displayModule.lcdSettings.sda, displayModule.lcdSettings.scl,
+                 displayModule.lcdSettings.i2cadress, displayModule.lcdSettings.width, displayModule.lcdSettings.height);
     }
     else
     {
@@ -86,46 +86,45 @@ void DeviceDisplay::setup(bool configured)
     logDebugP("setup...");
     displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
     displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display
-#ifndef WIDGET_MANAGER
+    #ifndef WIDGET_MANAGER
     initializeWidgets(); // Setup default widget queue
-#else
-    widgetManager.setDisplayModule(&displayModule); // The display module for the widgets
+    #else
+    widgetManager.setDisplayModule(&displayModule);                                     // The display module for the widgets
     WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(3000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
     widgetManager.addWidget(bootLogoWidget);
 
-    //WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
-    //widgetManager.addWidget(lifeWidget);
+    // WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
+    // widgetManager.addWidget(lifeWidget);
 
-    //WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
-    //widgetManager.addWidget(starfieldWidget);
+    // WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
+    // widgetManager.addWidget(starfieldWidget);
 
-    //WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
-    //widgetManager.addWidget(cube3DWidget);
+    // WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
+    // widgetManager.addWidget(cube3DWidget);
 
-    //WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
-    //widgetManager.addWidget(pongWidget);
+    // WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
+    // widgetManager.addWidget(pongWidget);
 
-    //WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
-    //widgetManager.addWidget(rainWidget);
+    // WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
+    // widgetManager.addWidget(rainWidget);
 
-    //WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
-    //widgetManager.addWidget(matrixWidget);
+    // WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
+    // widgetManager.addWidget(matrixWidget);
 
-    //WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
-    //widgetManager.addWidget(matrixClassicWidget);
+    // WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
+    // widgetManager.addWidget(matrixClassicWidget);
 
-    //WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
-    //widgetManager.addWidget(sysInfoLiteWidget);
+    // WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
+    // widgetManager.addWidget(sysInfoLiteWidget);
 
-    //WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
-    //widgetManager.addWidget(openknxLogoWidget);
+    // WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
+    // widgetManager.addWidget(openknxLogoWidget);
 
-    //WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
-    //widgetManager.addWidget(fireworksWidget);
+    // WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
+    // widgetManager.addWidget(fireworksWidget);
 
     WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::DefaultWidget, "https://www.openknx.de", false); // Create a new QRcode widget
     widgetManager.addWidget(qrcodeWidget);
-
 
     // Default Widgets
 
@@ -134,25 +133,25 @@ void DeviceDisplay::setup(bool configured)
     widgetManager.addWidget(clockWidget);
 
     // Menu Widget, which will be displayed Initially, if there is no other widget in the queue, infitely.
-    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally,  // Is managed externally
-    0x107,  // DD_CTRL_PIN7_UP_BUTTON,     // But will stopped for testing after 20 seconds
-    0x104,  // DD_CTRL_PIN4_DOWN_BUTTON,
-    0x106,  // DD_CTRL_PIN6_OK_BUTTON,
-    0x100,  // DD_CTRL_PIN0_LEFT_BUTTON, Optional: 0x103 can be used for left button
-    0x105   // DD_CTRL_PIN5_RIGHT_BUTTON 
-    );                                                                        // Create a new Menu widget
+    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally, // Is managed externally
+                                            FRONT_CTRL_UP,                         // Joystick - Up
+                                            FRONT_CTRL_DOWN,                       // Joystick - Down
+                                            FRONT_CTRL_OK,                         // Joystick - Press / OK
+                                            FRONT_CTRL_LEFT,                       // Joystick - Left (Optional: FRONT_CTRL_LEFT2)
+                                            FRONT_CTRL_RIGHT                       // Joystick - Right
+    );                                                                             // Create a new Menu widget
 
     menuWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::Background);
-    setMenuWidget(menuWidget);                                                // For Internal use in this class
+    setMenuWidget(menuWidget); // For Internal use in this class
     widgetManager.addWidget(menuWidget);
 
     WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
     progModeWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);
     widgetManager.addWidget(progModeWidget);
 
-    //widgetManager.setup(); // Setup the widgets ToDo! CHeck whats going wrong here
-    widgetManager.start(); // Start the widgets 
-#endif
+    // widgetManager.setup(); // Setup the widgets ToDo! CHeck whats going wrong here
+    widgetManager.start(); // Start the widgets
+    #endif
 }
 
 /**
@@ -207,14 +206,20 @@ void DeviceDisplay::loop(bool configured)
     if (knx.progMode())
     {
         lastDisplayDimTimer_ = millis(); // Reset the display dim timer if prog mode is active
-        if (!wasInProgMode &&
-            (progMode = widgetManager.getWidgetFromQueue("ProgMode")) != nullptr &&
-            progMode->getState() != WidgetState::RUNNING)
+        if (!wasInProgMode)
         {
-            logInfoP("ProgMode requested and will be displayed...");
-            progMode->addAction(WidgetFlags::DisplayEnabled);
-            wasInProgMode = true;
-            logInfoP(" Current Action: %d", progMode->getAction());
+            if ((progMode = widgetManager.getWidgetFromQueue("ProgMode")) != nullptr &&
+                progMode->getState() != WidgetState::RUNNING)
+            {
+                logInfoP("ProgMode requested and will be displayed...");
+                progMode->addAction(WidgetFlags::DisplayEnabled);
+                wasInProgMode = true;
+                logInfoP(" Current Action: %d", progMode->getAction());
+            }
+            else
+            {
+                logErrorP("ProgMode widget not found in queue!");
+            }
         }
     }
     else if (wasInProgMode && progMode != nullptr)
@@ -229,9 +234,9 @@ void DeviceDisplay::loop(bool configured)
     widgetManager.loop();
     RUNTIME_MEASURE_END(_loopWidgets);
 
-    //RUNTIME_MEASURE_BEGIN(_loopDisplayModule);
-    //displayModule.loop();
-    //RUNTIME_MEASURE_END(_loopDisplayModule);
+    // RUNTIME_MEASURE_BEGIN(_loopDisplayModule);
+    // displayModule.loop();
+    // RUNTIME_MEASURE_END(_loopDisplayModule);
 }
 
 /**
@@ -254,67 +259,20 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
     bool bRet = false;
     if ((!diagnose) && command.compare(0, 4, "ddc ") == 0) // Display text on the display
     {
-        if (command.compare(4, 4, "logo") == 0) // Show the boot logo
+        if (command.compare(4, 1, "m") == 0) // Matrix Screensaver
         {
-        }
-        else if (command.compare(4, 6, "press ") == 0) // Simuliere Button-Press
-        {
-            if (_menuWidget) // Prüfen, ob MenuWidget referenziert wurde
-            {
-                if (command.compare(10, 1, "w") == 0) // "w" = Up
-                {
-                    _menuWidget->externalNavigateUp();
-                    bRet = true;
-                }
-                else if (command.compare(10, 1, "s") == 0) // "s" = Down
-                {
-                    _menuWidget->externalNavigateDown();
-                    bRet = true;
-                }
-                else if (command.compare(10, 1, "e") == 0) // "e" = Select
-                {
-                    _menuWidget->externalSelectItem();
-                    bRet = true;
-                }
-                else if (command.compare(10, 1, "p") == 0) // "p" = Pause
-                {
-                    widgetManager.getCurrentWidget()->pause();
-                    bRet = true;
-                }
-                else if (command.compare(10, 1, "r") == 0) // "r" = Resume
-                {
-                    widgetManager.getCurrentWidget()->resume();
-                    bRet = true;
-                }
-                else if (command.compare(10, 1, "x") == 0) // "x" = Stop
-                {
-                    widgetManager.getCurrentWidget()->stop();
-                    bRet = true;
-                }
-            }
-        }
-        else if (command.compare(4, 2, "m ") == 0) // Matrix Screensaver
-        {
-            if (command.compare(6, 1, "s") == 0) // Set Matrix Screensaver
-            {
-                logInfoP("Sending Matrix Screensaver to display. Remove it with 'ddc m r'");
-            }
-            else if (command.compare(6, 1, "r") == 0) // Remove Screensaver
-            {
-                logInfoP("Removing Matrix Screensaver from display...");
-            }
+            logInfoP("Sending Matrix Screensaver to display.");
+            WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::NoAction, 8);
+            matrixClassicWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
+            widgetManager.addWidget(matrixClassicWidget);
             bRet = true;
         }
-        else if (command.compare(4, 6, "clock ") == 0) // Clock Screensaver
+        else if (command.compare(4, 5, "clock") == 0) // Clock Screensaver
         {
-            if (command.compare(10, 1, "s") == 0) // Set Clock Screensaver
-            {
-                logInfoP("Sending Clock Screensaver to display. Remove it with 'ddc clock r'");
-            }
-            else if (command.compare(10, 1, "r") == 0) // Remove Screensaver
-            {
-                logInfoP("Removing Clock Screensaver from display...");
-            }
+            logInfoP("Sending Clock Screensaver to display.");
+            WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::NoAction, true);
+            clockWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
+            widgetManager.addWidget(clockWidget);
             bRet = true;
         }
         else if (command.compare(4, 5, "pong ") == 0) // Pong Screensaver
@@ -322,37 +280,20 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(9, 1, "s") == 0) // Set Pong Screensaver
             {
                 logInfoP("Pong Screensaver is set to display. Remove it with 'ddc pong r'");
+                WidgetPong* pongWidget = new WidgetPong(5000, WidgetFlags::NoAction);
+                pongWidget->setAction(WidgetFlags::DefaultWidget);
+                widgetManager.addWidget(pongWidget);
                 bRet = true;
             }
             if (command.compare(9, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing Pong Screensaver from display...");
-                bRet = true;
-            }
-        }
-        else if (command.compare(4, 5, "rain ") == 0) // Rainfall Screensaver
-        {
-            if (command.compare(9, 1, "s") == 0) // Set Rainfall Screensaver
-            {
-                logInfoP("Rainfall Screensaver is set to display. Remove it with 'ddc rain r'");
-                bRet = true;
-            }
-            if (command.compare(9, 1, "r") == 0) // Remove Screensaver
-            {
-                logInfoP("Removing Rainfall Screensaver from display...");
-                bRet = true;
-            }
-        }
-        else if (command.compare(4, 7, "matrix ") == 0) // Rainfall Screensaver
-        {
-            if (command.compare(11, 1, "s") == 0) // Set Rainfall Screensaver
-            {
-                logInfoP("Matrix Screensaver is set to display. Remove it with 'ddc matrix r'");
-                bRet = true;
-            }
-            if (command.compare(11, 1, "r") == 0) // Remove Screensaver
-            {
-                logInfoP("Removing Matrix Screensaver from display...");
+                Widget* widget = widgetManager.getWidgetFromQueue("WidgetPong");
+                if (widget)
+                {
+                    widget->addAction(WidgetFlags::AutoRemove);
+                    logInfoP("AutoRemove action added to Pong widget. Will be removed shortly.");
+                }
                 bRet = true;
             }
         }
@@ -361,11 +302,21 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(14, 1, "s") == 0) // Set Starfield Screensaver
             {
                 logInfoP("Starfield Screensaver is set to display. Remove it with 'ddc starfield r'");
+                WidgetStarfield* starfieldWidget = new WidgetStarfield(5000, WidgetFlags::NoAction, 10);
+                starfieldWidget->setAction(WidgetFlags::DefaultWidget);
+                widgetManager.addWidget(starfieldWidget);
                 bRet = true;
             }
             if (command.compare(14, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing Starfield Screensaver from display...");
+                Widget* widget = widgetManager.getWidgetFromQueue("Starfield");
+                if (widget)
+                {
+                    logInfoP("Retrieved widget at %p with name %s", widget, widget->getName().c_str());
+                    widget->addAction(WidgetFlags::AutoRemove);
+                    logInfoP("AutoRemove action added to Starfield widget. Will be removed shortly.");
+                }
                 bRet = true;
             }
         }
@@ -374,56 +325,29 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(11, 1, "s") == 0) // Set 3D Cube Screensaver
             {
                 logInfoP("3D Cube Screensaver is set to display. Remove it with 'ddc 3dcube r'");
+                WidgetCube3D* cube3DWidget = new WidgetCube3D(5000, WidgetFlags::NoAction);
+                cube3DWidget->setAction(WidgetFlags::DefaultWidget);
+                widgetManager.addWidget(cube3DWidget);
                 bRet = true;
             }
             if (command.compare(11, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing 3D Cube Screensaver from display...");
+                Widget* widget = widgetManager.getWidgetFromQueue("WidgetCube3D");
+                if (widget)
+                {
+                    widget->addAction(WidgetFlags::AutoRemove);
+                    logInfoP("AutoRemove action added to 3D Cube widget. Will be removed shortly.");
+                }
                 bRet = true;
             }
-        }
-        else if (command.compare(4, 5, "life ") == 0) // Life Screensaver
-        {
-            if (command.compare(9, 1, "s") == 0) // Set Life Screensaver
-            {
-                logInfoP("Life Screensaver is set to display. Remove it with 'ddc life r'");
-                bRet = true;
-            }
-            if (command.compare(9, 1, "r") == 0) // Remove Screensaver
-            {
-                logInfoP("Removing Life Screensaver from display...");
-                bRet = true;
-            }
-        }
-        else if (command.compare(4, 8, "openknx ") == 0) // OpenKNX Team Intro
-        {
-            if (command.compare(12, 1, "s") == 0) // Set OpenKNX Team Intro
-            {
-                logInfoP("OpenKNX Team Intro is set to display. Remove it with 'ddc openknx_team r'");
-                bRet = true;
-            }
-            if (command.compare(12, 1, "r") == 0) // Remove Screensaver
-            {
-                logInfoP("Removing OpenKNX Team Intro from display...");
-                bRet = true;
-            }
-        }
-        else if (command.compare(4, 1, "c") == 0) // Console simulation output widget
-        {
         }
         else if (command.compare(4, 1, "l") == 0 && command.size() < 6) // List all widgets
         {
-            //logInfoP("Total Widgets: %d:", widgetsQueue.size());
-            //for (size_t i = 0; i < widgetsQueue.size(); ++i)
-            //{
-            //    WidgetInfo& widgetInfo = widgetsQueue[i];
-            //    // Try to create a table with the widget information. The columns must be aligned.
-            //    logInfoP("Order: %d | Name: %s | Action: %d | Duration: %d", i, widgetInfo.name.c_str(), widgetInfo.action, widgetInfo.duration);
-            //}
-            //logInfoP("---------------------------------------------------------");
-            //bRet = true;
+            widgetManager.logWidgetQueue();
+            bRet = true;
         }
-#ifdef DD_CONSOLE_CMDS
+    #ifdef DD_CONSOLE_CMDS
         else if (command.compare(4, 4, "dim ") == 0) // ddc dim <on|off|0-255>
         {
             if (command.compare(8, 2, "on") == 0)
@@ -632,11 +556,8 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Display all-on mode disabled, resumed normal display");
             }
         }
-#endif // DD_CONSOLE_CMDS
-        else if (command.compare(4, 2, "qr") == 0) // Show QR-Code
-        {
-        }
-#ifdef OPENKNX_RUNTIME_STAT
+    #endif                                         // DD_CONSOLE_CMDS
+    #ifdef OPENKNX_RUNTIME_STAT
         else if (command.compare(4, 8, "runtime ") == 0)
         {
             logInfoP("DeviceDisplay Runtime Statistics: (Uptime=%dms)", millis());
@@ -648,43 +569,51 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             {
                 if (command.compare(19, 3, "all") == 0)
                 {
-                    //for (size_t i = 0; i < widgetsQueue.size(); ++i)
-                    //{
-                    //    //WidgetInfo& widgetInfo = widgetsQueue[i];
-                    //    //widgetInfo.widget->_WidgetRutimeStat.showStat("widget_" + widgetInfo.name, 0, true, true);
-                    //}
+                   // for (size_t i = 0; i < widgetsQueue.size(); ++i)
+                   // {
+                   //     // WidgetInfo& widgetInfo = widgetsQueue[i];
+                   //     // widgetInfo.widget->_WidgetRutimeStat.showStat("widget_" + widgetInfo.name, 0, true, true);
+                   // }
                     bRet = true;
                 }
                 else
                 {
-                    //std::string WidgetName = command.substr(19);
-                    //if (!WidgetName.empty())
-                    //{
-                    //    WidgetInfo* widgetInfo = getWidgetInfo(WidgetName);
-                    //    if (widgetInfo && widgetInfo->widget != nullptr)
-                    //    {
-                    //        widgetInfo->widget->_WidgetRutimeStat.showStat("widget_" + WidgetName, 0, true, true);
-                    //    }
-                    //    else
-                    //    {
-                    //        logErrorP("Widgets '%s' not found!", WidgetName.c_str());
-                    //    }
-                    //}
+                   // std::string WidgetName = command.substr(19);
+                   // if (!WidgetName.empty())
+                   // {
+                   //     WidgetInfo* widgetInfo = getWidgetInfo(WidgetName);
+                   //     if (widgetInfo && widgetInfo->widget != nullptr)
+                   //     {
+                   //         widgetInfo->widget->_WidgetRutimeStat.showStat("widget_" + WidgetName, 0, true, true);
+                   //     }
+                   //     else
+                   //     {
+                   //         logErrorP("Widgets '%s' not found!", WidgetName.c_str());
+                   //     }
+                   // }
                 }
             }
             else
             {
-                if (command.compare(12, 7, "widgets") == 0) {}
-                    //_loopWidgets.showStat("widgets", 0, true, true);
-                else if (command.compare(12, 3, "dim") == 0) {}
+                if (command.compare(12, 7, "widgets") == 0)
+                {
+                }
+                //_loopWidgets.showStat("widgets", 0, true, true);
+                else if (command.compare(12, 3, "dim") == 0)
+                {
+                }
                     //_loopRuntimesDim.showStat("dim", 0, true, true);
-    #ifdef DEMO_WIDGET_CMD_TESTS
-                else if (command.compare(12, 12, "demo_widgets") == 0) {}
-                    //_loopDemoWidgets.showStat("demo_widgets", 0, true, true);
-    #endif
-                else if (command.compare(12, 4, "loop") == 0) {}
-                    //_loopDisplayModule.showStat("loop_only", 0, true, true);
-                else if (command.compare(12, 3, "all") == 0) 
+        #ifdef DEMO_WIDGET_CMD_TESTS
+                else if (command.compare(12, 12, "demo_widgets") == 0)
+                {
+                }
+                        //_loopDemoWidgets.showStat("demo_widgets", 0, true, true);
+        #endif
+                else if (command.compare(12, 4, "loop") == 0)
+                {
+                }
+                //_loopDisplayModule.showStat("loop_only", 0, true, true);
+                else if (command.compare(12, 3, "all") == 0)
                 {
                     //_loopWidgets.showStat("widgets", 0, true, true);
                     //_loopRuntimesDim.showStat("dim", 0, true, true);
@@ -699,7 +628,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             bRet = true;
             // return true;
         }
-#endif // OPENKNX_RUNTIME_STAT
+    #endif // OPENKNX_RUNTIME_STAT
         else
         {
             openknx.logger.begin();
@@ -709,7 +638,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.logger.color(0);
             openknx.logger.log("Command(s)               Description");
             openknx.console.printHelpLine("ddc c <text>", "Print/Update Console Widgets");
-#ifdef DD_CONSOLE_CMDS
+    #ifdef DD_CONSOLE_CMDS
             openknx.console.printHelpLine("ddc scroll <cmd>", "<r|l|dr|dl|start|stop|sa> Scroll the display");
             openknx.console.printHelpLine("ddc vcom <on|off|value>", "Enable or disable VCOM detect or set the value");
             openknx.console.printHelpLine("ddc dim <on|off|0-255>", "Dim the display to on, off or set the contrast value");
@@ -718,14 +647,11 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc chargepump <on|off>", "Enable or disable the charge pump");
             openknx.console.printHelpLine("ddc segremap <on|off>", "Enable or disable the segment remapping");
             openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
-#endif // DD_CONSOLE_CMDS
-#ifdef DEMO_WIDGET_CMD_TESTS
-            openknx.console.printHelpLine("ddc test_start", "Start the demo test widgets");
-            openknx.console.printHelpLine("ddc test_stop", "Stop the demo test widgets");
-#endif // DEMO_WIDGET_CMD_TESTS
+    #endif // DD_CONSOLE_CMDS
+    #ifdef DEMO_WIDGET_CMD_TESTS
+    #endif // DEMO_WIDGET_CMD_TESTS
             openknx.console.printHelpLine("ddc l", "List all widgets");
-            openknx.console.printHelpLine("ddc logo", "Show the boot logo");
-#ifdef MATRIX_SCREENSAVER
+    #ifdef MATRIX_SCREENSAVER
             openknx.console.printHelpLine("ddc m <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
             openknx.console.printHelpLine("ddc matrix <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
             openknx.console.printHelpLine("ddc clock <s|r>", "<s> set, <r> remove - Clock Screensaver ");
@@ -735,25 +661,15 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc 3dcube <s|r>", "<s> set, <r> remove - 3D Cube Screensaver ");
             openknx.console.printHelpLine("ddc life <s|r>", "<s> set, <r> remove - Life Screensaver ");
             openknx.console.printHelpLine("ddc openknx <s|r>", "<s> set, <r> remove - OpenKNX Team Intro ");
-#endif // MATRIX_SCREENSAVER
-#ifdef QRCODE_WIDGET
+    #endif // MATRIX_SCREENSAVER
+    #ifdef QRCODE_WIDGET
             openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
-#endif // QRCODE_WIDGET
-#ifdef WIDGET_MANAGER
-            openknx.console.printHelpLine("ddc press <KEY>", "Simulates the menu widget button press");
-            openknx.console.printHelpLine("ddc press w ", "UP - Button press (W)");
-            openknx.console.printHelpLine("ddc press s ", "DOWN - Button press (S)");
-            openknx.console.printHelpLine("ddc press e ", "ENTER - Button press (E)");
-            openknx.console.printHelpLine("ddc press p ", "PAUSE the current widget");
-            openknx.console.printHelpLine("ddc press r ", "RESUME the current widget");
-            openknx.console.printHelpLine("ddc press x ", "STOP the current widget");
-#endif // WIDGET_MANAGER
-
+    #endif // QRCODE_WIDGET
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("Info: To test the progMode widget toogle the prog mode on the device.");
             openknx.logger.log("--------------------------------------------------------------------------------");
             openknx.logger.color(0);
-#ifdef OPENKNX_RUNTIME_STAT
+    #ifdef OPENKNX_RUNTIME_STAT
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("Runtime Statistics: Device Display Control");
             openknx.logger.log("--------------------------------------------------------------------------------");
@@ -767,7 +683,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc runtime widget <'widget_name'>", "Show Widgets runtime statistics. Use 'ddc l' to list all widgets.");
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("--------------------------------------------------------------------------------");
-#endif // OPENKNX_RUNTIME_STAT
+    #endif // OPENKNX_RUNTIME_STAT
             openknx.logger.color(0);
             openknx.logger.end();
             bRet = false;
