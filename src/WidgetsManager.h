@@ -15,11 +15,11 @@
 
 /**
  * @section State Machine Overview
- * 
+ *
  * The WidgetsManager operates as a state machine for managing and displaying widgets.
- * 
+ *
  * Visualization of widget types and states:
- * 
+ *
  *   +-------------------+      +-------------------+      +-------------------+      +-------------------+      +-------------------+
  *   |     STARTUP       | ---> |       IDLE        | ---> |     PRIORITY      | ---> |    BACKGROUND     | ---> |      NORMAL       |
  *   |-------------------|      |-------------------|      |-------------------|      |-------------------|      |-------------------|
@@ -34,37 +34,37 @@
  *                                                                                                               | ClockWidget       |
  *                                                                                                               | QRCodeWidget      |
  *                                                                                                               +-------------------+
- * 
+ *
  * Legend of widget types::
  *   - BootLogoWidget, AutoRemoveWidget: Displayed at startup (STARTUP).
  *   - StatusWidget, ProgModeWidget: Highest priority (PRIORITY).
  *   - MenuWidget, SettingsWidget: Background widgets, e.g., menus (BACKGROUND).
  *   - InfoWidget, DataWidget: Normal widgets (NORMAL).
  *   - ClockWidget, QRCodeWidget: Default display when nothing else is active (DEFAULT).
- * 
+ *
  * Power Save Modes:
  *   +-----------+    +---------+    +--------------+    +-------+    +-----+
  *   |  ACTIVE   | -> | DIMMED  | -> | SCREENSAVER  | -> | SLEEP | -> | OFF |
  *   +-----------+    +---------+    +--------------+    +-------+    +-----+
- * 
+ *
  * Transitions occur after timeouts or user interaction.
- * 
+ *
  * @section Example Scenarios
- * 
+ *
  * Example 1: Startup and Default Widget
  *   - On startup: STARTUP → IDLE → DEFAULT (e.g., ClockWidget).
- * 
+ *
  * Example 2: Priority Widget Interrupt
  *   - While NORMAL or DEFAULT is active, a StatusWidget is activated.
  *   - Immediate switch to PRIORITY, after deactivation back to NORMAL or DEFAULT.
- * 
+ *
  * Example 3: Power Save Sequence
  *   - After dimTimeout: DIMMED.
  *   - After screenSaverTimeout: SCREENSAVER (e.g., MatrixWidget).
  *   - After sleepTimeout: SLEEP.
  *   - After offTimeout: OFF.
  *   - Any user interaction resets everything to ACTIVE.
- * 
+ *
  * Example 4: Background Widget
  *   - User opens menu by pressing a button (MenuWidget): switch to BACKGROUND.
  *   - After a predefined idle the menu closes, return to previous state.
@@ -145,6 +145,9 @@ class WidgetsManager // Manages the widget queue and state machine
     const char* getPowerSaveModeName() const;
     PowerSaveConfig& getPowerSaveConfig() { return _powerSaveConfig; }
 
+    Widget* getActiveButtonWidget();
+    void wakeUpDisplay();
+
   private:
     i2cDisplay* _displayModule = nullptr;
     std::deque<Widget*> _widgetQueue;
@@ -181,7 +184,7 @@ class WidgetsManager // Manages the widget queue and state machine
 
     void updatePowerSaveMode(uint32_t currentTime);
     void transitionToPowerSaveMode(PowerSaveMode newMode);
-    void wakeUpDisplay();
+    
 
     // Widget finders
     Widget* findNextPriorityWidget();

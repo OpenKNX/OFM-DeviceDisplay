@@ -7,13 +7,7 @@
 {
   public:
     // Constructor
-    MenuWidget(uint32_t displayTime,
-               WidgetFlags action,
-               uint16_t buttonUp,
-               uint16_t buttonDown,
-               uint16_t buttonSelect,
-               uint16_t buttonLeft,
-               uint16_t buttonRight);
+    MenuWidget(uint32_t displayTime, WidgetFlags action);
 
     // Widget interface implementation
     void start() override;
@@ -47,7 +41,7 @@
     void externalResume();
     void externalStop();
     // Front plate control
-    bool isAnyButtonPressed();
+ 
     bool setLED(uint16_t pin, bool state);
 
     // Logger prefix
@@ -56,6 +50,8 @@
     // Action registration
     void registerAction(const std::string& key, std::function<void()> action);
     void registerOnValueChanged(const std::string& key, std::function<void(const MenuConfig::MenuOption&, const MenuValue&)> callback);
+
+    bool handleButtonEvent(const ButtonEvent& event) override;
 
   private:
     // UI Constants
@@ -77,22 +73,14 @@
 
     void clearDisplay();
     void drawMenu();
-    bool readButton(uint16_t pin);
-    bool processButtonPress();
+
 
     // Display properties
     i2cDisplay* _display = nullptr;
     uint16_t _screenWidth = 0;
     uint16_t _screenHeight = 0;
 
-    // Button configuration
-    const uint16_t _buttonUp;
-    const uint16_t _buttonDown;
-    const uint16_t _buttonSelect;
-    const uint16_t _buttonLeft;
-    const uint16_t _buttonRight;
 
-    uint32_t _lastButtonCheck = 0;
     uint32_t _lastRedrawTime = 0;
     uint32_t _lastButtonPressTime = 0;
 

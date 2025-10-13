@@ -3,14 +3,24 @@
     #include "OpenKNX.h"
 
 DeviceDisplay openknxDisplayModule;
-i2cDisplay* displayModule = new i2cDisplay();
 
 /**
  * @brief Construct a new Device Display:: Device Display object
  */
 DeviceDisplay::DeviceDisplay()
-    : widget() // Initialize the widget
 {
+    // Constructor
+}
+DeviceDisplay::~DeviceDisplay()
+{
+    // Destructor
+    #ifdef WIDGET_MANAGER
+    if (_widgetManager)
+    {
+        delete _widgetManager;
+        _widgetManager = nullptr;
+    }
+    #endif
 }
 
 /**
@@ -20,6 +30,18 @@ DeviceDisplay::DeviceDisplay()
 void DeviceDisplay::init()
 {
     logInfoP("Init started...");
+    _widgetManager = new WidgetsManager();
+    _displayModule = new i2cDisplay();
+    if (_displayModule == nullptr)
+    {
+        logErrorP("Display module not created!");
+        return;
+    }
+    if (_widgetManager == nullptr)
+    {
+        logErrorP("Widget manager not created!");
+        return;
+    }
     // Setup the display module with the default settings from the selected hardware
     // Ensure all necessary hardware configuration macros are defined
     #ifndef OKNXHW_DEVICE_DISPLAY_I2C_INST
@@ -46,25 +68,25 @@ void DeviceDisplay::init()
     ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_HEIGHT);
     #endif
     #ifdef ARDUINO_ARCH_ESP32
-    displayModule.lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
+    _displayModule->lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
     #else
-    displayModule.lcdSettings.i2cInst = OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
+    _displayModule->lcdSettings.i2cInst = OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
     #endif
-    displayModule.lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA; // Set the Hardware specific SDA pin for the display
-    displayModule.lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL; // Set the Hardware specific SCL pin for the display
+    _displayModule->lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA; // Set the Hardware specific SDA pin for the display
+    _displayModule->lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL; // Set the Hardware specific SCL pin for the display
 
-    displayModule.lcdSettings.i2cadress = OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS; // Set here the i2c address of the display. I.e. 0x3C
-    displayModule.lcdSettings.width = OKNXHW_DEVICE_DISPLAY_WIDTH;           // Set here the width of the display. I.e. 128
-    displayModule.lcdSettings.height = OKNXHW_DEVICE_DISPLAY_HEIGHT;         // Set here the height of the display. I.e. 64
+    _displayModule->lcdSettings.i2cadress = OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS; // Set here the i2c address of the display. I.e. 0x3C
+    _displayModule->lcdSettings.width = OKNXHW_DEVICE_DISPLAY_WIDTH;           // Set here the width of the display. I.e. 128
+    _displayModule->lcdSettings.height = OKNXHW_DEVICE_DISPLAY_HEIGHT;         // Set here the height of the display. I.e. 64
 
-    displayModule.lcdSettings.reset = -1; // We are not using a reset pin and set it to -1, which use the internal reset
+    _displayModule->lcdSettings.reset = -1; // We are not using a reset pin and set it to -1, which use the internal reset
 
-    if (displayModule.InitDisplay(displayModule.lcdSettings) && displayModule.display != nullptr)
+    if (_displayModule->InitDisplay(_displayModule->lcdSettings) && _displayModule->display != nullptr)
     {
         logInfoP("Display initialized.");
         logInfoP("Display i2c Settings - i2cInt: %p, SDA: %d, SCL: %d, Address: 0x%02X, Width: %d, Height: %d",
-                 displayModule.lcdSettings.i2cInst, displayModule.lcdSettings.sda, displayModule.lcdSettings.scl,
-                 displayModule.lcdSettings.i2cadress, displayModule.lcdSettings.width, displayModule.lcdSettings.height);
+                 _displayModule->lcdSettings.i2cInst, _displayModule->lcdSettings.sda, _displayModule->lcdSettings.scl,
+                 _displayModule->lcdSettings.i2cadress, _displayModule->lcdSettings.width, _displayModule->lcdSettings.height);
     }
     else
     {
@@ -72,9 +94,9 @@ void DeviceDisplay::init()
     }
 
     #ifdef WIDGET_MANAGER
-    widgetManager = new WidgetsManager();
-    widgetManager->setDisplayModule(&displayModule); // Important: The display module for the widgets
-    widgetManager->setIdleTimeout(10000);
+    
+    _widgetManager->setDisplayModule(_displayModule); // Important: The display module for the widgets
+    _widgetManager->setIdleTimeout(10000);
 
     // Power-Save-Konfiguration
     PowerSaveConfig powerSaveConfig;
@@ -85,14 +107,14 @@ void DeviceDisplay::init()
     powerSaveConfig.offTimeout = 0;             // nie
     powerSaveConfig.dimBrightness = 30;         // 30%
     powerSaveConfig.normalBrightness = 100;     // 100%
-    widgetManager->setPowerSaveConfig(powerSaveConfig);
+    _widgetManager->setPowerSaveConfig(powerSaveConfig);
 
     // Optional: Callbacks
-    widgetManager->setStateTransitionCallback([this](WidgetManagerState from, WidgetManagerState to) {
+    _widgetManager->setStateTransitionCallback([this](WidgetManagerState from, WidgetManagerState to) {
         logInfoP("State: %d -> %d", from, to);
     });
 
-    widgetManager->setPowerSaveCallback([this](PowerSaveMode from, PowerSaveMode to) {
+    _widgetManager->setPowerSaveCallback([this](PowerSaveMode from, PowerSaveMode to) {
         logInfoP("PowerSave: %d -> %d", from, to);
     });
     #endif
@@ -106,68 +128,62 @@ void DeviceDisplay::initializeWidgets()
     #ifdef WIDGET_MANAGER
     // Set the boot logo widget (only shown once at startup - must be added as first widget)
     WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(3000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
-    widgetManager->addWidget(bootLogoWidget);
-    // ToDo: widgetManager->setBootlogoWidget(bootLogoWidget); // Set the boot logo widget
+    _widgetManager->addWidget(bootLogoWidget);
+    // ToDo: _widgetManager->setBootlogoWidget(bootLogoWidget); // Set the boot logo widget
 
     // Set the screensaver widget
     WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
-    widgetManager->setScreenSaverWidget(matrixClassicWidget);
+    _widgetManager->setScreenSaverWidget(matrixClassicWidget);
 
     // WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
-    // widgetManager->addWidget(lifeWidget);
+    // _widgetManager->addWidget(lifeWidget);
 
     // WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
-    // widgetManager->addWidget(starfieldWidget);
+    // _widgetManager->addWidget(starfieldWidget);
 
     // WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
-    // widgetManager->addWidget(cube3DWidget);
+    // _widgetManager->addWidget(cube3DWidget);
 
     // WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
-    // widgetManager->addWidget(pongWidget);
+    // _widgetManager->addWidget(pongWidget);
 
     // WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
-    // widgetManager->addWidget(rainWidget);
+    // _widgetManager->addWidget(rainWidget);
 
     // WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
-    // widgetManager->addWidget(matrixWidget);
+    // _widgetManager->addWidget(matrixWidget);
 
     // WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
-    // widgetManager->addWidget(sysInfoLiteWidget);
+    // _widgetManager->addWidget(sysInfoLiteWidget);
 
     // WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
-    // widgetManager->addWidget(openknxLogoWidget);
+    // _widgetManager->addWidget(openknxLogoWidget);
 
     // WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
-    // widgetManager->addWidget(fireworksWidget);
+    // _widgetManager->addWidget(fireworksWidget);
 
     // WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::DefaultWidget, "https://www.openknx.de", false); // Create a new QRcode widget
-    // widgetManager->addWidget(qrcodeWidget);
+    // _widgetManager->addWidget(qrcodeWidget);
 
     // Default Widgets
 
     // Clock Widget, which will be displayed for 5 seconds, if there is no other widget in the queue, infitely.
     WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::DefaultWidget, false); // Create a new Clock widget
-    widgetManager->addWidget(clockWidget);
+    _widgetManager->addWidget(clockWidget);
 
     // Menu Widget, which will be displayed Initially, if there is no other widget in the queue, infitely.
-    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally, // Is managed externally
-                                            FRONT_CTRL_UP,                         // Joystick - Up
-                                            FRONT_CTRL_DOWN,                       // Joystick - Down
-                                            FRONT_CTRL_OK,                         // Joystick - Press / OK
-                                            FRONT_CTRL_LEFT,                       // Joystick - Left (Optional: FRONT_CTRL_LEFT2)
-                                            FRONT_CTRL_RIGHT                       // Joystick - Right
-    );                                                                             // Create a new Menu widget
+    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally);                                                                             // Create a new Menu widget
 
-    menuWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::Background);
-    widgetManager->addWidget(menuWidget);
-    setMenuWidget(menuWidget); // For Internal use in this class
+    // Info: Those actions are default for the MenuWidget - ManagedExternally, Background and WantsButtonInput!
+    //menuWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::Background | WidgetFlags::WantsButtonInput);
+    _widgetManager->addWidget(menuWidget);
 
     WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
     progModeWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);
-    widgetManager->addWidget(progModeWidget);
+    _widgetManager->addWidget(progModeWidget);
 
-    widgetManager->setup(); // Setup the widget manager
-    widgetManager->start(); // Start the widget manager
+    _widgetManager->setup(); // Setup the widget manager
+    _widgetManager->start(); // Start the widget manager
     #endif
 }
 
@@ -178,10 +194,12 @@ void DeviceDisplay::initializeWidgets()
 void DeviceDisplay::setup(bool configured)
 {
     logDebugP("setup...");
-    displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
-    displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display
+    _displayModule->SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
+    _displayModule->SetDisplayContrast(0xFF);   // Set the contrast of the display
     logDebugP("Initialize widgets...");
     initializeWidgets();
+    setupButtons();
+
 }
 
 /**
@@ -200,22 +218,26 @@ void DeviceDisplay::processInputKo(GroupObject& obj)
  */
 void DeviceDisplay::loop(bool configured)
 {
-    if (displayModule.display == nullptr)
+    //if(!configured) return;
+
+    if (_displayModule->display == nullptr)
     {
         logErrorP("Display not initialized");
         return;
     }
+
+    processButtons();
 
     static bool wasInProgMode = false;
     static Widget* progMode = nullptr;
     if (knx.progMode())
     {
         // ← NEU: Reset Power-Save-Timer bei ProgMode
-        widgetManager->userInteraction();
+        _widgetManager->userInteraction();
 
         if (!wasInProgMode)
         {
-            if ((progMode = widgetManager->getWidgetFromQueue("ProgMode")) != nullptr &&
+            if ((progMode = _widgetManager->getWidgetFromQueue("ProgMode")) != nullptr &&
                 progMode->getState() != WidgetState::RUNNING)
             {
                 logInfoP("ProgMode requested and will be displayed...");
@@ -237,17 +259,10 @@ void DeviceDisplay::loop(bool configured)
         logInfoP(" Current Action: %d", progMode->getAction());
     }
 
-    RUNTIME_MEASURE_BEGIN(_loopWidgets);
-    widgetManager->loop();
-    RUNTIME_MEASURE_END(_loopWidgets);
-    // RUNTIME_MEASURE_BEGIN(_loopDisplayModule);
-    // displayModule.loop();
-    // RUNTIME_MEASURE_END(_loopDisplayModule);
-    // RUNTIME_MEASURE_BEGIN(_loopRuntimesDim);
-    // ist jetzt im pwr manager
-    // RUNTIME_MEASURE_END(_loopRuntimesDim);
+    _widgetManager->loop();
 
 }
+
 
 /**
  * @brief Console commands to show the help for the display module.
@@ -274,7 +289,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             logInfoP("Sending Matrix Screensaver to display.");
             WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::NoAction, 8);
             matrixClassicWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
-            widgetManager->addWidget(matrixClassicWidget);
+            _widgetManager->addWidget(matrixClassicWidget);
             bRet = true;
         }
         else if (command.compare(4, 5, "clock") == 0) // Clock Screensaver
@@ -282,7 +297,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             logInfoP("Sending Clock Screensaver to display.");
             WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::NoAction, true);
             clockWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
-            widgetManager->addWidget(clockWidget);
+            _widgetManager->addWidget(clockWidget);
             bRet = true;
         }
         else if (command.compare(4, 5, "pong ") == 0) // Pong Screensaver
@@ -292,13 +307,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Pong Screensaver is set to display. Remove it with 'ddc pong r'");
                 WidgetPong* pongWidget = new WidgetPong(5000, WidgetFlags::NoAction);
                 pongWidget->setAction(WidgetFlags::DefaultWidget);
-                widgetManager->addWidget(pongWidget);
+                _widgetManager->addWidget(pongWidget);
                 bRet = true;
             }
             if (command.compare(9, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing Pong Screensaver from display...");
-                Widget* widget = widgetManager->getWidgetFromQueue("Pong");
+                Widget* widget = _widgetManager->getWidgetFromQueue("Pong");
                 if (widget)
                 {
                     widget->addAction(WidgetFlags::AutoRemove);
@@ -314,13 +329,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Starfield Screensaver is set to display. Remove it with 'ddc starfield r'");
                 WidgetStarfield* starfieldWidget = new WidgetStarfield(5000, WidgetFlags::NoAction, 10);
                 starfieldWidget->setAction(WidgetFlags::DefaultWidget);
-                widgetManager->addWidget(starfieldWidget);
+                _widgetManager->addWidget(starfieldWidget);
                 bRet = true;
             }
             if (command.compare(14, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing Starfield Screensaver from display...");
-                Widget* widget = widgetManager->getWidgetFromQueue("Starfield");
+                Widget* widget = _widgetManager->getWidgetFromQueue("Starfield");
                 if (widget)
                 {
                     logInfoP("Retrieved widget at %p with name %s", widget, widget->getName().c_str());
@@ -337,13 +352,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("3D Cube Screensaver is set to display. Remove it with 'ddc 3dcube r'");
                 WidgetCube3D* cube3DWidget = new WidgetCube3D(5000, WidgetFlags::NoAction);
                 cube3DWidget->setAction(WidgetFlags::DefaultWidget);
-                widgetManager->addWidget(cube3DWidget);
+                _widgetManager->addWidget(cube3DWidget);
                 bRet = true;
             }
             if (command.compare(11, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing 3D Cube Screensaver from display...");
-                Widget* widget = widgetManager->getWidgetFromQueue("WidgetCube3D");
+                Widget* widget = _widgetManager->getWidgetFromQueue("WidgetCube3D");
                 if (widget)
                 {
                     widget->addAction(WidgetFlags::AutoRemove);
@@ -354,7 +369,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         }
         else if (command.compare(4, 1, "l") == 0 && command.size() < 6) // List all widgets
         {
-            widgetManager->logWidgetQueue();
+            _widgetManager->logWidgetQueue();
             bRet = true;
         }
     #ifdef DD_CONSOLE_CMDS
@@ -363,13 +378,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(8, 2, "on") == 0)
             {
                 // Display dimmen aktivieren
-                displayModule.display->dim(true);
+                _displayModule->display->dim(true);
                 logInfoP("Display dimmed (ON)");
             }
             else if (command.compare(8, 3, "off") == 0)
             {
                 // Display dimmen deaktivieren
-                displayModule.display->dim(false);
+                _displayModule->display->dim(false);
                 logInfoP("Display not dimmed (OFF)");
             }
             else
@@ -377,7 +392,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 int contrastValue = std::stoi(command.substr(8));
                 if (contrastValue >= 0 && contrastValue <= 255)
                 {
-                    displayModule.SetDisplayContrast(contrastValue);
+                    _displayModule->SetDisplayContrast(contrastValue);
                     logInfoP("Display contrast set to " + std::to_string(contrastValue));
                 }
                 else
@@ -392,13 +407,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(9, 2, "on") == 0)
             {
                 // Aktiviert VCOM Detect
-                displayModule.SetDisplayVCOMDetect(0x00);
+                _displayModule->SetDisplayVCOMDetect(0x00);
                 logInfoP("VCOM detect enabled");
             }
             else if (command.compare(9, 3, "off") == 0)
             {
                 // Deaktiviert VCOM Detect
-                displayModule.SetDisplayVCOMDetect(0x20); // Set VCOMH to the default value
+                _displayModule->SetDisplayVCOMDetect(0x20); // Set VCOMH to the default value
                 logInfoP("VCOM detect disabled");
             }
             else
@@ -410,7 +425,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 if (vcomValue >= 0 && vcomValue <= 0xFF)
                 {
                     // Set VCOM detect value
-                    displayModule.SetDisplayVCOMDetect(vcomValue);
+                    _displayModule->SetDisplayVCOMDetect(vcomValue);
                     logInfoP("VCOM detect set to value 0x" + std::to_string(vcomValue));
                 }
                 else
@@ -424,12 +439,12 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         {
             if (command.compare(8, 1, "1") == 0)
             {
-                displayModule.SetInvertDisplay(true);
+                _displayModule->SetInvertDisplay(true);
                 logInfoP("Display inverted");
             }
             else
             {
-                displayModule.SetInvertDisplay(false);
+                _displayModule->SetInvertDisplay(false);
                 logInfoP("Display not inverted");
             }
             bRet = true;
@@ -438,64 +453,64 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         {
             if (command.compare(11, 1, "r") == 0) // Scrollen nach rechts
             {
-                displayModule.display->ssd1306_command(SSD1306_RIGHT_HORIZONTAL_SCROLL);
-                displayModule.display->ssd1306_command(0x00); // Startkolonne
-                displayModule.display->ssd1306_command(0x00); // Startseite
-                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
-                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                _displayModule->display->ssd1306_command(SSD1306_RIGHT_HORIZONTAL_SCROLL);
+                _displayModule->display->ssd1306_command(0x00); // Startkolonne
+                _displayModule->display->ssd1306_command(0x00); // Startseite
+                _displayModule->display->ssd1306_command(0x07); // Scroll-Dauer
+                _displayModule->display->ssd1306_command(0x00); // Scroll-Wiederholung
+                _displayModule->display->ssd1306_command(0xFF); // Ende der Seite
+                _displayModule->display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Right horizontal scroll started");
             }
             else if (command.compare(11, 1, "l") == 0) // Scrollen nach links
             {
-                displayModule.display->ssd1306_command(SSD1306_LEFT_HORIZONTAL_SCROLL);
-                displayModule.display->ssd1306_command(0x00); // Startkolonne
-                displayModule.display->ssd1306_command(0x00); // Startseite
-                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer (7 Frames)
-                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                _displayModule->display->ssd1306_command(SSD1306_LEFT_HORIZONTAL_SCROLL);
+                _displayModule->display->ssd1306_command(0x00); // Startkolonne
+                _displayModule->display->ssd1306_command(0x00); // Startseite
+                _displayModule->display->ssd1306_command(0x07); // Scroll-Dauer (7 Frames)
+                _displayModule->display->ssd1306_command(0x00); // Scroll-Wiederholung
+                _displayModule->display->ssd1306_command(0xFF); // Ende der Seite
+                _displayModule->display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Left horizontal scroll started");
             }
             else if (command.compare(11, 2, "dr") == 0) // Diagonales Scrollen nach rechts
             {
-                displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL);
-                displayModule.display->ssd1306_command(0x00); // Startkolonne
-                displayModule.display->ssd1306_command(0x00); // Startseite
-                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
-                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                _displayModule->display->ssd1306_command(SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL);
+                _displayModule->display->ssd1306_command(0x00); // Startkolonne
+                _displayModule->display->ssd1306_command(0x00); // Startseite
+                _displayModule->display->ssd1306_command(0x07); // Scroll-Dauer
+                _displayModule->display->ssd1306_command(0x00); // Scroll-Wiederholung
+                _displayModule->display->ssd1306_command(0xFF); // Ende der Seite
+                _displayModule->display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Diagonal scroll (right) started");
             }
             else if (command.compare(11, 2, "dl") == 0) // Diagonales Scrollen nach links
             {
-                displayModule.display->ssd1306_command(SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL);
-                displayModule.display->ssd1306_command(0x00); // Startkolonne
-                displayModule.display->ssd1306_command(0x00); // Startseite
-                displayModule.display->ssd1306_command(0x07); // Scroll-Dauer
-                displayModule.display->ssd1306_command(0x00); // Scroll-Wiederholung
-                displayModule.display->ssd1306_command(0xFF); // Ende der Seite
-                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                _displayModule->display->ssd1306_command(SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL);
+                _displayModule->display->ssd1306_command(0x00); // Startkolonne
+                _displayModule->display->ssd1306_command(0x00); // Startseite
+                _displayModule->display->ssd1306_command(0x07); // Scroll-Dauer
+                _displayModule->display->ssd1306_command(0x00); // Scroll-Wiederholung
+                _displayModule->display->ssd1306_command(0xFF); // Ende der Seite
+                _displayModule->display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Diagonal scroll (left) started");
             }
             else if (command.compare(11, 5, "start") == 0) // Scrollen starten
             {
-                displayModule.display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+                _displayModule->display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
                 logInfoP("Scrolling activated");
             }
             else if (command.compare(11, 4, "stop") == 0) // Scrollen stoppen
             {
-                displayModule.display->ssd1306_command(SSD1306_DEACTIVATE_SCROLL);
+                _displayModule->display->ssd1306_command(SSD1306_DEACTIVATE_SCROLL);
                 logInfoP("Scrolling stopped");
             }
             else if (command.compare(11, 2, "sa") == 0) // Scrollbereich setzen
             {
                 // Hier können wir den Bereich für das vertikale Scrollen definieren
-                displayModule.display->ssd1306_command(SSD1306_SET_VERTICAL_SCROLL_AREA);
-                displayModule.display->ssd1306_command(0x00); // Startseite
-                displayModule.display->ssd1306_command(0x3F); // Endseite (64px für 64px Display)
+                _displayModule->display->ssd1306_command(SSD1306_SET_VERTICAL_SCROLL_AREA);
+                _displayModule->display->ssd1306_command(0x00); // Startseite
+                _displayModule->display->ssd1306_command(0x3F); // Endseite (64px für 64px Display)
                 logInfoP("Vertical scroll area set");
             }
             else
@@ -512,7 +527,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             // Prüfe, ob der Wert im gültigen Bereich (0x00 bis 0xFF) liegt
             if (contrastValue >= 0 && contrastValue <= 0xFF)
             {
-                displayModule.SetDisplayContrast(contrastValue);
+                _displayModule->SetDisplayContrast(contrastValue);
                 logInfoP("Display contrast set to 0x" + std::to_string(contrastValue));
             }
             else
@@ -525,12 +540,12 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(15, 2, "on") == 0)
             {
                 // Aktiviert die Ladepumpe
-                displayModule.SetDisplayPreCharge(0xF1);
+                _displayModule->SetDisplayPreCharge(0xF1);
                 logInfoP("Charge pump enabled");
             }
             else if (command.compare(15, 3, "off") == 0)
             {
-                displayModule.SetDisplayPreCharge(0x10);
+                _displayModule->SetDisplayPreCharge(0x10);
                 logInfoP("Charge pump disabled");
             }
         }
@@ -539,15 +554,15 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(13, 2, "on") == 0)
             {
                 // Segmentzuordnung umkehren (Segment Mapping)
-                displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
-                displayModule.display->ssd1306_command(0xA1); // Umkehrung der Segmentzuordnung
+                _displayModule->display->ssd1306_command(SSD1306_SEGREMAP);
+                _displayModule->display->ssd1306_command(0xA1); // Umkehrung der Segmentzuordnung
                 logInfoP("Segment remapping enabled");
             }
             else if (command.compare(13, 3, "off") == 0)
             {
                 // Segmentzuordnung zurücksetzen
-                displayModule.display->ssd1306_command(SSD1306_SEGREMAP);
-                displayModule.display->ssd1306_command(0xA0); // Standard Segmentzuordnung
+                _displayModule->display->ssd1306_command(SSD1306_SEGREMAP);
+                _displayModule->display->ssd1306_command(0xA0); // Standard Segmentzuordnung
                 logInfoP("Segment remapping disabled");
             }
         }
@@ -556,13 +571,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(15, 2, "on") == 0)
             {
                 // Alle Pixel auf dem Display einschalten
-                displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON);
+                _displayModule->display->ssd1306_command(SSD1306_DISPLAYALLON);
                 logInfoP("Display all-on mode enabled");
             }
             else if (command.compare(15, 3, "off") == 0)
             {
                 // Alle Pixel wieder normal anzeigen
-                displayModule.display->ssd1306_command(SSD1306_DISPLAYALLON_RESUME);
+                _displayModule->display->ssd1306_command(SSD1306_DISPLAYALLON_RESUME);
                 logInfoP("Display all-on mode disabled, resumed normal display");
             }
         }
@@ -574,65 +589,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             logIndentUp();
 
             OpenKNX::Stat::RuntimeStat::showStatHeader();
-
-            if (command.compare(12, 7, "widget ") == 0)
-            {
-                if (command.compare(19, 3, "all") == 0)
-                {
-                    // for (size_t i = 0; i < widgetsQueue.size(); ++i)
-                    // {
-                    //     // WidgetInfo& widgetInfo = widgetsQueue[i];
-                    //     // widgetInfo.widget->_WidgetRutimeStat.showStat("widget_" + widgetInfo.name, 0, true, true);
-                    // }
-                    bRet = true;
-                }
-                else
-                {
-                    // std::string WidgetName = command.substr(19);
-                    // if (!WidgetName.empty())
-                    // {
-                    //     WidgetInfo* widgetInfo = getWidgetInfo(WidgetName);
-                    //     if (widgetInfo && widgetInfo->widget != nullptr)
-                    //     {
-                    //         widgetInfo->widget->_WidgetRutimeStat.showStat("widget_" + WidgetName, 0, true, true);
-                    //     }
-                    //     else
-                    //     {
-                    //         logErrorP("Widgets '%s' not found!", WidgetName.c_str());
-                    //     }
-                    // }
-                }
-            }
-            else
-            {
-                if (command.compare(12, 7, "widgets") == 0)
-                {
-                }
-                //_loopWidgets.showStat("widgets", 0, true, true);
-                else if (command.compare(12, 3, "dim") == 0)
-                {
-                }
-                    //_loopRuntimesDim.showStat("dim", 0, true, true);
-        #ifdef DEMO_WIDGET_CMD_TESTS
-                else if (command.compare(12, 12, "demo_widgets") == 0)
-                {
-                }
-                        //_loopDemoWidgets.showStat("demo_widgets", 0, true, true);
-        #endif
-                else if (command.compare(12, 4, "loop") == 0)
-                {
-                }
-                //_loopDisplayModule.showStat("loop_only", 0, true, true);
-                else if (command.compare(12, 3, "all") == 0)
-                {
-                    //_loopWidgets.showStat("widgets", 0, true, true);
-                    //_loopRuntimesDim.showStat("dim", 0, true, true);
-                    //_loopDemoWidgets.showStat("demo_widgets", 0, true, true);
-                    //_loopDisplayModule.showStat("loop_only", 0, true, true);
-                }
-                else
-                    logErrorP("Invalid runtime command.");
-            }
+            //_loop_DisplayModule->showStat("loop_only", 0, true, true);
 
             logIndentDown();
             bRet = true;
@@ -658,8 +615,6 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc segremap <on|off>", "Enable or disable the segment remapping");
             openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
     #endif // DD_CONSOLE_CMDS
-    #ifdef DEMO_WIDGET_CMD_TESTS
-    #endif // DEMO_WIDGET_CMD_TESTS
             openknx.console.printHelpLine("ddc l", "List all widgets");
     #ifdef MATRIX_SCREENSAVER
             openknx.console.printHelpLine("ddc m <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
@@ -701,4 +656,216 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
     }
     return bRet;
 }
+
+
+/**
+ * @brief Setup button pins
+ */
+void DeviceDisplay::setupButtons()
+{
+#ifdef USE_GPIO_MODULE
+    if (!openknx.gpio.isInitialized(1))
+    {
+        logErrorP("GPIO Module not initialized - buttons disabled");
+        return;
+    }
+
+    _buttonUp = FRONT_CTRL_UP;
+    _buttonDown = FRONT_CTRL_DOWN;
+    _buttonSelect = FRONT_CTRL_OK;
+    _buttonLeft = FRONT_CTRL_LEFT;
+    _buttonRight = FRONT_CTRL_RIGHT;
+
+    const uint16_t pins[] = {
+        _buttonUp, _buttonDown, _buttonSelect,
+        _buttonLeft, _buttonRight
+    };
+
+    for (auto pin : pins)
+    {
+        openknx.gpio.pinMode(pin, INPUT, true, 0);
+    }
+
+    _frontPlateEnabled = true;
+    logInfoP("Front plate buttons initialized");
+#else
+    logInfoP("GPIO module not available - buttons disabled");
+#endif
+}
+
+/**
+ * @brief Process button inputs and forward to active widget
+ */
+void DeviceDisplay::processButtons()
+{
+    if (!_frontPlateEnabled) return;
+
+    uint32_t currentTime = millis();
+    if (currentTime - _lastButtonCheck < _buttonCheckInterval) return;
+
+    _lastButtonCheck = currentTime;
+
+    // Get active widget that wants buttons
+    Widget* activeWidget = _widgetManager->getActiveButtonWidget();
+    // Check all buttons
+    ButtonEvent* event = nullptr;
+
+    if ((event = checkButton(_buttonUp, ButtonType::UP, 0)) != nullptr)
+    {
+        logDebugP("Button UP event detected");
+        // If no widget wants buttons, just wake up display
+
+        if (!activeWidget)
+        {
+            _widgetManager->wakeUpDisplay();
+            logDebugP("Button UP pressed - waking display");
+            delete event;
+            return;
+        }
+        
+        if (activeWidget->handleButtonEvent(*event))
+        {
+            _widgetManager->userInteraction();  // Wake-Up Display
+        }
+        delete event;
+    }
+
+    if ((event = checkButton(_buttonDown, ButtonType::DOWN, 1)) != nullptr)
+    {
+        logDebugP("Button DOWN event detected");
+        if (!activeWidget)
+        {
+            _widgetManager->wakeUpDisplay();
+            logDebugP("Button DOWN pressed - waking display");
+            delete event;
+            return;
+        }
+        
+        if (activeWidget->handleButtonEvent(*event))
+        {
+            _widgetManager->userInteraction();
+        }
+        delete event;
+    }
+
+    if ((event = checkButton(_buttonSelect, ButtonType::SELECT, 2)) != nullptr)
+    {
+        logDebugP("Button SELECT event detected");
+        if (!activeWidget)
+        {
+            _widgetManager->wakeUpDisplay();
+            logDebugP("Button SELECT pressed - waking display and activating menu");
+            delete event;
+            return;
+        }
+        
+        if (activeWidget->handleButtonEvent(*event))
+        {
+            _widgetManager->userInteraction();
+        }
+        delete event;
+    }
+
+    if ((event = checkButton(_buttonLeft, ButtonType::LEFT, 3)) != nullptr)
+    {
+        logDebugP("Button LEFT event detected");
+        if (!activeWidget)
+        {
+            _widgetManager->wakeUpDisplay();
+            logDebugP("Button LEFT pressed - waking display");
+            delete event;
+            return;
+        }
+        
+        if (activeWidget->handleButtonEvent(*event))
+        {
+            _widgetManager->userInteraction();
+        }
+        delete event;
+    }
+
+    if ((event = checkButton(_buttonRight, ButtonType::RIGHT, 4)) != nullptr)
+    {
+        logDebugP("Button RIGHT event detected");
+        if (!activeWidget)
+        {
+            _widgetManager->wakeUpDisplay();
+            logDebugP("Button RIGHT pressed - waking display");
+            delete event;
+            return;
+        }
+        
+        if (activeWidget->handleButtonEvent(*event))
+        {
+            _widgetManager->userInteraction();
+        }
+        delete event;
+    }
+}
+/**
+ * @brief Check a single button for state changes
+ * @param pin GPIO pin to check
+ * @param type Button type
+ * @param index Array index for state tracking
+ * @return ButtonEvent* if state changed, nullptr otherwise
+ */
+ButtonEvent* DeviceDisplay::checkButton(uint16_t pin, ButtonType type, size_t index)
+{
+    bool isPressed = readButton(pin);
+
+    // LEFT button is active-LOW, invert
+    if (type == ButtonType::LEFT)
+    {
+        isPressed = !isPressed;
+    }
+
+    uint32_t currentTime = millis();
+    ButtonEvent* event = nullptr;
+
+    // Button was pressed
+    if (isPressed && !_buttonPressed[index])
+    {
+        _buttonPressed[index] = true;
+        _buttonPressTime[index] = currentTime;
+        event = new ButtonEvent(type, ButtonAction::PRESS);
+    }
+    // Button was released
+    else if (!isPressed && _buttonPressed[index])
+    {
+        _buttonPressed[index] = false;
+
+        uint32_t pressDuration = currentTime - _buttonPressTime[index];
+
+        // Check press duration
+        if (pressDuration > 5000)
+        {
+            event = new ButtonEvent(type, ButtonAction::VERY_LONG_PRESS);
+        }
+        else if (pressDuration > 500)
+        {
+            event = new ButtonEvent(type, ButtonAction::LONG_PRESS);
+        }
+        else
+        {
+            event = new ButtonEvent(type, ButtonAction::RELEASE);
+        }
+    }
+
+    return event;
+}
+
+/**
+ * @brief Read button state from GPIO
+ * @param pin GPIO pin to read
+ * @return true if button is pressed
+ */
+bool DeviceDisplay::readButton(uint16_t pin)
+{
+#ifdef USE_GPIO_MODULE
+    return openknx.gpio.digitalRead(pin);
+#else
+    return false;
+#endif
+}
+
 #endif

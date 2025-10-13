@@ -4,17 +4,11 @@
     #include "DefaultMenus.h"
     #include "OpenKNX.h"
 
-MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action, uint16_t buttonUp, uint16_t buttonDown, uint16_t buttonSelect, uint16_t buttonLeft, uint16_t buttonRight)
+MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime),
-      _action(action),
-      _buttonUp(buttonUp),
-      _buttonDown(buttonDown),
-      _buttonSelect(buttonSelect),
-      _buttonLeft(buttonLeft),
-      _buttonRight(buttonRight),
+      _action(static_cast<WidgetFlags>(action | WidgetFlags::WantsButtonInput | WidgetFlags::ManagedExternally | WidgetFlags::Background)),
       _selectedIndex(0),
       _lastButtonPressTime(0),
-      _lastButtonCheck(0),
       _lastRedrawTime(0),
       _FrontPlateEnabled(false)
 {
@@ -58,48 +52,7 @@ void MenuWidget::setup()
 
     addDefaultMenus();
 
-    #ifdef USE_GPIO_MODULE
-    if (!openknx.gpio.isInitialized(1))
-    {
-        logErrorP("GPIO Module not initialized");
-        return;
-    }
-    else
-    {
-        _FrontPlateEnabled = true;
-        logDebugP("GPIO Module initialized");
-
-        // Initialize buttons
-        const uint16_t pins[] =
-            {
-                _buttonUp, _buttonDown, _buttonSelect, //
-                _buttonLeft, _buttonRight, 0x0103      //
-            };
-        for (auto pin : pins)
-        {
-            openknx.gpio.pinMode(pin, INPUT, true, 0);
-        }
-
-        //openknx.info1Led.blinking(); // Initialize INFO1 LED (RED) to blinking
-        //openknx.info2Led.blinking(); // Initialize INFO2 LED (GREEN) to blinking
-    }
-    #endif
     _state = WidgetState::BACKGROUND; // Start Menu in background! Will be started by button press.
-}
-
-bool MenuWidget::readButton(uint16_t pin)
-{
-    // openknx.gpio.pinMode(pin, OUTPUT);
-    // openknx.gpio.digitalWrite(pin, HIGH);
-    // openknx.gpio.pinMode(pin, INPUT);
-    // bool state = !openknx.gpio.digitalRead(pin);
-    // openknx.gpio.digitalWrite(pin, HIGH);
-    // return !state;
-    #ifdef USE_GPIO_MODULE
-    return openknx.gpio.digitalRead(pin);
-    #else
-    return false;
-    #endif
 }
 
 bool MenuWidget::setLED(uint16_t pin, bool state)
@@ -110,56 +63,6 @@ bool MenuWidget::setLED(uint16_t pin, bool state)
     #else
     return false;
     #endif
-}
-
-bool MenuWidget::isAnyButtonPressed()
-{
-    // Info: _buttonLeft is active LOW. We need to invert the reading.
-    return readButton(_buttonUp) || readButton(_buttonDown) || readButton(_buttonSelect) || !readButton(_buttonLeft) || readButton(_buttonRight);
-}
-
-bool MenuWidget::processButtonPress() // We need to call this periodically in loop(), to check for button presses
-{
-    bool bRet = false;
-    if (_FrontPlateEnabled) // Only process if front plate is present (Buttons available)
-        if (readButton(_buttonUp))
-        {
-            navigateUp();
-            bRet = true;
-    #ifdef USE_GPIO_MODULE
-            //openknx.info1Led.on(true); // Use the RED LED for indication
-    #endif
-        }
-        else if (readButton(_buttonDown))
-        {
-            navigateDown();
-            bRet = true;
-    #ifdef USE_GPIO_MODULE
-            //openknx.info2Led.on(true); // Use the GREEN LED for indication
-    #endif
-        }
-        else if (readButton(_buttonSelect))
-        {
-            selectItem();
-            bRet = true;
-        }
-        else if (!readButton(_buttonLeft))
-        {
-            navigateLeft();
-            bRet = true;
-    #ifdef USE_GPIO_MODULE
-            //openknx.info1Led.on(true); // Use the RED LED for indication
-    #endif
-        }
-        else if (readButton(_buttonRight))
-        {
-            navigateRight();
-            bRet = true;
-    #ifdef USE_GPIO_MODULE
-            //openknx.info2Led.on(true); // Use the GREEN LED for indication
-    #endif
-        }
-    return bRet;
 }
 
 void MenuWidget::loop()
@@ -177,18 +80,13 @@ void MenuWidget::loop()
         // The button checks continue, but the menu will only become active when the manager activates it.
     }
 
-    if ((_infoOverlayActive && isAnyButtonPressed() && // Close overlay on any button press
-         (currentTime - _lastButtonPressTime) > _infoOverlayTimeout) ||
-        (_infoOverlayActive && (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout))
+    // Close overlay automatically after max timeout
+    if (_infoOverlayActive &&
+        (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout)
     {
-        _lastButtonPressTime = currentTime;
+        logDebugP("Overlay closed automatically after max timeout of %d ms", _infoOverlayMaxTimeout);
         _infoOverlayActive = false;
         _needsRedraw = true;
-
-        if ((_infoOverlayActive && (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout))
-            logDebugP("Overlay closed automatically after infoOverlayMaxTimeout of %d ms", _infoOverlayMaxTimeout);
-        else
-            logDebugP("Overlay closed by button press");
         return;
     }
 
@@ -208,17 +106,6 @@ void MenuWidget::loop()
         {
             background(); // Removes DisplayEnabled, manager recognizes this
             return;
-        }
-    }
-
-    // Button checks
-    if (currentTime - _lastButtonCheck >= BUTTON_CHECK_INTERVAL)
-    {
-        _lastButtonCheck = currentTime;
-        if (processButtonPress())
-        {
-            _lastButtonPressTime = currentTime;
-            _needsRedraw = true;
         }
     }
 
@@ -257,15 +144,15 @@ void MenuWidget::stop()
 
 void MenuWidget::pause()
 {
-      _stateLast = _state;
-      _state = WidgetState::PAUSED; // No pausing for menu, just go to background
-      _needsRedraw = false;
+    _stateLast = _state;
+    _state = WidgetState::PAUSED; // No pausing for menu, just go to background
+    _needsRedraw = false;
 
-      removeAction(WidgetFlags::DisplayEnabled);
-      _infoOverlayActive = false; // Ensure overlay is reseted
+    removeAction(WidgetFlags::DisplayEnabled);
+    _infoOverlayActive = false; // Ensure overlay is reseted
 
     logDebugP("Pause requested, going to background...");
-    //background();
+    // background();
 }
 
 void MenuWidget::resume()
@@ -461,15 +348,78 @@ void MenuWidget::showOverlay(std::function<void()> drawFn)
     logDebugP("Showing overlay");
 }
 
-// External navigation methods (just delegate to internal ones)
-void MenuWidget::externalNavigateUp() { navigateUp(); }
-void MenuWidget::externalNavigateDown() { navigateDown(); }
-void MenuWidget::externalSelectItem() { selectItem(); }
-void MenuWidget::externalPause() { pause(); }
-void MenuWidget::externalResume() { resume(); }
-void MenuWidget::externalStop() { stop(); }
+/************************************************************
+ ********************** MENU NAVIGATION ********************* 
+ ************************************************************/
 
-// Core functionality
+bool MenuWidget::handleButtonEvent(const ButtonEvent& event)
+{
+    if (event.action != ButtonAction::PRESS) // only handle short press for now
+    {
+        return false;
+    }
+
+    if (_infoOverlayActive) // Check if overlay is active, need to close it first.
+    {
+        logDebugP("Overlay closed by button press");
+        _infoOverlayActive = false;
+        _needsRedraw = true;
+        _lastButtonPressTime = event.timestamp;
+
+        // Menu aktivieren wenn im Background
+        if (_state == WidgetState::BACKGROUND)
+        {
+            resume();
+        }
+
+        return true; // Event is handled, do not process further.
+    }
+
+    bool handled = false;
+
+    switch (event.type)
+    {
+        case ButtonType::UP:
+            navigateUp();
+            handled = true;
+            break;
+
+        case ButtonType::DOWN:
+            navigateDown();
+            handled = true;
+            break;
+
+        case ButtonType::SELECT:
+            selectItem();
+            handled = true;
+            break;
+
+        case ButtonType::LEFT:
+            navigateLeft();
+            handled = true;
+            break;
+
+        case ButtonType::RIGHT:
+            navigateRight();
+            handled = true;
+            break;
+    }
+
+    if (handled)
+    {
+        _lastButtonPressTime = event.timestamp;
+        _needsRedraw = true;
+
+        // Activate menu if in background
+        if (_state == WidgetState::BACKGROUND)
+        {
+            resume();
+        }
+    }
+
+    return handled;
+}
+
 void MenuWidget::navigateUp()
 {
     logDebugP("Navigate up");
@@ -597,6 +547,17 @@ void MenuWidget::selectItem()
     }
 }
 
+// External navigation methods (just delegate to internal ones)
+void MenuWidget::externalNavigateUp() { navigateUp(); }
+void MenuWidget::externalNavigateDown() { navigateDown(); }
+void MenuWidget::externalSelectItem() { selectItem(); }
+void MenuWidget::externalPause() { pause(); }
+void MenuWidget::externalResume() { resume(); }
+void MenuWidget::externalStop() { stop(); }
+
+/****************************************************
+ ****************** DISPLAY HANDLING ****************
+ ****************************************************/
 void MenuWidget::clearDisplay()
 {
     if (!_display || !_display->display) return;

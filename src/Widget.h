@@ -8,6 +8,7 @@
  *              Licensed under GNU GPL v3.0
  */
 
+#include "ButtonEvent.h"
 #include "i2c-Display.h"
 #include <cstdint>
 
@@ -19,7 +20,8 @@ typedef enum : uint8_t
     ManagedExternally = 4, // Extern verwaltet, bleibt aktiv, bis deaktiviert
     DisplayEnabled = 8,    // Intern aktiv, wird auf dem Display angezeigt
     Background = 16,       // Widget läuft im Hintergrund
-    DefaultWidget = 32     // Standard-Widget, wird angezeigt, wenn kein anderes Widget aktiv ist
+    DefaultWidget = 32,    // Standard-Widget, wird angezeigt, wenn kein anderes Widget aktiv ist
+    WantsButtonInput = 64  // Widget möchte Button-Eingaben erhalten
 } WidgetFlags;
 
 enum class WidgetState
@@ -54,4 +56,10 @@ class Widget
     virtual i2cDisplay *getDisplayModule() const = 0;
     virtual const std::string getName() const = 0;
     virtual void setName(const std::string &name) = 0;
+
+    virtual bool handleButtonEvent(const ButtonEvent &event) { return false; }
+    virtual bool wantsButtonInput() const
+    {
+      return (static_cast<uint8_t>(getAction()) & WantsButtonInput) != 0;
+    }
 };

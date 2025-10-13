@@ -1106,3 +1106,60 @@ bool WidgetsManager::hasOnlyDefaultWidgets() const
 
     return hasDefault && !hasOther;
 }
+
+
+/**
+ * @brief Gets the widget that should receive button events
+ * Priority: PRIORITY > BACKGROUND (active) > BACKGROUND (inactive) > NORMAL
+ * @return Pointer to the active button widget or nullptr
+ */
+Widget* WidgetsManager::getActiveButtonWidget()
+{
+    // Priority 1: PRIORITY-Widgets (ProgMode, StatusWidgets)
+    if (_state == WidgetManagerState::PRIORITY &&
+        _currentWidget &&
+        _currentWidget->wantsButtonInput())
+    {
+        return _currentWidget;
+    }
+
+    // Priority 2: BACKGROUND-Widgets (Menu aktiv mit DisplayEnabled)
+    if (_state == WidgetManagerState::BACKGROUND &&
+        _currentWidget &&
+        _currentWidget->wantsButtonInput())
+    {
+        return _currentWidget;
+    }
+
+    // Priority 3: Background-Widgets im Hintergrund (Menu inaktiv, aber RUNNING)
+    Widget* backgroundWidget = findActiveBackgroundWidget();
+    if (!backgroundWidget)
+    {
+        // Kein aktives Background-Widget, suche nach RUNNING Background-Widgets
+        for (auto& widget : _widgetQueue)
+        {
+            if (widget &&
+                (widget->getAction() & Background) &&
+                widget->wantsButtonInput() &&
+                (widget->getState() == WidgetState::RUNNING ||
+                 widget->getState() == WidgetState::BACKGROUND))
+            {
+                return widget;
+            }
+        }
+    }
+    else if (backgroundWidget->wantsButtonInput())
+    {
+        return backgroundWidget;
+    }
+
+    // Priority 4: NORMAL-Widgets
+    if (_state == WidgetManagerState::NORMAL &&
+        _currentWidget &&
+        _currentWidget->wantsButtonInput())
+    {
+        return _currentWidget;
+    }
+
+    return nullptr;
+}
