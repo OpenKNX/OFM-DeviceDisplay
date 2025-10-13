@@ -8,7 +8,6 @@
  *              Licensed under GNU GPL v3.0
  */
 
-#pragma once
 #include "i2c-Display.h"
 #include <cstdint>
 

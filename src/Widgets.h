@@ -41,8 +41,7 @@ enum TextDynamicAlign : uint8_t
     ALIGN_BOTTOM = 0x40  // Align text in the screen to the bottom with calculated spacing
 };
 
-// lcdText struct for dynamic text lines
-struct lcdText
+struct lcdText // lcdText struct for dynamic text lines
 {
     int16_t scrollPos = 0;                  // Current scroll position
     uint16_t startPosY = 0;                 // Y Start position for header
