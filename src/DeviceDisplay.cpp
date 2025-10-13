@@ -7,7 +7,6 @@ i2cDisplay* displayModule = new i2cDisplay();
 
 /**
  * @brief Construct a new Device Display:: Device Display object
- *
  */
 DeviceDisplay::DeviceDisplay()
     : widget() // Initialize the widget
@@ -17,12 +16,10 @@ DeviceDisplay::DeviceDisplay()
 /**
  * @brief Initialize the display module.
  * This function is called within the OpenKNX
- *
  */
 void DeviceDisplay::init()
 {
     logInfoP("Init started...");
-
     // Setup the display module with the default settings from the selected hardware
     // Ensure all necessary hardware configuration macros are defined
     #ifndef OKNXHW_DEVICE_DISPLAY_I2C_INST
@@ -73,64 +70,84 @@ void DeviceDisplay::init()
     {
         logErrorP("Display initialization failed!");
     }
+
+    #ifdef WIDGET_MANAGER
+    widgetManager = new WidgetsManager();
+    widgetManager->setDisplayModule(&displayModule); // Important: The display module for the widgets
+    widgetManager->setIdleTimeout(10000);
+
+    // Power-Save-Konfiguration
+    PowerSaveConfig powerSaveConfig;
+    powerSaveConfig.enabled = true;
+    powerSaveConfig.dimTimeout = 30000;         // 30s
+    powerSaveConfig.screenSaverTimeout = 60000; // 1min
+    powerSaveConfig.sleepTimeout = 300000;      // 5min
+    powerSaveConfig.offTimeout = 0;             // nie
+    powerSaveConfig.dimBrightness = 30;         // 30%
+    powerSaveConfig.normalBrightness = 100;     // 100%
+    widgetManager->setPowerSaveConfig(powerSaveConfig);
+
+    // Optional: Callbacks
+    widgetManager->setStateTransitionCallback([this](WidgetManagerState from, WidgetManagerState to) {
+        logInfoP("State: %d -> %d", from, to);
+    });
+
+    widgetManager->setPowerSaveCallback([this](PowerSaveMode from, PowerSaveMode to) {
+        logInfoP("PowerSave: %d -> %d", from, to);
+    });
+    #endif
 }
 
 /**
- * @brief Setup the default widgets for the display.
- *
- * @param configured, will not be used
+ * @brief Initialize and add the default widgets to the widget manager.
  */
-
-void DeviceDisplay::setup(bool configured)
+void DeviceDisplay::initializeWidgets()
 {
-    logDebugP("setup...");
-    displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
-    displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display
-    #ifndef WIDGET_MANAGER
-    initializeWidgets(); // Setup default widget queue
-    #else
-    widgetManager.setDisplayModule(&displayModule);                                     // The display module for the widgets
+    #ifdef WIDGET_MANAGER
+    // Set the boot logo widget (only shown once at startup - must be added as first widget)
     WidgetBootLogo* bootLogoWidget = new WidgetBootLogo(3000, WidgetFlags::AutoRemove); // Create a new BootLogo widget
-    widgetManager.addWidget(bootLogoWidget);
+    widgetManager->addWidget(bootLogoWidget);
+    // ToDo: widgetManager->setBootlogoWidget(bootLogoWidget); // Set the boot logo widget
+
+    // Set the screensaver widget
+    WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
+    widgetManager->setScreenSaverWidget(matrixClassicWidget);
 
     // WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
-    // widgetManager.addWidget(lifeWidget);
+    // widgetManager->addWidget(lifeWidget);
 
     // WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
-    // widgetManager.addWidget(starfieldWidget);
+    // widgetManager->addWidget(starfieldWidget);
 
     // WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
-    // widgetManager.addWidget(cube3DWidget);
+    // widgetManager->addWidget(cube3DWidget);
 
     // WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
-    // widgetManager.addWidget(pongWidget);
+    // widgetManager->addWidget(pongWidget);
 
     // WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
-    // widgetManager.addWidget(rainWidget);
+    // widgetManager->addWidget(rainWidget);
 
     // WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
-    // widgetManager.addWidget(matrixWidget);
-
-    // WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
-    // widgetManager.addWidget(matrixClassicWidget);
+    // widgetManager->addWidget(matrixWidget);
 
     // WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
-    // widgetManager.addWidget(sysInfoLiteWidget);
+    // widgetManager->addWidget(sysInfoLiteWidget);
 
     // WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
-    // widgetManager.addWidget(openknxLogoWidget);
+    // widgetManager->addWidget(openknxLogoWidget);
 
     // WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
-    // widgetManager.addWidget(fireworksWidget);
+    // widgetManager->addWidget(fireworksWidget);
 
-    WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::DefaultWidget, "https://www.openknx.de", false); // Create a new QRcode widget
-    widgetManager.addWidget(qrcodeWidget);
+    // WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::DefaultWidget, "https://www.openknx.de", false); // Create a new QRcode widget
+    // widgetManager->addWidget(qrcodeWidget);
 
     // Default Widgets
 
     // Clock Widget, which will be displayed for 5 seconds, if there is no other widget in the queue, infitely.
     WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::DefaultWidget, false); // Create a new Clock widget
-    widgetManager.addWidget(clockWidget);
+    widgetManager->addWidget(clockWidget);
 
     // Menu Widget, which will be displayed Initially, if there is no other widget in the queue, infitely.
     MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally, // Is managed externally
@@ -142,21 +159,33 @@ void DeviceDisplay::setup(bool configured)
     );                                                                             // Create a new Menu widget
 
     menuWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::Background);
+    widgetManager->addWidget(menuWidget);
     setMenuWidget(menuWidget); // For Internal use in this class
-    widgetManager.addWidget(menuWidget);
 
     WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
     progModeWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);
-    widgetManager.addWidget(progModeWidget);
+    widgetManager->addWidget(progModeWidget);
 
-    // widgetManager.setup(); // Setup the widgets ToDo! CHeck whats going wrong here
-    widgetManager.start(); // Start the widgets
+    widgetManager->setup(); // Setup the widget manager
+    widgetManager->start(); // Start the widget manager
     #endif
 }
 
 /**
+ * @brief Setup the default widgets for the display.
+ * @param configured, will not be used
+ */
+void DeviceDisplay::setup(bool configured)
+{
+    logDebugP("setup...");
+    displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
+    displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display
+    logDebugP("Initialize widgets...");
+    initializeWidgets();
+}
+
+/**
  * @brief Process GroupObjects for the display module.
- *
  * @param obj, the GroupObject to process
  */
 void DeviceDisplay::processInputKo(GroupObject& obj)
@@ -177,38 +206,16 @@ void DeviceDisplay::loop(bool configured)
         return;
     }
 
-    RUNTIME_MEASURE_BEGIN(_loopRuntimesDim);
-    static uint32_t lastDisplayDimTimer_ = millis();
-    static bool isDimmed = false;
-
-    if (millis() - lastDisplayDimTimer_ > DISPLAY_DIM_TIMER)
-    {
-        if (!isDimmed)
-        {
-            displayModule.SetDisplayContrast(0x00);   // Set the contrast of the display
-            displayModule.SetDisplayVCOMDetect(0x00); // Set the VCOMH regulator output
-            isDimmed = true;
-        }
-    }
-    else
-    {
-        if (isDimmed)
-        {
-            displayModule.SetDisplayContrast(0xFF);   // Set the contrast of the display
-            displayModule.SetDisplayVCOMDetect(0x20); // Set the VCOMH regulator output
-            isDimmed = false;
-        }
-    }
-    RUNTIME_MEASURE_END(_loopRuntimesDim);
-
     static bool wasInProgMode = false;
     static Widget* progMode = nullptr;
     if (knx.progMode())
     {
-        lastDisplayDimTimer_ = millis(); // Reset the display dim timer if prog mode is active
+        // ← NEU: Reset Power-Save-Timer bei ProgMode
+        widgetManager->userInteraction();
+
         if (!wasInProgMode)
         {
-            if ((progMode = widgetManager.getWidgetFromQueue("ProgMode")) != nullptr &&
+            if ((progMode = widgetManager->getWidgetFromQueue("ProgMode")) != nullptr &&
                 progMode->getState() != WidgetState::RUNNING)
             {
                 logInfoP("ProgMode requested and will be displayed...");
@@ -231,12 +238,15 @@ void DeviceDisplay::loop(bool configured)
     }
 
     RUNTIME_MEASURE_BEGIN(_loopWidgets);
-    widgetManager.loop();
+    widgetManager->loop();
     RUNTIME_MEASURE_END(_loopWidgets);
-
     // RUNTIME_MEASURE_BEGIN(_loopDisplayModule);
     // displayModule.loop();
     // RUNTIME_MEASURE_END(_loopDisplayModule);
+    // RUNTIME_MEASURE_BEGIN(_loopRuntimesDim);
+    // ist jetzt im pwr manager
+    // RUNTIME_MEASURE_END(_loopRuntimesDim);
+
 }
 
 /**
@@ -264,7 +274,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             logInfoP("Sending Matrix Screensaver to display.");
             WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::NoAction, 8);
             matrixClassicWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
-            widgetManager.addWidget(matrixClassicWidget);
+            widgetManager->addWidget(matrixClassicWidget);
             bRet = true;
         }
         else if (command.compare(4, 5, "clock") == 0) // Clock Screensaver
@@ -272,7 +282,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             logInfoP("Sending Clock Screensaver to display.");
             WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::NoAction, true);
             clockWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
-            widgetManager.addWidget(clockWidget);
+            widgetManager->addWidget(clockWidget);
             bRet = true;
         }
         else if (command.compare(4, 5, "pong ") == 0) // Pong Screensaver
@@ -282,13 +292,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Pong Screensaver is set to display. Remove it with 'ddc pong r'");
                 WidgetPong* pongWidget = new WidgetPong(5000, WidgetFlags::NoAction);
                 pongWidget->setAction(WidgetFlags::DefaultWidget);
-                widgetManager.addWidget(pongWidget);
+                widgetManager->addWidget(pongWidget);
                 bRet = true;
             }
             if (command.compare(9, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing Pong Screensaver from display...");
-                Widget* widget = widgetManager.getWidgetFromQueue("WidgetPong");
+                Widget* widget = widgetManager->getWidgetFromQueue("Pong");
                 if (widget)
                 {
                     widget->addAction(WidgetFlags::AutoRemove);
@@ -304,13 +314,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Starfield Screensaver is set to display. Remove it with 'ddc starfield r'");
                 WidgetStarfield* starfieldWidget = new WidgetStarfield(5000, WidgetFlags::NoAction, 10);
                 starfieldWidget->setAction(WidgetFlags::DefaultWidget);
-                widgetManager.addWidget(starfieldWidget);
+                widgetManager->addWidget(starfieldWidget);
                 bRet = true;
             }
             if (command.compare(14, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing Starfield Screensaver from display...");
-                Widget* widget = widgetManager.getWidgetFromQueue("Starfield");
+                Widget* widget = widgetManager->getWidgetFromQueue("Starfield");
                 if (widget)
                 {
                     logInfoP("Retrieved widget at %p with name %s", widget, widget->getName().c_str());
@@ -327,13 +337,13 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("3D Cube Screensaver is set to display. Remove it with 'ddc 3dcube r'");
                 WidgetCube3D* cube3DWidget = new WidgetCube3D(5000, WidgetFlags::NoAction);
                 cube3DWidget->setAction(WidgetFlags::DefaultWidget);
-                widgetManager.addWidget(cube3DWidget);
+                widgetManager->addWidget(cube3DWidget);
                 bRet = true;
             }
             if (command.compare(11, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing 3D Cube Screensaver from display...");
-                Widget* widget = widgetManager.getWidgetFromQueue("WidgetCube3D");
+                Widget* widget = widgetManager->getWidgetFromQueue("WidgetCube3D");
                 if (widget)
                 {
                     widget->addAction(WidgetFlags::AutoRemove);
@@ -344,7 +354,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         }
         else if (command.compare(4, 1, "l") == 0 && command.size() < 6) // List all widgets
         {
-            widgetManager.logWidgetQueue();
+            widgetManager->logWidgetQueue();
             bRet = true;
         }
     #ifdef DD_CONSOLE_CMDS
@@ -556,7 +566,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Display all-on mode disabled, resumed normal display");
             }
         }
-    #endif                                         // DD_CONSOLE_CMDS
+    #endif // DD_CONSOLE_CMDS
     #ifdef OPENKNX_RUNTIME_STAT
         else if (command.compare(4, 8, "runtime ") == 0)
         {
@@ -569,28 +579,28 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             {
                 if (command.compare(19, 3, "all") == 0)
                 {
-                   // for (size_t i = 0; i < widgetsQueue.size(); ++i)
-                   // {
-                   //     // WidgetInfo& widgetInfo = widgetsQueue[i];
-                   //     // widgetInfo.widget->_WidgetRutimeStat.showStat("widget_" + widgetInfo.name, 0, true, true);
-                   // }
+                    // for (size_t i = 0; i < widgetsQueue.size(); ++i)
+                    // {
+                    //     // WidgetInfo& widgetInfo = widgetsQueue[i];
+                    //     // widgetInfo.widget->_WidgetRutimeStat.showStat("widget_" + widgetInfo.name, 0, true, true);
+                    // }
                     bRet = true;
                 }
                 else
                 {
-                   // std::string WidgetName = command.substr(19);
-                   // if (!WidgetName.empty())
-                   // {
-                   //     WidgetInfo* widgetInfo = getWidgetInfo(WidgetName);
-                   //     if (widgetInfo && widgetInfo->widget != nullptr)
-                   //     {
-                   //         widgetInfo->widget->_WidgetRutimeStat.showStat("widget_" + WidgetName, 0, true, true);
-                   //     }
-                   //     else
-                   //     {
-                   //         logErrorP("Widgets '%s' not found!", WidgetName.c_str());
-                   //     }
-                   // }
+                    // std::string WidgetName = command.substr(19);
+                    // if (!WidgetName.empty())
+                    // {
+                    //     WidgetInfo* widgetInfo = getWidgetInfo(WidgetName);
+                    //     if (widgetInfo && widgetInfo->widget != nullptr)
+                    //     {
+                    //         widgetInfo->widget->_WidgetRutimeStat.showStat("widget_" + WidgetName, 0, true, true);
+                    //     }
+                    //     else
+                    //     {
+                    //         logErrorP("Widgets '%s' not found!", WidgetName.c_str());
+                    //     }
+                    // }
                 }
             }
             else

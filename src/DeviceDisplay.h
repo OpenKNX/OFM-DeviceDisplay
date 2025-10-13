@@ -24,7 +24,7 @@
     #include "Widgets/Rain.h"
     #include "Widgets/Starfield.h"
     #include "Widgets/SysInfoLite.h"
-    #include "Widgets/OpenKNXLogo.h" // --> This is the new SysInfoLite widget
+    #include "Widgets/OpenKNXLogo.h"
     #include "Menu/Menu.h"
     #include "Widgets/Fireworks.h"
     #include "Widgets/ProgMode.h"
@@ -43,7 +43,7 @@ class DeviceDisplay : public OpenKNX::Module
   public:
 #ifdef WIDGET_MANAGER
     inline void setMenuWidget(MenuWidget* menuWidget) { _menuWidget = menuWidget; }
-    WidgetsManager widgetManager;
+    WidgetsManager *widgetManager;
 #endif
 
   private:
@@ -51,12 +51,12 @@ class DeviceDisplay : public OpenKNX::Module
     MenuWidget* _menuWidget = nullptr;
 #endif
 #ifdef OPENKNX_RUNTIME_STAT
-    OpenKNX::Stat::RuntimeStat _loopRuntimesDim;
+    //OpenKNX::Stat::RuntimeStat _loopRuntimesDim;
     OpenKNX::Stat::RuntimeStat _loopWidgets;
     #ifdef DEMO_WIDGET_CMD_TESTS
     OpenKNX::Stat::RuntimeStat _loopDemoWidgets;
     #endif
-    OpenKNX::Stat::RuntimeStat _loopDisplayModule;
+    //OpenKNX::Stat::RuntimeStat _loopDisplayModule;
 #endif
 
   public:

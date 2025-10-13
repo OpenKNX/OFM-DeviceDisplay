@@ -31,6 +31,8 @@ class i2cDisplay
     i2cDisplay();  // Constructor
     ~i2cDisplay(); // Destructor
 
+    const std::string logPrefix() { return "i2cDisplay"; }
+
     struct ScreenSettings // Struct to hold the display settings
     {
         uint8_t width = -1;            // 128 or 64 screen pixels wide of the display. Currently tested and supported: 128
@@ -76,7 +78,17 @@ class i2cDisplay
 
 
     inline void __setLoopColumnMethod(bool loopColumnMethod) { __loopColumnMethod = loopColumnMethod; } // Set the loop column method
+
+    void setBrightness(uint8_t brightness); // 0-100%
+    void displayOn();
+    void displayOff();
+    uint8_t getBrightness() const { return _brightness; }
+    bool isDisplayOn() const { return _displayOn; }
+
   private:
+    uint8_t _brightness = 100;
+    bool _displayOn = true;
+    
     // #define BUFFER_SIZE (128 * ((64 + 7 ) / 8))
     uint16_t _sizeDispBuff;   
     uint8_t* _curDispBuffer;  // Buffer size!

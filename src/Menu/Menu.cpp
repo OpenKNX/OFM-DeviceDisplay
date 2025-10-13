@@ -257,14 +257,15 @@ void MenuWidget::stop()
 
 void MenuWidget::pause()
 {
-    /*
       _stateLast = _state;
       _state = WidgetState::PAUSED; // No pausing for menu, just go to background
+      _needsRedraw = false;
+
+      removeAction(WidgetFlags::DisplayEnabled);
       _infoOverlayActive = false; // Ensure overlay is reseted
-    */
 
     logDebugP("Pause requested, going to background...");
-    background();
+    //background();
 }
 
 void MenuWidget::resume()
@@ -273,7 +274,7 @@ void MenuWidget::resume()
     _state = WidgetState::RUNNING;
     _needsRedraw = true;
     addAction(WidgetFlags::DisplayEnabled);
-    // removeAction(WidgetFlags::Background);
+
     logDebugP("Resume...");
 }
 
@@ -284,7 +285,6 @@ void MenuWidget::background()
     _infoOverlayActive = false; // Ensure overlay is reseted
     _needsRedraw = false;
 
-    // addAction(WidgetFlags::Background);
     removeAction(WidgetFlags::DisplayEnabled);
     clearDisplay();
     logDebugP("Menu is running in background due to inactivity.");
