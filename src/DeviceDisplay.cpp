@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-    #include "DeviceDisplay.h"
-    #include "OpenKNX.h"
+#include "DeviceDisplay.h"
+
 
 DeviceDisplay openknxDisplayModule;
 
@@ -11,6 +11,7 @@ DeviceDisplay::DeviceDisplay()
 {
     // Constructor
 }
+
 DeviceDisplay::~DeviceDisplay()
 {
     // Destructor
@@ -42,31 +43,7 @@ void DeviceDisplay::init()
         logErrorP("Widget manager not created!");
         return;
     }
-    // Setup the display module with the default settings from the selected hardware
-    // Ensure all necessary hardware configuration macros are defined
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_INST
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_INST);
-    #endif
-
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SDA
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SDA);
-    #endif
-
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_SCL
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_SCL);
-    #endif
-
-    #ifndef OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS);
-    #endif
-
-    #ifndef OKNXHW_DEVICE_DISPLAY_WIDTH
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_WIDTH);
-    #endif
-
-    #ifndef OKNXHW_DEVICE_DISPLAY_HEIGHT
-    ERROR_REQUIRED_DEFINE(OKNXHW_DEVICE_DISPLAY_HEIGHT);
-    #endif
+    
     #ifdef ARDUINO_ARCH_ESP32
     _displayModule->lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
     #else
@@ -372,6 +349,11 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             _widgetManager->logWidgetQueue();
             bRet = true;
         }
+        else if (command.compare(4, 1, "i") == 0 && command.size() < 6) // Info about the widget manager
+        {
+            _widgetManager->logWidgetManagerSettings();
+            bRet = true;
+        }
     #ifdef DD_CONSOLE_CMDS
         else if (command.compare(4, 4, "dim ") == 0) // ddc dim <on|off|0-255>
         {
@@ -616,6 +598,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
     #endif // DD_CONSOLE_CMDS
             openknx.console.printHelpLine("ddc l", "List all widgets");
+            openknx.console.printHelpLine("ddc i", "Info about the widget manager");
     #ifdef MATRIX_SCREENSAVER
             openknx.console.printHelpLine("ddc m <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
             openknx.console.printHelpLine("ddc matrix <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
