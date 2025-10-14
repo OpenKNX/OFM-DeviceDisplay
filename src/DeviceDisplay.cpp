@@ -1,6 +1,5 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "DeviceDisplay.h"
-
+    #include "DeviceDisplay.h"
 
 DeviceDisplay openknxDisplayModule;
 
@@ -43,7 +42,7 @@ void DeviceDisplay::init()
         logErrorP("Widget manager not created!");
         return;
     }
-    
+
     #ifdef ARDUINO_ARCH_ESP32
     _displayModule->lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST; // Set here the i2c instance to use. i2c0 or i2c1
     #else
@@ -71,7 +70,7 @@ void DeviceDisplay::init()
     }
 
     #ifdef WIDGET_MANAGER
-    
+
     _widgetManager->setDisplayModule(_displayModule); // Important: The display module for the widgets
     _widgetManager->setIdleTimeout(10000);
 
@@ -149,10 +148,10 @@ void DeviceDisplay::initializeWidgets()
     _widgetManager->addWidget(clockWidget);
 
     // Menu Widget, which will be displayed Initially, if there is no other widget in the queue, infitely.
-    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally);                                                                             // Create a new Menu widget
+    MenuWidget* menuWidget = new MenuWidget(10000, WidgetFlags::ManagedExternally); // Create a new Menu widget
 
     // Info: Those actions are default for the MenuWidget - ManagedExternally, Background and WantsButtonInput!
-    //menuWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::Background | WidgetFlags::WantsButtonInput);
+    // menuWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::Background | WidgetFlags::WantsButtonInput);
     _widgetManager->addWidget(menuWidget);
 
     WidgetProgMode* progModeWidget = new WidgetProgMode(); // Create a new ProgMode widget
@@ -176,7 +175,6 @@ void DeviceDisplay::setup(bool configured)
     logDebugP("Initialize widgets...");
     initializeWidgets();
     setupButtons();
-
 }
 
 /**
@@ -195,51 +193,73 @@ void DeviceDisplay::processInputKo(GroupObject& obj)
  */
 void DeviceDisplay::loop(bool configured)
 {
-    //if(!configured) return;
+    // if(!configured) return;
 
+    static bool displayErrorShown = false;
     if (_displayModule->display == nullptr)
     {
-        logErrorP("Display not initialized");
+        if (!displayErrorShown)
+        {
+            logErrorP("Display not initialized");
+            displayErrorShown = true;
+        }
         return;
     }
 
     processButtons();
 
-    static bool wasInProgMode = false;
-    static Widget* progMode = nullptr;
-    if (knx.progMode())
-    {
-        // ← NEU: Reset Power-Save-Timer bei ProgMode
-        _widgetManager->userInteraction();
+    handleProgMode();
 
-        if (!wasInProgMode)
-        {
-            if ((progMode = _widgetManager->getWidgetFromQueue("ProgMode")) != nullptr &&
-                progMode->getState() != WidgetState::RUNNING)
-            {
-                logInfoP("ProgMode requested and will be displayed...");
-                progMode->addAction(WidgetFlags::DisplayEnabled);
-                wasInProgMode = true;
-                logInfoP(" Current Action: %d", progMode->getAction());
-            }
-            else
-            {
-                logErrorP("ProgMode widget not found in queue!");
-            }
-        }
+    if (openknx.freeLoopTime())
+    { // Update display only if free loop time is available
+        _widgetManager->loop();
     }
-    else if (wasInProgMode && progMode != nullptr)
-    {
-        logInfoP("ProgMode requested and will be removed...");
-        progMode->removeAction(WidgetFlags::DisplayEnabled);
-        wasInProgMode = false;
-        logInfoP(" Current Action: %d", progMode->getAction());
-    }
-
-    _widgetManager->loop();
-
 }
 
+/**
+ * @brief Handle knx programming mode to display the ProgMode widget.
+ */
+void DeviceDisplay::handleProgMode()
+{
+    static Widget* progModeWidget = nullptr;
+    static bool wasActive = false;
+
+    bool isActive = knx.progMode();
+
+    // State change: inactive --> active
+    if (isActive && !wasActive)
+    {
+        _widgetManager->userInteraction(); // Reset the idle timer
+
+        // Check if we already have the widget
+        if (!progModeWidget)
+        {
+            progModeWidget = _widgetManager->getWidgetFromQueue("ProgMode");
+        }
+
+        // If we have the widget and it is not already running, activate it
+        if (progModeWidget && progModeWidget->getState() != WidgetState::RUNNING)
+        {
+            progModeWidget->addAction(WidgetFlags::DisplayEnabled);
+            logInfoP("ProgMode activated");
+        }
+        else if (!progModeWidget)
+        {
+            logErrorP("ProgMode widget not found!");
+        }
+        wasActive = true;
+    }
+    // State change: active --> inactive
+    else if (!isActive && wasActive)
+    {
+        if (progModeWidget)
+        {
+            progModeWidget->removeAction(WidgetFlags::DisplayEnabled);
+            logInfoP("ProgMode deactivated");
+        }
+        wasActive = false;
+    }
+}
 
 /**
  * @brief Console commands to show the help for the display module.
@@ -564,20 +584,25 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             }
         }
     #endif // DD_CONSOLE_CMDS
-    #ifdef OPENKNX_RUNTIME_STAT
-        else if (command.compare(4, 8, "runtime ") == 0)
+        else if (command.compare(4, 3, "qr ") == 0) // Show QR-Code
         {
-            logInfoP("DeviceDisplay Runtime Statistics: (Uptime=%dms)", millis());
-            logIndentUp();
-
-            OpenKNX::Stat::RuntimeStat::showStatHeader();
-            //_loop_DisplayModule->showStat("loop_only", 0, true, true);
-
-            logIndentDown();
-            bRet = true;
-            // return true;
+            std::string url = command.substr(7);
+            if (url.length() > 0 && url.length() < 128) // Limit URL length
+            {
+                logInfoP("Showing QR-Code for URL: %s", url.c_str());
+                WidgetQRCode* qrcodeWidget = new WidgetQRCode(10000, WidgetFlags::AutoRemove, url, false);
+                _widgetManager->addWidget(qrcodeWidget);
+                bRet = true;
+            }
+            else
+            {
+                logErrorP("Invalid URL length. Please provide a URL between 1 and 127 characters.");
+            }
         }
-    #endif // OPENKNX_RUNTIME_STAT
+        else if (command.compare(4, 2, "c ") == 0) // Display text on the display
+        {
+          // For WidgetConsole
+        }
         else
         {
             openknx.logger.begin();
@@ -587,19 +612,10 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.logger.color(0);
             openknx.logger.log("Command(s)               Description");
             openknx.console.printHelpLine("ddc c <text>", "Print/Update Console Widgets");
-    #ifdef DD_CONSOLE_CMDS
-            openknx.console.printHelpLine("ddc scroll <cmd>", "<r|l|dr|dl|start|stop|sa> Scroll the display");
-            openknx.console.printHelpLine("ddc vcom <on|off|value>", "Enable or disable VCOM detect or set the value");
-            openknx.console.printHelpLine("ddc dim <on|off|0-255>", "Dim the display to on, off or set the contrast value");
-            openknx.console.printHelpLine("ddc inv <0|1>", "Invert the display to 0 or 1");
-            openknx.console.printHelpLine("ddc contrast <value>", "Set the contrast value (0x00 to 0xFF)");
-            openknx.console.printHelpLine("ddc chargepump <on|off>", "Enable or disable the charge pump");
-            openknx.console.printHelpLine("ddc segremap <on|off>", "Enable or disable the segment remapping");
-            openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
-    #endif // DD_CONSOLE_CMDS
             openknx.console.printHelpLine("ddc l", "List all widgets");
             openknx.console.printHelpLine("ddc i", "Info about the widget manager");
-    #ifdef MATRIX_SCREENSAVER
+            openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
+            openknx.logger.log("-----------------------------SCREENSAVER WIDGETS-------------------------------");
             openknx.console.printHelpLine("ddc m <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
             openknx.console.printHelpLine("ddc matrix <s|r>", "<s> set, <r> remove - Matrix Screensaver ");
             openknx.console.printHelpLine("ddc clock <s|r>", "<s> set, <r> remove - Clock Screensaver ");
@@ -608,45 +624,35 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc starfield <s|r>", "<s> set, <r> remove - Starfield Screensaver ");
             openknx.console.printHelpLine("ddc 3dcube <s|r>", "<s> set, <r> remove - 3D Cube Screensaver ");
             openknx.console.printHelpLine("ddc life <s|r>", "<s> set, <r> remove - Life Screensaver ");
-            openknx.console.printHelpLine("ddc openknx <s|r>", "<s> set, <r> remove - OpenKNX Team Intro ");
-    #endif // MATRIX_SCREENSAVER
-    #ifdef QRCODE_WIDGET
-            openknx.console.printHelpLine("ddc qr <URL>", "Show QR-Code");
-    #endif // QRCODE_WIDGET
+            //openknx.console.printHelpLine("ddc openknx <s|r>", "<s> set, <r> remove - OpenKNX Team Intro ");
+            #ifdef DD_CONSOLE_CMDS
+            openknx.logger.log("-------------------------DISPLAY CONFIGURATION COMMANDS-------------------------");
+            openknx.console.printHelpLine("ddc scroll <cmd>", "<r|l|dr|dl|start|stop|sa> Scroll the display");
+            openknx.console.printHelpLine("ddc vcom <on|off|value>", "Enable or disable VCOM detect or set the value");
+            openknx.console.printHelpLine("ddc dim <on|off|0-255>", "Dim the display to on, off or set the contrast value");
+            openknx.console.printHelpLine("ddc inv <0|1>", "Invert the display to 0 or 1");
+            openknx.console.printHelpLine("ddc contrast <value>", "Set the contrast value (0x00 to 0xFF)");
+            openknx.console.printHelpLine("ddc chargepump <on|off>", "Enable or disable the charge pump");
+            openknx.console.printHelpLine("ddc segremap <on|off>", "Enable or disable the segment remapping");
+            openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
+            #endif // DD_CONSOLE_CMDS
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("Info: To test the progMode widget toogle the prog mode on the device.");
             openknx.logger.log("--------------------------------------------------------------------------------");
             openknx.logger.color(0);
-    #ifdef OPENKNX_RUNTIME_STAT
-            openknx.logger.color(CONSOLE_HEADLINE_COLOR);
-            openknx.logger.log("Runtime Statistics: Device Display Control");
-            openknx.logger.log("--------------------------------------------------------------------------------");
-            openknx.logger.color(0);
-            openknx.console.printHelpLine("ddc runtime <all>", "Show all (dim, demo, loop widgets) runtime statistics");
-            openknx.console.printHelpLine("ddc runtime <dim>", "Show display dim runtime statistics");
-            openknx.console.printHelpLine("ddc runtime <demo_widgets>", "Show DEMO widgets runtime statistics");
-            openknx.console.printHelpLine("ddc runtime <loop>", "Show display loop only runtime statistics");
-            openknx.console.printHelpLine("ddc runtime <widgets>", "Show ALL widgets runtime statistics");
-            openknx.console.printHelpLine("ddc runtime widget all", "Show ALL queue widgets runtime statistics");
-            openknx.console.printHelpLine("ddc runtime widget <'widget_name'>", "Show Widgets runtime statistics. Use 'ddc l' to list all widgets.");
-            openknx.logger.color(CONSOLE_HEADLINE_COLOR);
-            openknx.logger.log("--------------------------------------------------------------------------------");
-    #endif // OPENKNX_RUNTIME_STAT
-            openknx.logger.color(0);
             openknx.logger.end();
-            bRet = false;
+            bRet = true;
         }
     }
     return bRet;
 }
-
 
 /**
  * @brief Setup button pins
  */
 void DeviceDisplay::setupButtons()
 {
-#ifdef USE_GPIO_MODULE
+    #ifdef USE_GPIO_MODULE
     if (!openknx.gpio.isInitialized(1))
     {
         logErrorP("GPIO Module not initialized - buttons disabled");
@@ -661,8 +667,7 @@ void DeviceDisplay::setupButtons()
 
     const uint16_t pins[] = {
         _buttonUp, _buttonDown, _buttonSelect,
-        _buttonLeft, _buttonRight
-    };
+        _buttonLeft, _buttonRight};
 
     for (auto pin : pins)
     {
@@ -671,13 +676,14 @@ void DeviceDisplay::setupButtons()
 
     _frontPlateEnabled = true;
     logInfoP("Front plate buttons initialized");
-#else
+    #else
     logInfoP("GPIO module not available - buttons disabled");
-#endif
+    #endif
 }
 
 /**
- * @brief Process button inputs and forward to active widget
+ * @brief Process button inputs and forward to widgets which want button input.
+ * If no widget wants button input, the display will be woken up on button press.
  */
 void DeviceDisplay::processButtons()
 {
@@ -705,10 +711,10 @@ void DeviceDisplay::processButtons()
             delete event;
             return;
         }
-        
+
         if (activeWidget->handleButtonEvent(*event))
         {
-            _widgetManager->userInteraction();  // Wake-Up Display
+            _widgetManager->userInteraction(); // Wake-Up Display
         }
         delete event;
     }
@@ -723,7 +729,7 @@ void DeviceDisplay::processButtons()
             delete event;
             return;
         }
-        
+
         if (activeWidget->handleButtonEvent(*event))
         {
             _widgetManager->userInteraction();
@@ -741,7 +747,7 @@ void DeviceDisplay::processButtons()
             delete event;
             return;
         }
-        
+
         if (activeWidget->handleButtonEvent(*event))
         {
             _widgetManager->userInteraction();
@@ -759,7 +765,7 @@ void DeviceDisplay::processButtons()
             delete event;
             return;
         }
-        
+
         if (activeWidget->handleButtonEvent(*event))
         {
             _widgetManager->userInteraction();
@@ -777,7 +783,7 @@ void DeviceDisplay::processButtons()
             delete event;
             return;
         }
-        
+
         if (activeWidget->handleButtonEvent(*event))
         {
             _widgetManager->userInteraction();
@@ -785,6 +791,7 @@ void DeviceDisplay::processButtons()
         delete event;
     }
 }
+
 /**
  * @brief Check a single button for state changes
  * @param pin GPIO pin to check
@@ -844,11 +851,11 @@ ButtonEvent* DeviceDisplay::checkButton(uint16_t pin, ButtonType type, size_t in
  */
 bool DeviceDisplay::readButton(uint16_t pin)
 {
-#ifdef USE_GPIO_MODULE
+    #ifdef USE_GPIO_MODULE
     return openknx.gpio.digitalRead(pin);
-#else
+    #else
     return false;
-#endif
+    #endif
 }
 
-#endif
+#endif // USE_DISPLAY_MODULE

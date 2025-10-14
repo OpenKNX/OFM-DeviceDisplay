@@ -14,7 +14,6 @@
     #include "ButtonEvent.h"
     #include "OpenKNX.h"
     #include "OpenKNX/Stat/RuntimeStat.h"
-    #include "Widgets.h"
     #include "WidgetsManager.h"
     #ifdef WIDGET_MANAGER
         #include "Menu/Menu.h"
@@ -100,6 +99,9 @@ class DeviceDisplay : public OpenKNX::Module
     bool readButton(uint16_t pin);
     ButtonEvent* checkButton(uint16_t pin, ButtonType type, size_t index);
 
+    // ProgMode Widget
+    void handleProgMode();
+    
   public:
     DeviceDisplay();
     ~DeviceDisplay();
