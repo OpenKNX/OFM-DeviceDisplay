@@ -233,17 +233,20 @@ void WidgetsManager::removeWidgetFromQueue(Widget* widget)
  */
 void WidgetsManager::logWidgetQueue()
 {
-    logInfoP("Widget Queue Dump");
+    logIndentUp();
+    logInfoP("------------------------------------------------------");
+    logInfoP("                Widget Queue                          ");
+    logInfoP("------------------------------------------------------");
     logInfoP("Manager State      : %s", getStateName());
     logInfoP("Power Save Mode    : %s", getPowerSaveModeName());
     logInfoP("Current Widget     : %s", _currentWidget ? _currentWidget->getName().c_str() : "none");
     logInfoP("Startup Complete   : %s", _startupComplete ? "yes" : "no");
-    logInfoP("---------------------------------------------");
+    logInfoP("------------------------------------------------------");
 
     if (_widgetQueue.empty())
     {
         logInfoP("Queue is empty");
-        logInfoP("---------------------------------------------");
+        logInfoP("------------------------------------------------------");
         return;
     }
 
@@ -266,7 +269,8 @@ void WidgetsManager::logWidgetQueue()
             logInfoP("%3d | nullptr", (int)i);
         }
     }
-    logInfoP("---------------------------------------------");
+    logInfoP("------------------------------------------------------");
+    logIndentDown();
 }
 
 /**
@@ -274,18 +278,19 @@ void WidgetsManager::logWidgetQueue()
  */
 void WidgetsManager::logWidgetManagerSettings()
 {
+    logIndentUp();
     logInfoP("======================================================");
     logInfoP("                WidgetsManager SETTINGS               ");
     logInfoP("------------------------------------------------------");
-    logInfoP(" Idle Timeout         : %8lu ms", _idleTimeout);
+    logInfoP(" Idle Timeout         : %-8lu ms (Min. %lu)", _idleTimeout, _idleTimeout / 60000);
     logInfoP(" Startup Complete     : %-3s", _startupComplete ? "yes" : "no");
     logInfoP(" Power Save Enabled   : %-3s", _powerSaveConfig.enabled ? "yes" : "no");
     logInfoP("------------------------------------------------------");
     logInfoP(" Power Save Timings (ms):");
-    logInfoP("   - Dim         : %8lu (Min. %lu)", _powerSaveConfig.dimTimeout, _powerSaveConfig.dimTimeout / 60000);
-    logInfoP("   - Screensaver : %8lu (Min. %lu)", _powerSaveConfig.screenSaverTimeout, _powerSaveConfig.screenSaverTimeout / 60000);
-    logInfoP("   - Sleep       : %8lu (Min. %lu)", _powerSaveConfig.sleepTimeout, _powerSaveConfig.sleepTimeout / 60000);
-    logInfoP("   - Off         : %8lu (Min. %lu)", _powerSaveConfig.offTimeout, _powerSaveConfig.offTimeout / 60000);
+    logInfoP("   - Dim         : %8lu ms (Min. %lu)", _powerSaveConfig.dimTimeout, _powerSaveConfig.dimTimeout / 60000);
+    logInfoP("   - Screensaver : %8lu ms (Min. %lu)", _powerSaveConfig.screenSaverTimeout, _powerSaveConfig.screenSaverTimeout / 60000);
+    logInfoP("   - Sleep       : %8lu ms (Min. %lu)", _powerSaveConfig.sleepTimeout, _powerSaveConfig.sleepTimeout / 60000);
+    logInfoP("   - Off         : %8lu ms (Min. %lu)", _powerSaveConfig.offTimeout, _powerSaveConfig.offTimeout / 60000);
     logInfoP("------------------------------------------------------");
     logInfoP(" Brightness:");
     logInfoP("   - Normal      : %3d%%", _powerSaveConfig.normalBrightness);
@@ -296,6 +301,7 @@ void WidgetsManager::logWidgetManagerSettings()
     logInfoP(" Current Widget        : %-20s", _currentWidget ? _currentWidget->getName().c_str() : "none");
     logInfoP(" Screensaver Widget    : %-20s", _screenSaverWidget ? _screenSaverWidget->getName().c_str() : "none");
     logInfoP("======================================================");
+    logIndentDown();
 }
 
 /**
