@@ -71,7 +71,7 @@
  */
 
 #pragma once
-
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Widget.h"
 #include <algorithm>
 #include <deque>
@@ -135,6 +135,7 @@ class WidgetsManager // Manages the widget queue and state machine
     void removeWidgetFromQueue(Widget* widget);
 
     void logWidgetQueue();
+    void logWidgetManagerSettings();
     void userInteraction(); // Call this on user input (button press, etc.)
 
     WidgetManagerState getState() const { return _state; }
@@ -195,6 +196,8 @@ class WidgetsManager // Manages the widget queue and state machine
 
     void switchToWidget(Widget* widget, uint32_t currentTime, const char* reason);
     void rotateWidgetToEnd(Widget* widget);
+    bool shouldRotateWidgets() const;
     bool isIdleTimeoutReached(uint32_t currentTime) const;
     bool hasOnlyDefaultWidgets() const;
 };
+#endif // DEVICE_DISPLAY_MODULE

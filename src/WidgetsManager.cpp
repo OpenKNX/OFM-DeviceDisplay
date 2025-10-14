@@ -1,9 +1,10 @@
-#include "WidgetsManager.h"
-#include "OpenKNX.h"
+#ifdef DEVICE_DISPLAY_MODULE
+    #include "WidgetsManager.h"
+    #include "OpenKNX.h"
 
 /**
-* @brief Calls setup() for all widgets in the queue
-*/
+ * @brief Calls setup() for all widgets in the queue
+ */
 void WidgetsManager::setup()
 {
     for (auto& widget : _widgetQueue)
@@ -16,8 +17,8 @@ void WidgetsManager::setup()
 }
 
 /**
-* @brief Starts all background widgets in background mode
-*/
+ * @brief Starts all background widgets in background mode
+ */
 void WidgetsManager::start()
 {
     for (auto& widget : _widgetQueue)
@@ -36,8 +37,8 @@ void WidgetsManager::start()
 }
 
 /**
-* @brief Main loop to manage widgets and power save modes
-*/
+ * @brief Main loop to manage widgets and power save modes
+ */
 void WidgetsManager::loop()
 {
     uint32_t currentTime = millis();
@@ -131,13 +132,12 @@ void WidgetsManager::loop()
     if (_displayModule) _displayModule->loop();
 }
 
-
-/* **********************************************************************
-   *********************** WIDGET QUEUE MANAGEMENT **********************
-   ********************************************************************** */
+/**********************************************************************
+ *********************** WIDGET QUEUE MANAGEMENT **********************
+ **********************************************************************/
 /**
-* @brief Adds a widget to the queue with unique name validation
-*/
+ * @brief Adds a widget to the queue with unique name validation
+ */
 void WidgetsManager::addWidget(Widget* widget)
 {
     if (widget == nullptr || _displayModule == nullptr) return;
@@ -156,9 +156,9 @@ void WidgetsManager::addWidget(Widget* widget)
 }
 
 /**
-* @brief Sets the screensaver widget
-* @param widget to use as screensaver
-*/
+ * @brief Sets the screensaver widget
+ * @param widget to use as screensaver
+ */
 void WidgetsManager::setScreenSaverWidget(Widget* widget)
 {
     _screenSaverWidget = widget;
@@ -174,10 +174,10 @@ void WidgetsManager::setScreenSaverWidget(Widget* widget)
 }
 
 /**
-* @brief Retrieves a widget from the queue by name
-* @param widgetName to find in queue
-* @return nullptr if not found
-*/
+ * @brief Retrieves a widget from the queue by name
+ * @param widgetName to find in queue
+ * @return nullptr if not found
+ */
 Widget* WidgetsManager::getWidgetFromQueue(const std::string& widgetName)
 {
     for (auto& widget : _widgetQueue)
@@ -191,10 +191,10 @@ Widget* WidgetsManager::getWidgetFromQueue(const std::string& widgetName)
 }
 
 /**
-* @brief Retrieves a widget from the queue by pointer
-* @param widget to find in queue, may be nullptr
-* @return nullptr if not found
-*/
+ * @brief Retrieves a widget from the queue by pointer
+ * @param widget to find in queue, may be nullptr
+ * @return nullptr if not found
+ */
 Widget* WidgetsManager::getWidgetFromQueue(Widget* widget)
 {
     if (widget != nullptr) return getWidgetFromQueue(widget->getName());
@@ -202,9 +202,9 @@ Widget* WidgetsManager::getWidgetFromQueue(Widget* widget)
 }
 
 /**
-* @brief Removes a widget from the queue by name
-* @param widgetName to remove from queue
-*/
+ * @brief Removes a widget from the queue by name
+ * @param widgetName to remove from queue
+ */
 void WidgetsManager::removeWidgetFromQueue(const char* widgetName)
 {
     if (widgetName[0] == '\0' || _widgetQueue.empty()) return;
@@ -233,37 +233,69 @@ void WidgetsManager::removeWidgetFromQueue(Widget* widget)
  */
 void WidgetsManager::logWidgetQueue()
 {
-    logDebugP("=== Widget Queue Dump ===");
-    logDebugP("Manager State: %s", getStateName());
-    logDebugP("Power Save Mode: %s", getPowerSaveModeName());
-    logDebugP("Current Widget: %s", _currentWidget ? _currentWidget->getName().c_str() : "none");
-    logDebugP("Startup Complete: %s", _startupComplete ? "yes" : "no");
+    logInfoP("Widget Queue Dump");
+    logInfoP("Manager State      : %s", getStateName());
+    logInfoP("Power Save Mode    : %s", getPowerSaveModeName());
+    logInfoP("Current Widget     : %s", _currentWidget ? _currentWidget->getName().c_str() : "none");
+    logInfoP("Startup Complete   : %s", _startupComplete ? "yes" : "no");
+    logInfoP("---------------------------------------------");
 
     if (_widgetQueue.empty())
     {
-        logDebugP("Queue is empty.");
-        logDebugP("=========================");
+        logInfoP("Queue is empty");
+        logInfoP("---------------------------------------------");
         return;
     }
 
+    logInfoP("Idx | Name                 | Flags   | State | Current");
+    logInfoP("----+----------------------+---------+-------+--------");
     for (size_t i = 0; i < _widgetQueue.size(); ++i)
     {
         Widget* widget = _widgetQueue[i];
         if (widget)
         {
-            logDebugP("Index: %d | Name: %s | Flags: %d | State: %d | Current: %s",
-                      i,
-                      widget->getName().c_str(),
-                      widget->getAction(),
-                      (uint8_t)widget->getState(),
-                      (_currentWidget == widget) ? "YES" : "no");
+            logInfoP("%3d | %-20s | %7d | %5d | %s",
+                     (int)i,
+                     widget->getName().c_str(),
+                     widget->getAction(),
+                     (int)widget->getState(),
+                     (_currentWidget == widget) ? "YES" : "no");
         }
         else
         {
-            logDebugP("Index: %d | nullptr", i);
+            logInfoP("%3d | nullptr", (int)i);
         }
     }
-    logDebugP("=========================");
+    logInfoP("---------------------------------------------");
+}
+
+/**
+ * @brief Logs the current settings of the WidgetsManager to the debug output
+ */
+void WidgetsManager::logWidgetManagerSettings()
+{
+    logInfoP("======================================================");
+    logInfoP("                WidgetsManager SETTINGS               ");
+    logInfoP("------------------------------------------------------");
+    logInfoP(" Idle Timeout         : %8lu ms", _idleTimeout);
+    logInfoP(" Startup Complete     : %-3s", _startupComplete ? "yes" : "no");
+    logInfoP(" Power Save Enabled   : %-3s", _powerSaveConfig.enabled ? "yes" : "no");
+    logInfoP("------------------------------------------------------");
+    logInfoP(" Power Save Timings (ms):");
+    logInfoP("   - Dim         : %8lu (Min. %lu)", _powerSaveConfig.dimTimeout, _powerSaveConfig.dimTimeout / 60000);
+    logInfoP("   - Screensaver : %8lu (Min. %lu)", _powerSaveConfig.screenSaverTimeout, _powerSaveConfig.screenSaverTimeout / 60000);
+    logInfoP("   - Sleep       : %8lu (Min. %lu)", _powerSaveConfig.sleepTimeout, _powerSaveConfig.sleepTimeout / 60000);
+    logInfoP("   - Off         : %8lu (Min. %lu)", _powerSaveConfig.offTimeout, _powerSaveConfig.offTimeout / 60000);
+    logInfoP("------------------------------------------------------");
+    logInfoP(" Brightness:");
+    logInfoP("   - Normal      : %3d%%", _powerSaveConfig.normalBrightness);
+    logInfoP("   - Dim         : %3d%%", _powerSaveConfig.dimBrightness);
+    logInfoP("------------------------------------------------------");
+    logInfoP(" Current State         : %-12s", getStateName());
+    logInfoP(" Power Save Mode       : %-12s", getPowerSaveModeName());
+    logInfoP(" Current Widget        : %-20s", _currentWidget ? _currentWidget->getName().c_str() : "none");
+    logInfoP(" Screensaver Widget    : %-20s", _screenSaverWidget ? _screenSaverWidget->getName().c_str() : "none");
+    logInfoP("======================================================");
 }
 
 /**
@@ -284,10 +316,9 @@ const char* WidgetsManager::getStateName() const
     }
 }
 
-
-/* **********************************************************************
-   *********************** STATE MACHINE ********************************
-   ********************************************************************** */
+/**********************************************************************
+ *********************** STATE MACHINE ********************************
+ **********************************************************************/
 /**
  * @brief Updates the state of the widget manager based on the current time
  * @param currentTime The current time in milliseconds
@@ -370,10 +401,9 @@ void WidgetsManager::transitionTo(WidgetManagerState newState)
     _state = newState;
 }
 
-
-/* **********************************************************************
-   *********************** STATE HANDLERS *******************************
-   ********************************************************************** */
+/**********************************************************************
+ *********************** STATE HANDLERS *******************************
+ **********************************************************************/
 /**
  * @brief Handles the startup state of the widget manager
  * @param currentTime The current time in milliseconds
@@ -476,7 +506,7 @@ void WidgetsManager::handleBackgroundState(uint32_t currentTime)
     Widget* backgroundWidget = findActiveBackgroundWidget();
     if (!backgroundWidget) return;
 
-     // Resume background widget if it was paused (by PRIORITY)
+    // Resume background widget if it was paused (by PRIORITY)
     if (backgroundWidget->getState() == WidgetState::PAUSED)
     {
         logDebugP("Resuming paused background widget: %s", backgroundWidget->getName().c_str());
@@ -557,7 +587,6 @@ void WidgetsManager::handleDefaultState(uint32_t currentTime)
         logDebugP("Display time expired, switching to next DefaultWidget");
     }
 
-
     if (shouldSwitch)
     {
         // Stop current widget if it's not a background widget
@@ -568,7 +597,18 @@ void WidgetsManager::handleDefaultState(uint32_t currentTime)
         }
 
         switchToWidget(nextDefaultWidget, currentTime, "DefaultWidget");
-        rotateWidgetToEnd(nextDefaultWidget);
+
+        if (shouldRotateWidgets()) // default rotation behavior
+        {
+            _currentTime = currentTime + nextDefaultWidget->getDisplayTime();
+            rotateWidgetToEnd(nextDefaultWidget);
+        }
+        else
+        {
+            // If rotation is disabled, just set a long display time
+            _currentTime = UINT32_MAX; // effectively infinite
+            logDebugP("Widget rotation disabled, setting long display time for DefaultWidget");
+        }
     }
 
     // Loop current DefaultWidget
@@ -580,10 +620,9 @@ void WidgetsManager::handleDefaultState(uint32_t currentTime)
     }
 }
 
-
-/* **********************************************************************
-   ********************** CURRENT WIDGET MANAGEMENT *********************
-   ********************************************************************** */
+/**********************************************************************
+ ********************** CURRENT WIDGET MANAGEMENT *********************
+ **********************************************************************/
 /**
  * @brief Handles the current widget based on its flags and state
  * @param currentTime The current time in milliseconds
@@ -618,7 +657,7 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
         logDebugP("StatusWidget no longer DisplayEnabled: %s", _currentWidget->getName().c_str());
         _currentWidget->stop();
         _currentWidget = nullptr;
-        
+
         for (auto& widget : _widgetQueue)
         {
             if (widget &&
@@ -695,9 +734,9 @@ void WidgetsManager::loopBackgroundWidgets()
     }
 }
 
-/* **********************************************************************
-   ********************** POWER SAVE MANAGEMENT *************************
-   ********************************************************************** */
+/**********************************************************************
+ ********************** POWER SAVE MANAGEMENT *************************
+ **********************************************************************/
 /**
  * @brief Retrieves the current power save mode name
  * @return const char*, fallback "UNKNOWN"
@@ -740,7 +779,7 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
 
     // User interaction detected (Priority or Background ACTIVE)
     if (findActiveBackgroundWidget() ||
-        findNextPriorityWidget() )
+        findNextPriorityWidget())
     {
         if (_powerSaveMode != PowerSaveMode::ACTIVE)
         {
@@ -885,8 +924,8 @@ void WidgetsManager::wakeUpDisplay()
 }
 
 /**
-* @brief Call this on user interaction to reset power save timers
-*/
+ * @brief Call this on user interaction to reset power save timers
+ */
 void WidgetsManager::userInteraction()
 {
     _lastInteractionTime = millis();
@@ -898,11 +937,10 @@ void WidgetsManager::userInteraction()
     }
 }
 
-
-/* **********************************************************************
-   ********************** WIDGET FINDERS ********************************
-   ********************************************************************** */
-/** 
+/**********************************************************************
+ ********************** WIDGET FINDERS ********************************
+ **********************************************************************/
+/**
  * @brief Finds the next priority widget in the queue
  * @return Pointer to the next priority widget or nullptr if none found
  */
@@ -1004,9 +1042,9 @@ Widget* WidgetsManager::findNextDefaultWidget()
     return nullptr;
 }
 
-/* **********************************************************************
-   *************** HELPER FUNCTIONS FOR WIDGET SWITCHING ****************
-   ********************************************************************** */
+/**********************************************************************
+ *************** HELPER FUNCTIONS FOR WIDGET SWITCHING ****************
+ **********************************************************************/
 /**
  * @brief Switches to the specified widget, handling stopping/pausing of the current widget
  * @param widget The widget to switch to
@@ -1063,9 +1101,48 @@ void WidgetsManager::rotateWidgetToEnd(Widget* widget)
     }
 }
 
-/* **********************************************************************
-   ********************** UTILITY FUNCTIONS *****************************
-   ********************************************************************** */
+/**
+ * @brief Checks if widget rotation is needed
+ * @return true if Normal > 0 OR Default > 1 (rotation needed)
+ */
+bool WidgetsManager::shouldRotateWidgets() const
+{
+    int normalCount = 0;
+    int defaultCount = 0;
+    bool hasAutoRemove = false;
+
+    for (auto& widget : _widgetQueue)
+    {
+        if (!widget) continue;
+
+        const WidgetFlags flags = widget->getAction();
+
+        if (flags & AutoRemove)
+        {
+            hasAutoRemove = true;
+        }
+        else if (flags & DefaultWidget)
+        {
+            defaultCount++;
+        }
+        else if (!(flags & Background) &&
+                 !(flags & StatusWidget) &&
+                 !(flags & ManagedExternally))
+        {
+            normalCount++;
+        }
+    }
+
+    // Rotation needed if:
+    // - AutoRemove-Widgets exist (must rotate to expire)
+    // - Normal widgets exist (rotation between Normal ↔ Default)
+    // - Multiple DefaultWidgets (rotation between Defaults)
+    return (normalCount > 0 || defaultCount > 1) && !hasAutoRemove;
+}
+
+/**********************************************************************
+ ********************** UTILITY FUNCTIONS *****************************
+ **********************************************************************/
 /**
  * @brief Checks if the idle timeout has been reached
  * @param currentTime The current time in milliseconds
@@ -1106,7 +1183,6 @@ bool WidgetsManager::hasOnlyDefaultWidgets() const
 
     return hasDefault && !hasOther;
 }
-
 
 /**
  * @brief Gets the widget that should receive button events
@@ -1163,3 +1239,4 @@ Widget* WidgetsManager::getActiveButtonWidget()
 
     return nullptr;
 }
+#endif
