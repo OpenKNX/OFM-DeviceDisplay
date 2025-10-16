@@ -27,6 +27,11 @@ void WidgetCube3D::setup() {
 
 void WidgetCube3D::start()
 {
+    if (!_display)
+    {
+        logErrorP("Cannot start: Display is NULL!");
+        return;
+    }
     if (_state == WidgetState::RUNNING) return;
     
     logInfoP("Start...");
@@ -45,7 +50,6 @@ void WidgetCube3D::stop()
     {
         _display->display->clearDisplay();
         _display->displayBuff();
-        _display = nullptr;
     }
 }
 
@@ -64,6 +68,7 @@ void WidgetCube3D::resume()
     {
         logInfoP("Resume...");
         _state = WidgetState::RUNNING;
+        _lastUpdateTime = millis();
     }
 }
 
@@ -89,6 +94,8 @@ i2cDisplay *WidgetCube3D::getDisplayModule() const { return _display; }
 
 void WidgetCube3D::updateCube()
 {
+    if (!_display || !_display->display) return;
+
     const uint16_t SCREEN_WIDTH = _display->GetDisplayWidth();
     const uint16_t SCREEN_HEIGHT = _display->GetDisplayHeight();
     const int CENTER_X = SCREEN_WIDTH / 2;
@@ -96,6 +103,7 @@ void WidgetCube3D::updateCube()
 
     // Clear display
     _display->display->clearDisplay();
+
 
     // Projected vertices
     float projectedVertices[8][2];
