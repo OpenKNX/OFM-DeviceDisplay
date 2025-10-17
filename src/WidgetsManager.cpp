@@ -24,7 +24,7 @@ void WidgetsManager::setup()
  */
 void WidgetsManager::start()
 {
-    // We use the background widget cache here and start onyl the background widgets
+    // We use the background widget cache here and start only the background widgets
     for (auto& widget : _backgroundWidgets)
     {
         if (widget)
@@ -521,7 +521,7 @@ void WidgetsManager::handlePriorityState(uint32_t currentTime)
             }
             else if (!(_currentWidget->getAction() & Background))
             {
-                // Nur pausieren, wenn es KEIN Background-Widget ist
+                // Pause only non-background widgets
                 logDebugP("Pausing widget for priority: %s", _currentWidget->getName().c_str());
                 if (_currentWidget->getState() == WidgetState::RUNNING)
                 {
@@ -594,7 +594,7 @@ void WidgetsManager::handleDefaultState(uint32_t currentTime)
     // Case 2b: Current widget is a DefaultWidget but rotation is disabled
     else if (_currentTime == UINT32_MAX && shouldRotateWidgets())
     {
-        // Rotation wurde aktiviert (z.B. neues Widget hinzugefügt)
+        // Rotation is now enabled, so we need to switch
         shouldSwitch = true;
         logDebugP("Rotation activated (new widget added), starting rotation");
     }
@@ -739,7 +739,7 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
         // Clear current widget so DEFAULT state can activate a DefaultWidget
         _currentWidget = nullptr;
 
-        // Option A: Reset power-save timer (recommended)
+        // Reset last interaction time to avoid immediate power-save
         _lastInteractionTime = currentTime;
         logDebugP("Power-Save timer restarted after menu timeout");
 
@@ -754,7 +754,7 @@ void WidgetsManager::loopBackgroundWidgets()
 {
     for (auto& widget : _backgroundWidgets)
     {
-        // We use the background widget cache here !!
+        // We use the background widget cache here!
         if (widget && (widget->getState() == WidgetState::BACKGROUND ||
                        widget->getState() == WidgetState::RUNNING))
         {
@@ -798,7 +798,7 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
     uint32_t inactiveTime = currentTime - _lastInteractionTime;
 
     static uint32_t lastPowerSaveCheck = 0;
-    if (currentTime - lastPowerSaveCheck < 1000 ) // Check every 1000ms
+    if (currentTime - lastPowerSaveCheck < 1000) // Check every 1000ms
     {
         return;
     }
@@ -1034,8 +1034,6 @@ Widget* WidgetsManager::findActiveBackgroundWidget()
 {
     for (auto& widget : _backgroundWidgets)
     {
-        if (!widget) continue;
-
         if (widget && (widget->getAction() & DisplayEnabled))
         {
             return widget;
