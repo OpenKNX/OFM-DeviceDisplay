@@ -754,7 +754,9 @@ void WidgetsManager::loopBackgroundWidgets()
 {
     for (auto& widget : _backgroundWidgets)
     {
-        if (widget) // We use the background widget cache here !!
+        // We use the background widget cache here !!
+        if (widget && (widget->getState() == WidgetState::BACKGROUND ||
+                       widget->getState() == WidgetState::RUNNING))
         {
             widget->loop();
         }
@@ -795,6 +797,14 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
 
     uint32_t inactiveTime = currentTime - _lastInteractionTime;
 
+    static uint32_t lastPowerSaveCheck = 0;
+    if (currentTime - lastPowerSaveCheck < 1000 ) // Check every 1000ms
+    {
+        return;
+    }
+    
+    lastPowerSaveCheck = currentTime;
+    
     // Debug: Log inactivity time every 10 seconds
     static uint32_t lastDebugLog = 0;
     if (currentTime - lastDebugLog > 10000)
