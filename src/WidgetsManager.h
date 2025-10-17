@@ -7,7 +7,7 @@
  *              Licensed under GNU GPL v3.0
  * @details     This class handles the lifecycle of widgets, including their setup,
  *              activation, deactivation, and transitions between different power save modes.
- *              It supports priority widgets, background widgets, default widgets, and normal widgets.
+ *              It supports priority widgets, background widgets, and default widgets.
  *              The power save modes include ACTIVE, DIMMED, SCREENSAVER, SLEEP, and OFF.
  *              Callbacks can be registered for state transitions and power save mode changes.
  *              User interactions can reset power save timers and wake up the display.
@@ -20,27 +20,33 @@
  *
  * Visualization of widget types and states:
  *
- *   +-------------------+      +-------------------+      +-------------------+      +-------------------+      +-------------------+
- *   |     STARTUP       | ---> |       IDLE        | ---> |     PRIORITY      | ---> |    BACKGROUND     | ---> |      NORMAL       |
- *   |-------------------|      |-------------------|      |-------------------|      |-------------------|      |-------------------|
- *   | BootLogoWidget    |      |                   |      | StatusWidget      |      |  MenuWidget       |      |  InfoWidget       |
- *   | AutoRemoveWidget  |      |                   |      | ProgModeWidget    |      |  SettingsWidget   |      |  DataWidget       |
- *   +-------------------+      +-------------------+      +-------------------+      +-------------------+      +-------------------+
- *                                                                                                                        |
- *                                                                                                                        v
- *                                                                                                               +-------------------+
- *                                                                                                               |     DEFAULT       |
- *                                                                                                               |-------------------|
- *                                                                                                               | ClockWidget       |
- *                                                                                                               | QRCodeWidget      |
- *                                                                                                               +-------------------+
+ *   +-------------------+      +-------------------+      +-------------------+      +-------------------+
+ *   |     STARTUP       | ---> |       IDLE        | ---> |     PRIORITY      | ---> |    BACKGROUND     |
+ *   |-------------------|      |-------------------|      |-------------------|      |-------------------|
+ *   | BootLogoWidget    |      |                   |      | StatusWidget      |      |  MenuWidget       |
+ *   | AutoRemoveWidget  |      |                   |      | ProgModeWidget    |      |  SettingsWidget   |
+ *   +-------------------+      +-------------------+      +-------------------+      +-------------------+
+ * *                                      |                                                      |
+ *                                        |                                                      |
+ *                                        v                                                      v
+ *                                +-------------------+                               +-------------------+
+ *                                |     DEFAULT       | <-----------------------------|     DEFAULT       |
+ *                                |-------------------|                               |-------------------|
+ *                                | ClockWidget       |                               | All widgets       |
+ *                                | Cube3DWidget      |                               | rotate here       |
+ *                                | PongWidget        |                               |                   |
+ *                                | ConsoleWidget     |                               |                   |
+ *                                | (rotation)        |                               |                   |
+ *                                +-------------------+                               +-------------------+
  *
  * Legend of widget types::
  *   - BootLogoWidget, AutoRemoveWidget: Displayed at startup (STARTUP).
  *   - StatusWidget, ProgModeWidget: Highest priority (PRIORITY).
  *   - MenuWidget, SettingsWidget: Background widgets, e.g., menus (BACKGROUND).
- *   - InfoWidget, DataWidget: Normal widgets (NORMAL).
- *   - ClockWidget, QRCodeWidget: Default display when nothing else is active (DEFAULT).
+ *   - ClockWidget, Cube3DWidget, PongWidget, ConsoleWidget: All are DefaultWidgets (DEFAULT state)
+ *     → Permanent DefaultWidgets (i.e. Clock): Always available
+ *     → Temporary DefaultWidgets (i.e. Pong, Console): Can be auto-removed (AutoRemove flag)
+ *     → All DefaultWidgets rotate in the same DEFAULT state!
  *
  * Power Save Modes:
  *   +-----------+    +---------+    +--------------+    +-------+    +-----+
@@ -55,8 +61,8 @@
  *   - On startup: STARTUP → IDLE → DEFAULT (e.g., ClockWidget).
  *
  * Example 2: Priority Widget Interrupt
- *   - While NORMAL or DEFAULT is active, a StatusWidget is activated.
- *   - Immediate switch to PRIORITY, after deactivation back to NORMAL or DEFAULT.
+ *   - While DEFAULT is active, a StatusWidget is activated.
+ *   - Immediate switch to PRIORITY, after deactivation back to DEFAULT.
  *
  * Example 3: Power Save Sequence
  *   - After dimTimeout: DIMMED.
@@ -83,17 +89,16 @@ enum class WidgetManagerState : uint8_t // State of the WidgetManager, see state
     IDLE = 1,       // No widget active
     PRIORITY = 2,   // StatusWidget (e.g., ProgMode) active - highest priority
     BACKGROUND = 3, // Background widget (e.g., Menu) active
-    NORMAL = 4,     // Normal widget active
-    DEFAULT = 5     // DefaultWidget (e.g., Clock, QRCode) active - fallback
+    DEFAULT = 4     // DefaultWidget (e.g., Clock, QRCode) active - fallback
 };
 
 enum class PowerSaveMode : uint8_t // Power save mode states are used for display: brightness and power management
 {
-    ACTIVE = 0,      // Display voll aktiv, normale Helligkeit
-    DIMMED = 1,      // Display gedimmt (z.B. 30% Helligkeit)
-    SCREENSAVER = 2, // Screensaver aktiv (z.B. Matrix, Uhr)
-    SLEEP = 3,       // Display aus, aber reaktivierbar
-    OFF = 4          // Display komplett aus
+    ACTIVE = 0,      // Display is fully active
+    DIMMED = 1,      // Display is dimmed (e.g., 30% brightness)
+    SCREENSAVER = 2, // Screensaver is active (e.g., Matrix, Clock)
+    SLEEP = 3,       // Display is off, but can be reactivated
+    OFF = 4          // Display is completely off
 };
 
 struct PowerSaveConfig // Configuration for power save modes and timeouts
@@ -143,7 +148,8 @@ class WidgetsManager // Manages the widget queue and state machine
     Widget* getCurrentWidget() const { return _currentWidget; }
 
     PowerSaveMode getPowerSaveMode() const { return _powerSaveMode; }
-    const char* getPowerSaveModeName() const;
+    const char* getPowerSaveModeName(PowerSaveMode mode) const;
+
     PowerSaveConfig& getPowerSaveConfig() { return _powerSaveConfig; }
 
     Widget* getActiveButtonWidget();
@@ -151,7 +157,8 @@ class WidgetsManager // Manages the widget queue and state machine
 
   private:
     i2cDisplay* _displayModule = nullptr;
-    std::deque<Widget*> _widgetQueue;
+    std::vector<Widget*> _widgetQueue;
+    
     Widget* _currentWidget = nullptr;
 
     uint32_t _currentTime = 0;
@@ -162,12 +169,18 @@ class WidgetsManager // Manages the widget queue and state machine
     WidgetManagerState _previousState = WidgetManagerState::STARTUP;
     StateTransitionCallback _stateTransitionCallback;
     bool _startupComplete = false;
+    bool _isInitialized = false; // Indicates if setup() has been called
 
     // Power save
     PowerSaveConfig _powerSaveConfig;
     PowerSaveMode _powerSaveMode = PowerSaveMode::ACTIVE;
     PowerSaveCallback _powerSaveCallback;
+    
+    // Screensaver widget
     Widget* _screenSaverWidget = nullptr;
+    uint32_t _screenSaverFallbackStartTime = 0;
+    bool isScreenSaverValid() const;
+    void displayScreenSaverWarning();
 
     void updateState(uint32_t currentTime);
     void transitionTo(WidgetManagerState newState);
@@ -176,7 +189,6 @@ class WidgetsManager // Manages the widget queue and state machine
     void handleIdleState(uint32_t currentTime);
     void handlePriorityState(uint32_t currentTime);
     void handleBackgroundState(uint32_t currentTime);
-    void handleNormalState(uint32_t currentTime);
     void handleDefaultState(uint32_t currentTime);
 
     void handleCurrentWidget(uint32_t currentTime);
@@ -190,7 +202,6 @@ class WidgetsManager // Manages the widget queue and state machine
     // Widget finders
     Widget* findNextPriorityWidget();
     Widget* findNextStartupWidget();
-    Widget* findNextNormalWidget();
     Widget* findNextDefaultWidget();
     Widget* findActiveBackgroundWidget();
 

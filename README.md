@@ -48,7 +48,7 @@ This library features a sophisticated widget management system, centralized butt
 │  │                                                              │  │
 │  │  ┌───────────────────────────────────────────────────────┐   │  │
 │  │  │  State Machine                                        │   │  │
-│  │  │  STARTUP → IDLE → PRIORITY/BACKGROUND/NORMAL/DEFAULT  │   │  │
+│  │  │  STARTUP → IDLE → PRIORITY/BACKGROUND/DEFAULT.        │   │  │
 │  │  └───────────────────────────────────────────────────────┘   │  │
 │  │                                                              │  │
 │  │  ┌───────────────────────────────────────────────────────┐   │  │
@@ -58,7 +58,7 @@ This library features a sophisticated widget management system, centralized butt
 │  │                                                              │  │
 │  │  ┌───────────────────────────────────────────────────────┐   │  │
 │  │  │  Widget Priority System                               │   │  │
-│  │  │  PRIORITY > BACKGROUND > NORMAL > DEFAULT             │   │  │
+│  │  │  PRIORITY > BACKGROUND > DEFAULT                      │   │  │
 │  │  └───────────────────────────────────────────────────────┘   │  │
 │  │                                                              │  │
 │  │  ┌───────────────────────────────────────────────────────┐   │  │
@@ -70,11 +70,11 @@ This library features a sophisticated widget management system, centralized butt
 │                                  │ Widget Control                  │
 │                                  ▼                                 │
 │  ┌──────────────────────────────────────────────────────────────┐  │
-│  │                      Widget Queue                            │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐         │  │
-│  │  │ PRIORITY │ │BACKGROUND│ │  NORMAL  │ │ DEFAULT  │         │  │
-│  │  │ ProgMode │ │   Menu   │ │SysInfo   │ │Clock/QR  │         │  │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘         │  │
+│  │                         Widget Queue                         │  │
+│  │     ┌──────────┐        ┌──────────┐        ┌──────────┐     │  │
+│  │     │ PRIORITY │        │BACKGROUND│        │ DEFAULT  │     │  │
+│  │     │ ProgMode │        │   Menu   │        │Clock/QR  │     │  │
+│  │     └──────────┘        └──────────┘        └──────────┘     │  │
 │  │                                                              │  │
 │  │  Screensaver: MatrixClassic (separate, auto-start)           │  │
 │  └──────────────────────────────────────────────────────────────┘  │
@@ -123,7 +123,7 @@ This library features a sophisticated widget management system, centralized butt
 └────────┬────────────────┘     1. PRIORITY widgets
          │                      2. BACKGROUND (active)
          │                      3. BACKGROUND (inactive)
-         │                      4. NORMAL widgets
+         │                      4. DEFAULT widgets
          │                      5. None → Wake-Up
          │
          ├─── Widget Found? ───┐
@@ -197,24 +197,24 @@ This library features a sophisticated widget management system, centralized butt
    └─────────┘                  │
                                 ▼
                           ┌──────────┐
-                          │   IDLE   │◄─────────┐
-                          └────┬─────┘          │
-                               │                │
-        ┌──────────────────────┼────────────────┼────────────────┐
-        │                      │                │                │
-        │ Priority Widget      │ Background     │ Default        │
-        │ (ProgMode)           │ Widget         │ Widget         │
-        │                      │ (Menu+         │ Rotation       │
-        │                      │ DisplayEnabled)│                │
-        ▼                      ▼                ▼                │
-   ┌──────────┐          ┌──────────┐    ┌──────────┐            │
-   │ PRIORITY │          │BACKGROUND│    │ DEFAULT  │            │
-   │          │          │          │    │          │            │
-   └────┬─────┘          └────┬─────┘    └────┬─────┘            │
-        │                     │               │                  │
-        │ Widget stops        │ Timeout       │ No interaction   │
-        │                     │               │                  │
-        └─────────────────────┴───────────────┴──────────────────┘
+                          │   IDLE   │◄────────────────┐
+                          └────┬─────┘                 │
+                               │                       │
+        ┌──────────────────────┼───────────────────────┼──────────────────┐
+        │                      │                       │                  │
+        │ Priority Widget      │ Background            │ Default          │
+        │ (ProgMode)           │ Widget                │ Widget           │
+        │                      │ (Menu+                │ Rotation         │
+        │                      │ DisplayEnabled).      │                  │
+        ▼                      ▼                       ▼                  │
+   ┌──────────┐          ┌──────────┐             ┌──────────┐            │
+   │ PRIORITY │          │BACKGROUND│             │ DEFAULT  │            │
+   │          │          │          │             │          │            │
+   └────┬─────┘          └────┬─────┘             └────┬─────┘            │
+        │                     │                        │                  │
+        │ Widget stops        │ Timeout                │ No interaction   │
+        │                     │                        │                  │
+        └─────────────────────┴────────────────────────┴──────────────────┘
 ```
 
 ---
@@ -223,8 +223,8 @@ This library features a sophisticated widget management system, centralized butt
 
 ### Core Features
 - **Hardware-Agnostic WidgetsManager**: Core logic can be adapted for any display type
-- **State Machine**: STARTUP → IDLE → PRIORITY/BACKGROUND/NORMAL/DEFAULT
-- **Widget Priority System**: PRIORITY > BACKGROUND > NORMAL > DEFAULT
+- **State Machine**: STARTUP → IDLE → PRIORITY/BACKGROUND/DEFAULT
+- **Widget Priority System**: PRIORITY > BACKGROUND > DEFAULT
 - **Centralized Button Handling**: Event-driven button system with PRESS, LONG_PRESS, VERY_LONG_PRESS
 - **PowerSave Modes**: Automatic power management (ACTIVE → DIMMED → SCREENSAVER → SLEEP → OFF)
 - **Background Widgets**: Widgets that run continuously (e.g., Menu)
@@ -265,9 +265,8 @@ PAUSED     → Widget is temporarily paused (by PRIORITY widget)
 ### Widget Priorities
 1. **PRIORITY Widgets**: Displayed immediately, pause all other widgets (e.g., ProgMode)
 2. **BACKGROUND Widgets**: Run continuously, activated by `DisplayEnabled` flag (e.g., Menu)
-3. **NORMAL Widgets**: Standard widgets in queue
-4. **DEFAULT Widgets**: Shown when no other widgets are active (e.g., Clock, QRCode)
-
+3. **DEFAULT Widgets**: Shown when no other widgets are active.
+4. 
 ### Widget Flags
 - **`StatusWidget`**: High-priority, shown immediately
 - **`Background`**: Runs continuously in background
@@ -282,8 +281,7 @@ STARTUP    → Initial boot sequence
 IDLE       → No active widgets, waiting for events
 PRIORITY   → Priority widget active (ProgMode, StatusWidgets)
 BACKGROUND → Background widget active (Menu with DisplayEnabled)
-NORMAL     → Normal widget queue processing
-DEFAULT    → Default widget rotation (Clock/QRCode)
+DEFAULT    → Default widget rotation (Clock/QRCode/Custom Widgets/etc.)
 ```
 
 ---
@@ -373,7 +371,7 @@ public:
 2. **Priority Widgets**: Active PRIORITY widget receives buttons
 3. **Background Widgets (Active)**: Menu with DisplayEnabled receives buttons
 4. **Background Widgets (Inactive)**: Menu in background receives buttons (for wake-up)
-5. **Normal Widgets**: Standard widgets receive buttons
+5. **Default Widgets**: Default widgets receive buttons
 6. **Wake-Up Handler**: If no widget wants buttons, wake display
 
 ---
@@ -691,9 +689,9 @@ void setupMenu(MenuWidget* menu)
 | **WidgetProgMode** | Priority | Programming mode indicator (blinks LED) |
 | **WidgetClock** | Default | Digital clock display |
 | **WidgetQRCode** | Default | QR code generator |
-| **WidgetSysInfoLite** | Normal | System information display |
+| **WidgetSysInfoLite** | Default | System information display |
 | **WidgetBootLogo** | StatusWidget | Boot splash screen |
-| **WidgetOpenKNXLogo** | Normal | OpenKNX logo animation |
+| **WidgetOpenKNXLogo** | Default | OpenKNX logo animation |
 | **WidgetMatrixClassic** | Screensaver | Matrix rain effect |
 | **WidgetMatrix** | Screensaver | Alternative matrix effect |
 | **WidgetRain** | Screensaver | Rain animation |

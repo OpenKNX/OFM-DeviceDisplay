@@ -60,6 +60,6 @@ class Widget
     virtual bool handleButtonEvent(const ButtonEvent &event) { return false; }
     virtual bool wantsButtonInput() const
     {
-      return (static_cast<uint8_t>(getAction()) & WantsButtonInput) != 0;
+        return (static_cast<uint8_t>(getAction()) & WantsButtonInput) != 0;
     }
 };

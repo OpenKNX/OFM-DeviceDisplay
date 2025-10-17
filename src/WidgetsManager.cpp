@@ -14,6 +14,7 @@ void WidgetsManager::setup()
             widget->setup();
         }
     }
+    _isInitialized = true; // setup is initialized
 }
 
 /**
@@ -56,7 +57,7 @@ void WidgetsManager::loop()
         // Wake up display if in any power save mode
         if (_powerSaveMode != PowerSaveMode::ACTIVE)
         {
-            logDebugP("Priority widget detected, forcing wake from %s", getPowerSaveModeName());
+            logDebugP("Priority widget detected, forcing wake from %s", getPowerSaveModeName(_powerSaveMode));
             wakeUpDisplay();
         }
 
@@ -119,10 +120,6 @@ void WidgetsManager::loop()
             handleBackgroundState(currentTime);
             break;
 
-        case WidgetManagerState::NORMAL:
-            handleNormalState(currentTime);
-            break;
-
         case WidgetManagerState::DEFAULT:
             handleDefaultState(currentTime);
             break;
@@ -144,14 +141,23 @@ void WidgetsManager::addWidget(Widget* widget)
 
     if (!_widgetQueue.empty() && getWidgetFromQueue(widget) != nullptr)
     {
-        const std::string widgetName = widget->getName() + "_" + std::to_string(random(0, 9)) + (char)random(65, 90);
+        std::string widgetName = widget->getName();
+        widgetName += "_";
+        widgetName += std::to_string(random(0, 9));
+        widgetName += (char)random(65, 90);
         widget->setName(widgetName);
+
         logDebugP("Widget name already in use. Added suffix to name: %s", widgetName.c_str());
     }
 
     widget->setDisplayModule(_displayModule);
     logDebugP("Widget added to queue: %s", widget->getName().c_str());
-    widget->setup();
+
+    // Initialize widget if manager is initialized, else will be done in setup()
+    if( _isInitialized )
+    {
+        widget->setup();
+    }
     _widgetQueue.push_back(widget);
 }
 
@@ -210,10 +216,12 @@ void WidgetsManager::removeWidgetFromQueue(const char* widgetName)
     if (widgetName[0] == '\0' || _widgetQueue.empty()) return;
     for (auto it = _widgetQueue.begin(); it != _widgetQueue.end(); ++it)
     {
-        if ((*it)->getName().compare(widgetName) == 0)
+        if (*it && (*it)->getName().compare(widgetName) == 0)
         {
             logDebugP("Removing widget from queue: %s", widgetName);
+            Widget* widget = *it;
             _widgetQueue.erase(it);
+            delete widget;
             return;
         }
     }
@@ -238,7 +246,7 @@ void WidgetsManager::logWidgetQueue()
     logInfoP("                Widget Queue                          ");
     logInfoP("------------------------------------------------------");
     logInfoP("Manager State      : %s", getStateName());
-    logInfoP("Power Save Mode    : %s", getPowerSaveModeName());
+    logInfoP("Power Save Mode    : %s", getPowerSaveModeName(_powerSaveMode));
     logInfoP("Current Widget     : %s", _currentWidget ? _currentWidget->getName().c_str() : "none");
     logInfoP("Startup Complete   : %s", _startupComplete ? "yes" : "no");
     logInfoP("------------------------------------------------------");
@@ -297,7 +305,7 @@ void WidgetsManager::logWidgetManagerSettings()
     logInfoP("   - Dim         : %3d%%", _powerSaveConfig.dimBrightness);
     logInfoP("------------------------------------------------------");
     logInfoP(" Current State         : %-12s", getStateName());
-    logInfoP(" Power Save Mode       : %-12s", getPowerSaveModeName());
+    logInfoP(" Power Save Mode       : %-12s", getPowerSaveModeName(_powerSaveMode));
     logInfoP(" Current Widget        : %-20s", _currentWidget ? _currentWidget->getName().c_str() : "none");
     logInfoP(" Screensaver Widget    : %-20s", _screenSaverWidget ? _screenSaverWidget->getName().c_str() : "none");
     logInfoP("======================================================");
@@ -316,7 +324,6 @@ const char* WidgetsManager::getStateName() const
         case WidgetManagerState::IDLE: return "IDLE";
         case WidgetManagerState::PRIORITY: return "PRIORITY";
         case WidgetManagerState::BACKGROUND: return "BACKGROUND";
-        case WidgetManagerState::NORMAL: return "NORMAL";
         case WidgetManagerState::DEFAULT: return "DEFAULT";
         default: return "UNKNOWN";
     }
@@ -357,14 +364,7 @@ void WidgetsManager::updateState(uint32_t currentTime)
         return;
     }
 
-    // Priority 3: Normal widgets
-    if ((!_currentWidget || currentTime >= _currentTime) && findNextNormalWidget())
-    {
-        transitionTo(WidgetManagerState::NORMAL);
-        return;
-    }
-
-    // Priority 4: DefaultWidgets
+    // Priority 3: DefaultWidgets
     if (findNextDefaultWidget())
     {
         bool showDefault = isIdleTimeoutReached(currentTime) ||
@@ -394,7 +394,6 @@ void WidgetsManager::transitionTo(WidgetManagerState newState)
               newState == WidgetManagerState::STARTUP ? "STARTUP" : newState == WidgetManagerState::IDLE     ? "IDLE"
                                                                 : newState == WidgetManagerState::PRIORITY   ? "PRIORITY"
                                                                 : newState == WidgetManagerState::BACKGROUND ? "BACKGROUND"
-                                                                : newState == WidgetManagerState::NORMAL     ? "NORMAL"
                                                                 : newState == WidgetManagerState::DEFAULT    ? "DEFAULT"
                                                                                                              : "UNKNOWN");
 
@@ -466,7 +465,9 @@ void WidgetsManager::handlePriorityState(uint32_t currentTime)
     {
         for (auto& widget : _widgetQueue)
         {
-            if (widget && (widget->getAction() & Background))
+            if (widget && (widget->getAction() & Background) &&
+                widget != priorityWidget &&
+                widget->getState() == WidgetState::RUNNING)
             {
                 logDebugP("Pausing background widget for priority: %s", widget->getName().c_str());
                 widget->pause();
@@ -526,39 +527,6 @@ void WidgetsManager::handleBackgroundState(uint32_t currentTime)
 }
 
 /**
- * @brief Handles the normal state of the widget manager
- * @param currentTime The current time in milliseconds
- */
-void WidgetsManager::handleNormalState(uint32_t currentTime)
-{
-    if (_currentWidget && currentTime < _currentTime)
-    {
-        if (_currentWidget->getState() == WidgetState::RUNNING &&
-            !(_currentWidget->getAction() & Background))
-        {
-            _currentWidget->loop();
-        }
-        return;
-    }
-
-    Widget* nextWidget = findNextNormalWidget();
-    if (!nextWidget) return;
-
-    if (_currentWidget != nextWidget)
-    {
-        switchToWidget(nextWidget, currentTime, "normal widget");
-        rotateWidgetToEnd(nextWidget);
-    }
-
-    if (_currentWidget &&
-        _currentWidget->getState() == WidgetState::RUNNING &&
-        !(_currentWidget->getAction() & Background))
-    {
-        _currentWidget->loop();
-    }
-}
-
-/**
  * @brief Handles the default state of the widget manager
  * @param currentTime The current time in milliseconds
  */
@@ -586,7 +554,14 @@ void WidgetsManager::handleDefaultState(uint32_t currentTime)
         shouldSwitch = true;
         logDebugP("Current widget (%s) is not a DefaultWidget, switching", _currentWidget->getName().c_str());
     }
-    // Case 3: Display time expired (WICHTIG!)
+    // Case 2b: Current widget is a DefaultWidget but rotation is disabled
+    else if (_currentTime == UINT32_MAX && shouldRotateWidgets())
+    {
+        // Rotation wurde aktiviert (z.B. neues Widget hinzugefügt)
+        shouldSwitch = true;
+        logDebugP("Rotation activated (new widget added), starting rotation");
+    }
+    // Case 3: Display time expired (Important!)
     else if (currentTime >= _currentTime)
     {
         shouldSwitch = true;
@@ -595,13 +570,6 @@ void WidgetsManager::handleDefaultState(uint32_t currentTime)
 
     if (shouldSwitch)
     {
-        // Stop current widget if it's not a background widget
-        if (_currentWidget && !(_currentWidget->getAction() & Background))
-        {
-            logDebugP("Stopping non-background widget: %s", _currentWidget->getName().c_str());
-            _currentWidget->stop();
-        }
-
         switchToWidget(nextDefaultWidget, currentTime, "DefaultWidget");
 
         if (shouldRotateWidgets()) // default rotation behavior
@@ -639,6 +607,15 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
 
     const WidgetFlags flags = _currentWidget->getAction();
     const WidgetState state = _currentWidget->getState();
+
+    // AutoRemove widget expired
+    if ((flags & AutoRemove) && currentTime >= _currentTime)
+    {
+        logDebugP("AutoRemove widget expired: %s", _currentWidget->getName().c_str());
+        removeWidgetFromQueue(_currentWidget);
+        _currentWidget = nullptr;
+        return;
+    }
 
     // StatusWidget with DisplayEnabled
     if ((flags & StatusWidget) && (flags & DisplayEnabled))
@@ -691,7 +668,7 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
             _currentWidget->start();
         }
         _lastInteractionTime = currentTime;
-        return; // ← WICHTIG: Hier return, damit Background-Check nicht ausgeführt wird
+        return; // Return here to avoid further checks
     }
 
     // ManagedExternally widget loses DisplayEnabled (non-background)
@@ -702,7 +679,24 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
         return;
     }
 
-    // ← WICHTIG: Background widget loses DisplayEnabled
+    // Background widget with DisplayEnabled but without ManagedExternally
+    if ((flags & Background) && (flags & DisplayEnabled) && !(flags & ManagedExternally))
+    {
+        if (state == WidgetState::PAUSED)
+        {
+            logDebugP("Resuming paused background widget: %s", _currentWidget->getName().c_str());
+            _currentWidget->resume();
+        }
+        if (state == WidgetState::STOPPED)
+        {
+            logDebugP("Starting stopped background widget: %s", _currentWidget->getName().c_str());
+            _currentWidget->start();
+        }
+        _lastInteractionTime = currentTime;
+        return;
+    }
+
+    //Background widget loses DisplayEnabled
     if ((flags & Background) && !(flags & DisplayEnabled))
     {
         logDebugP("Background widget no longer DisplayEnabled: %s", _currentWidget->getName().c_str());
@@ -715,14 +709,6 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
         logDebugP("Power-Save timer restarted after menu timeout");
 
         return;
-    }
-
-    // AutoRemove widget expired
-    if ((flags & AutoRemove) && currentTime >= _currentTime)
-    {
-        logDebugP("AutoRemove widget expired: %s", _currentWidget->getName().c_str());
-        removeWidgetFromQueue(_currentWidget);
-        _currentWidget = nullptr;
     }
 }
 
@@ -747,9 +733,9 @@ void WidgetsManager::loopBackgroundWidgets()
  * @brief Retrieves the current power save mode name
  * @return const char*, fallback "UNKNOWN"
  */
-const char* WidgetsManager::getPowerSaveModeName() const
+const char* WidgetsManager::getPowerSaveModeName(PowerSaveMode mode) const
 {
-    switch (_powerSaveMode)
+    switch (mode)
     {
         case PowerSaveMode::ACTIVE: return "ACTIVE";
         case PowerSaveMode::DIMMED: return "DIMMED";
@@ -779,7 +765,7 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
     if (currentTime - lastDebugLog > 10000)
     {
         logDebugP("Power-Save check: inactiveTime=%lums, mode=%s",
-                  inactiveTime, getPowerSaveModeName());
+                  inactiveTime, getPowerSaveModeName(_powerSaveMode));
         lastDebugLog = currentTime;
     }
 
@@ -827,15 +813,10 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
 {
     if (_powerSaveMode == newMode) return;
 
-    logDebugP("Power save mode transition: %s -> %s", getPowerSaveModeName(),
-              newMode == PowerSaveMode::ACTIVE ? "ACTIVE" : newMode == PowerSaveMode::DIMMED    ? "DIMMED"
-                                                        : newMode == PowerSaveMode::SCREENSAVER ? "SCREENSAVER"
-                                                        : newMode == PowerSaveMode::SLEEP       ? "SLEEP"
-                                                        : newMode == PowerSaveMode::OFF         ? "OFF"
-                                                                                                : "UNKNOWN");
-
     PowerSaveMode oldMode = _powerSaveMode;
     _powerSaveMode = newMode;
+
+    logDebugP("Power save mode transition: %s -> %s", getPowerSaveModeName(oldMode), getPowerSaveModeName(_powerSaveMode));
 
     if (_powerSaveCallback)
     {
@@ -847,6 +828,7 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
     switch (newMode)
     {
         case PowerSaveMode::ACTIVE:
+        {
             logDebugP("Display: ACTIVE mode (%d%%)", _powerSaveConfig.normalBrightness);
             _displayModule->setBrightness(_powerSaveConfig.normalBrightness);
             _displayModule->displayOn();
@@ -868,47 +850,59 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
                     widget->resume();
                 }
             }
-            break;
+        }
+        break;
 
         case PowerSaveMode::DIMMED:
+        {
             logDebugP("Display: DIMMED mode (%d%%)", _powerSaveConfig.dimBrightness);
             _displayModule->setBrightness(_powerSaveConfig.dimBrightness);
-            break;
+        }
+        break;
 
         case PowerSaveMode::SCREENSAVER:
+        {
             logDebugP("Display: SCREENSAVER mode");
             _displayModule->setBrightness(50);
 
-            if (_screenSaverWidget)
+            if (!_screenSaverWidget) // No screensaver widget set, fallback to SLEEP
             {
-                if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
-                {
-                    _currentWidget->stop();
-                }
-                _currentWidget = _screenSaverWidget;
-                _currentWidget->start();
-                _currentTime = UINT32_MAX;
-                logDebugP("Starting screensaver widget: %s", _currentWidget->getName().c_str());
+                logWarningP("No screensaver widget set! Entering SLEEP mode instead.");
+                transitionToPowerSaveMode(PowerSaveMode::SLEEP);
+                return;
             }
-            break;
+            if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
+            {
+                _currentWidget->stop();
+            }
+            _currentWidget = _screenSaverWidget;
+            _currentWidget->start();
+            _currentTime = UINT32_MAX;
+            logDebugP("Starting screensaver widget: %s", _currentWidget->getName().c_str());
+        }
+        break;
 
         case PowerSaveMode::SLEEP:
+        {
             logDebugP("Display: SLEEP mode");
             if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
             {
                 _currentWidget->pause();
             }
             _displayModule->displayOff();
-            break;
+        }
+        break;
 
         case PowerSaveMode::OFF:
+        {
             logDebugP("Display: OFF mode");
             if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
             {
                 _currentWidget->stop();
             }
             _displayModule->displayOff();
-            break;
+        }
+        break;
     }
 }
 
@@ -1009,30 +1003,6 @@ Widget* WidgetsManager::findActiveBackgroundWidget()
 }
 
 /**
- * @brief Finds the next normal widget in the queue
- * @return Pointer to the next normal widget or nullptr if none found
- */
-Widget* WidgetsManager::findNextNormalWidget()
-{
-    for (auto& widget : _widgetQueue)
-    {
-        if (!widget) continue;
-
-        const WidgetFlags flags = widget->getAction();
-
-        if (!(flags & DefaultWidget) &&
-            !(flags & Background) &&
-            !(flags & ManagedExternally) &&
-            !(flags & StatusWidget) &&
-            !(flags & AutoRemove))
-        {
-            return widget;
-        }
-    }
-    return nullptr;
-}
-
-/**
  * @brief Finds the next default widget in the queue
  * @return Pointer to the next default widget or nullptr if none found
  */
@@ -1113,7 +1083,6 @@ void WidgetsManager::rotateWidgetToEnd(Widget* widget)
  */
 bool WidgetsManager::shouldRotateWidgets() const
 {
-    int normalCount = 0;
     int defaultCount = 0;
     bool hasAutoRemove = false;
 
@@ -1123,27 +1092,23 @@ bool WidgetsManager::shouldRotateWidgets() const
 
         const WidgetFlags flags = widget->getAction();
 
-        if (flags & AutoRemove)
-        {
-            hasAutoRemove = true;
-        }
-        else if (flags & DefaultWidget)
+        // Count DefaultWidgets
+        if (flags & DefaultWidget)
         {
             defaultCount++;
         }
-        else if (!(flags & Background) &&
-                 !(flags & StatusWidget) &&
-                 !(flags & ManagedExternally))
+        
+        // Check for AutoRemove widgets
+        if (flags & AutoRemove)
         {
-            normalCount++;
+            hasAutoRemove = true;
         }
     }
 
     // Rotation needed if:
     // - AutoRemove-Widgets exist (must rotate to expire)
-    // - Normal widgets exist (rotation between Normal ↔ Default)
     // - Multiple DefaultWidgets (rotation between Defaults)
-    return (normalCount > 0 || defaultCount > 1) && !hasAutoRemove;
+    return (defaultCount > 1) || hasAutoRemove;
 }
 
 /**********************************************************************
@@ -1166,7 +1131,6 @@ bool WidgetsManager::isIdleTimeoutReached(uint32_t currentTime) const
 bool WidgetsManager::hasOnlyDefaultWidgets() const
 {
     bool hasDefault = false;
-    bool hasOther = false;
 
     for (auto& widget : _widgetQueue)
     {
@@ -1183,11 +1147,11 @@ bool WidgetsManager::hasOnlyDefaultWidgets() const
                  !(flags & AutoRemove) &&
                  !(flags & ManagedExternally))
         {
-            hasOther = true;
+            return false; // Exit directly if a non-default, non-background widget is found
         }
     }
 
-    return hasDefault && !hasOther;
+    return hasDefault;
 }
 
 /**
@@ -1233,14 +1197,6 @@ Widget* WidgetsManager::getActiveButtonWidget()
     else if (backgroundWidget->wantsButtonInput())
     {
         return backgroundWidget;
-    }
-
-    // Priority 4: NORMAL-Widgets
-    if (_state == WidgetManagerState::NORMAL &&
-        _currentWidget &&
-        _currentWidget->wantsButtonInput())
-    {
-        return _currentWidget;
     }
 
     return nullptr;
