@@ -48,7 +48,7 @@
  *            Max possible characters for the QR code is 127 characters!
  */
 
-// #include "i2c-display.h"
+// #include "i2cdisplay.h"
 #include "qrcodegen.h"
 // extern "C" {
 //   #include "qrcodegen.h" // QR-Code library (https://github.com/nayuki/QR-Code-generator)

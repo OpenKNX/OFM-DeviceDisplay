@@ -1,6 +1,6 @@
 #pragma once
 /**
- * @file        i2c-Display.h
+ * @file        i2cDisplay.h
  * @brief       This module offers a i2c display for the OpenKNX ecosystem
  * @version     0.0.1
  * @date        2024-11-27

@@ -1,4 +1,4 @@
-#include "i2c-display.h"
+#include "i2cdisplay.h"
 
 #define SSD1306_NO_SPLASH // Suppress the internal display splash screen
 

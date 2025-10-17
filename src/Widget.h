@@ -9,7 +9,7 @@
  */
 
 #include "ButtonEvent.h"
-#include "i2c-Display.h"
+#include "devices/i2cDisplay.h"
 #include <cstdint>
 
 typedef enum : uint8_t
