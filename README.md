@@ -5,18 +5,21 @@
 * [x] Improve the Widget Manager with state machine and priority system
 * [x] Provide Custom Widget examples
 * [x] Finalize the documentation
-* [ ] Conduct an overall performance check
+* [x] Conduct an overall performance check
+* [ ] Internal Widget to display informatios as a fallback (i.e. no Screensaver set etc.)
+* [ ] PRIORITY Widgets handling - What if we have more then one PRIORITY Widget
 
 ### Planned Features (Phase 2)
-- [ ] **Button Combinations**: UP+DOWN simultaneously for special actions
+- [ ] **Button Combinations**: UP/DOWN/LEFT/RIGHT simultaneously for special actions
 - [ ] **Long-Press Actions**: OK 5s → ProgMode toggle, configurable shortcuts
 - [ ] **Global Button Patterns**: Konami-code style sequences (LEFT, LEFT, UP, DOWN, OK)
 - [ ] **ETS Application**: Configuration via KNX parameters
+  
 
 ### **Info:**
 
-- **Implementation State:** Active Development / Testing
-- **Documentation State:** DRAFT
+- **Implementation State:**  BETA - Testing
+- **Documentation State:** REVIEW
 ---
 
 # OFM-DeviceDisplay
@@ -28,6 +31,19 @@ This library features a sophisticated widget management system, centralized butt
 
 ## Architecture Overview
 
+### State Machine
+```
+STARTUP → IDLE → {PRIORITY, BACKGROUND, DEFAULT}
+         ↑_______|
+```
+
+**Priority Order:**
+1. STARTUP (AutoRemove widgets, boot animations)
+2. PRIORITY (StatusWidget + DisplayEnabled, e.g., ProgMode)
+3. BACKGROUND (Background + DisplayEnabled, e.g., Menu)
+4. DEFAULT (DefaultWidget rotation, e.g., Clock, Starfield)
+5. IDLE (no widgets active)
+
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │                         DeviceDisplay                              │
@@ -35,7 +51,7 @@ This library features a sophisticated widget management system, centralized butt
 │                                                                    │
 │  ┌─────────────────────┐  ┌─────────────────────────────────────┐  │
 │  │  Button Manager     │  │  i2cDisplay (Hardware Facade)       │  │
-│  │  - GPIO Reading     │  │  - SSD1306 Driver Wrapper           │  │
+│  │  - GPIO Reading     │  │  - SSD1306/15 Driver Wrapper        │  │
 │  │  - Event Creation   │  │  - Brightness Control (VCOM)        │  │
 │  │  - LongPress Track  │  │  - Display On/Off                   │  │
 │  └──────────┬──────────┘  └──────────┬──────────────────────────┘  │
@@ -48,7 +64,7 @@ This library features a sophisticated widget management system, centralized butt
 │  │                                                              │  │
 │  │  ┌───────────────────────────────────────────────────────┐   │  │
 │  │  │  State Machine                                        │   │  │
-│  │  │  STARTUP → IDLE → PRIORITY/BACKGROUND/DEFAULT.        │   │  │
+│  │  │  STARTUP → IDLE → {PRIORITY/BACKGROUND/DEFAULT}.      │   │  │
 │  │  └───────────────────────────────────────────────────────┘   │  │
 │  │                                                              │  │
 │  │  ┌───────────────────────────────────────────────────────┐   │  │
@@ -73,7 +89,7 @@ This library features a sophisticated widget management system, centralized butt
 │  │                         Widget Queue                         │  │
 │  │     ┌──────────┐        ┌──────────┐        ┌──────────┐     │  │
 │  │     │ PRIORITY │        │BACKGROUND│        │ DEFAULT  │     │  │
-│  │     │ ProgMode │        │   Menu   │        │Clock/QR  │     │  │
+│  │     │ ProgMode │        │   Menu   │        │Clock/..  │     │  │
 │  │     └──────────┘        └──────────┘        └──────────┘     │  │
 │  │                                                              │  │
 │  │  Screensaver: MatrixClassic (separate, auto-start)           │  │
@@ -654,7 +670,7 @@ void setupMenu(MenuWidget* menu)
 - `void addAction(WidgetFlags flag)`: Add flag
 - `void removeAction(WidgetFlags flag)`: Remove flag
 
-### i2cDisplay (Hardware Facade for SSD1306)
+### i2cDisplay (Hardware Facade for SSD1306 / SSD1315
 
 **Display Control:**
 - `void initDisplay(int width, int height, int sda, int scl, int reset)`: Initialize display
@@ -680,6 +696,27 @@ void setupMenu(MenuWidget* menu)
 - `void printf(const char* format, ...)`: Print formatted text
 
 ---
+## Troubleshooting
+
+### Widget doesn't appear
+- Check widget flags (DefaultWidget, DisplayEnabled, etc.)
+- Check widget state (STOPPED, RUNNING, PAUSED)
+- Use `logWidgetQueue()` to debug
+- Check if widget has priority (StatusWidget > Background > Default)
+
+### Menu doesn't close
+- Check `DisplayEnabled` flag is removed after timeout
+- Check `ManagedExternally` flag is set
+- Use `logWidgetQueue()` to verify flags
+
+### Power-Save doesn't activate
+- Check `userInteraction()` is called on button press
+- Check `_lastInteractionTime` is updated
+- Check power-save timeouts are configured
+- Use `logWidgetManagerSettings()` to verify
+```
+
+---
 
 ## Included Widgets
 
@@ -687,11 +724,10 @@ void setupMenu(MenuWidget* menu)
 |--------|------|-------------|
 | **MenuWidget** | Background | Interactive menu with button navigation |
 | **WidgetProgMode** | Priority | Programming mode indicator (blinks LED) |
-| **WidgetClock** | Default | Digital clock display |
+| **WidgetClock** | Default | Digital/Analog clock display |
 | **WidgetQRCode** | Default | QR code generator |
 | **WidgetSysInfoLite** | Default | System information display |
 | **WidgetBootLogo** | StatusWidget | Boot splash screen |
-| **WidgetOpenKNXLogo** | Default | OpenKNX logo animation |
 | **WidgetMatrixClassic** | Screensaver | Matrix rain effect |
 | **WidgetMatrix** | Screensaver | Alternative matrix effect |
 | **WidgetRain** | Screensaver | Rain animation |
