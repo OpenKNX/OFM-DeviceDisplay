@@ -11,7 +11,7 @@
  *              The power save modes include ACTIVE, DIMMED, SCREENSAVER, SLEEP, and OFF.
  *              Callbacks can be registered for state transitions and power save mode changes.
  *              User interactions can reset power save timers and wake up the display.
- */
+ **/
 
 /**
  * @section State Machine Overview
@@ -74,7 +74,7 @@
  * Example 4: Background Widget
  *   - User opens menu by pressing a button (MenuWidget): switch to BACKGROUND.
  *   - After a predefined idle the menu closes, return to previous state.
- */
+ **/
 
 #pragma once
 #ifdef DEVICE_DISPLAY_MODULE
@@ -82,6 +82,10 @@
 #include <algorithm>
 #include <deque>
 #include <functional>
+
+// Forward declaration
+class Widget;
+class i2cDisplay;
 
 enum class WidgetManagerState : uint8_t // State of the WidgetManager, see state machine below
 {

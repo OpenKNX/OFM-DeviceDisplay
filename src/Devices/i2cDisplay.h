@@ -6,7 +6,8 @@
  * @date        2024-11-27
  * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@çolak.de)
  *              Licensed under GNU GPL v3.0
- */
+ **/
+
 #include "OpenKNX.h"
 
 #include <Adafruit_SSD1306.h>
