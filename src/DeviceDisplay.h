@@ -9,7 +9,10 @@
  */
 #ifdef DEVICE_DISPLAY_MODULE
     #define USE_GPIO_MODULE
-    #define WIDGET_MANAGER
+    #define WIDGET_MANAGER 
+    
+    //#define WIDGET_CONSOLE // Enable the console widget for text logging
+    #define DISPLAY_LOW_LEVEL_COMMANDS // Enable low-level display commands (e.g., scroll, vcom, chargepump)
 
     #include "ButtonEvent.h"
     #include "OpenKNX.h"
@@ -25,16 +28,18 @@
         #include "Widgets/Life.h"
         #include "Widgets/Matrix.h"
         #include "Widgets/MatrixClassic.h"
-        #include "Widgets/OpenKNXLogo.h"
         #include "Widgets/Pong.h"
         #include "Widgets/ProgMode.h"
         #include "Widgets/QRcode.h"
         #include "Widgets/Rain.h"
         #include "Widgets/Starfield.h"
         #include "Widgets/SysInfoLite.h"
+        #ifdef WIDGET_CONSOLE
+            #include "Widgets/Console.h"
+        #endif
 
         #include "WidgetsManager.h"
-        #include "i2c-Display.h"
+        #include "devices/i2cDisplay.h"
     #endif
 
 // Setup the display module with the default settings from the selected hardware
@@ -101,7 +106,11 @@ class DeviceDisplay : public OpenKNX::Module
 
     // ProgMode Widget
     void handleProgMode();
+    #ifdef WIDGET_CONSOLE
+    WidgetConsole* _consoleWidget; // Console widget access (for callback hook preparation)
     
+    #endif
+
   public:
     DeviceDisplay();
     ~DeviceDisplay();
@@ -122,6 +131,11 @@ class DeviceDisplay : public OpenKNX::Module
     WidgetsManager* getWidgetManager() { return _widgetManager; }
 
     // void setPowerSaveCallback(PowerSaveCallback callback);
+
+    #ifdef WIDGET_CONSOLE
+    // Console widget access (for callback hook preparation)
+    WidgetConsole* getConsoleWidget() const { return _consoleWidget; }
+    #endif
 
 }; // class DeviceDisplay
 extern DeviceDisplay openknxDisplayModule; // Display module instance

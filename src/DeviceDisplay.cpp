@@ -111,37 +111,43 @@ void DeviceDisplay::initializeWidgets()
     WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::AutoRemove, 8); // Create a new MatrixClassic widget
     _widgetManager->setScreenSaverWidget(matrixClassicWidget);
 
-    // WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
-    // _widgetManager->addWidget(lifeWidget);
+        // WidgetLife* lifeWidget = new WidgetLife(2000, WidgetFlags::AutoRemove); // Create a new Life widget
+        // _widgetManager->addWidget(lifeWidget);
 
-    // WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
-    // _widgetManager->addWidget(starfieldWidget);
+        // WidgetStarfield* starfieldWidget = new WidgetStarfield(2000, WidgetFlags::AutoRemove, 10); // Create a new Starfield widget
+        // _widgetManager->addWidget(starfieldWidget);
 
-    // WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
-    // _widgetManager->addWidget(cube3DWidget);
+        // WidgetCube3D* cube3DWidget = new WidgetCube3D(2000, WidgetFlags::AutoRemove); // Create a new 3D Cube widget
+        // _widgetManager->addWidget(cube3DWidget);
 
-    // WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
-    // _widgetManager->addWidget(pongWidget);
+        // WidgetPong* pongWidget = new WidgetPong(2000, WidgetFlags::AutoRemove); // Create a new Pong widget
+        // _widgetManager->addWidget(pongWidget);
 
-    // WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
-    // _widgetManager->addWidget(rainWidget);
+        // WidgetRain* rainWidget = new WidgetRain(2000, WidgetFlags::AutoRemove, 6); // Create a new Rain widget
+        // _widgetManager->addWidget(rainWidget);
 
-    // WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
-    // _widgetManager->addWidget(matrixWidget);
+        // WidgetMatrix* matrixWidget = new WidgetMatrix(5000, WidgetFlags::AutoRemove, 7); // Create a new Matrix widget
+        // _widgetManager->addWidget(matrixWidget);
 
-    // WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
-    // _widgetManager->addWidget(sysInfoLiteWidget);
+        // WidgetSysInfoLite* sysInfoLiteWidget = new WidgetSysInfoLite(5000, WidgetFlags::AutoRemove); // Create a new SysInfoLite widget
+        // _widgetManager->addWidget(sysInfoLiteWidget);
 
-    // WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
-    // _widgetManager->addWidget(openknxLogoWidget);
+        // WidgetOpenKNXLogo* openknxLogoWidget = new WidgetOpenKNXLogo(5000, WidgetFlags::AutoRemove); // Create a new OpenKNXLogo widget
+        // _widgetManager->addWidget(openknxLogoWidget);
 
-    // WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
-    // _widgetManager->addWidget(fireworksWidget);
+        // WidgetFireworks* fireworksWidget = new WidgetFireworks(10000, WidgetFlags::AutoRemove, 10); // Create a new Fireworks widget
+        // _widgetManager->addWidget(fireworksWidget);
 
-    // WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::DefaultWidget, "https://www.openknx.de", false); // Create a new QRcode widget
-    // _widgetManager->addWidget(qrcodeWidget);
+        // WidgetQRCode* qrcodeWidget = new WidgetQRCode(2000, WidgetFlags::DefaultWidget, "https://www.openknx.de", false); // Create a new QRcode widget
+        // _widgetManager->addWidget(qrcodeWidget);
 
-    // Default Widgets
+        // Default Widgets
+
+        #ifdef WIDGET_CONSOLE
+    // Console Widget, which will be displayed for 10 seconds, if there is no other widget in the queue, infitely.
+    _consoleWidget = new WidgetConsole(60000); // Create a new Console widget
+    _widgetManager->addWidget(_consoleWidget);
+        #endif
 
     // Clock Widget, which will be displayed for 5 seconds, if there is no other widget in the queue, infitely.
     WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::DefaultWidget, false); // Create a new Clock widget
@@ -285,15 +291,14 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
         {
             logInfoP("Sending Matrix Screensaver to display.");
             WidgetMatrixClassic* matrixClassicWidget = new WidgetMatrixClassic(5000, WidgetFlags::NoAction, 8);
-            matrixClassicWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
+            matrixClassicWidget->setAction(WidgetFlags::AutoRemove);
             _widgetManager->addWidget(matrixClassicWidget);
             bRet = true;
         }
         else if (command.compare(4, 5, "clock") == 0) // Clock Screensaver
         {
-            logInfoP("Sending Clock Screensaver to display.");
-            WidgetClock* clockWidget = new WidgetClock(5000, WidgetFlags::NoAction, true);
-            clockWidget->setAction(WidgetFlags::AutoRemove | WidgetFlags::DefaultWidget);
+            logInfoP("Sending Clock - Round to display. Will be removed automatically after 5 seconds.");
+            WidgetClock* clockWidget = new WidgetClock(5000, static_cast<WidgetFlags>(WidgetFlags::DefaultWidget | WidgetFlags::AutoRemove), true);
             _widgetManager->addWidget(clockWidget);
             bRet = true;
         }
@@ -324,8 +329,7 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(14, 1, "s") == 0) // Set Starfield Screensaver
             {
                 logInfoP("Starfield Screensaver is set to display. Remove it with 'ddc starfield r'");
-                WidgetStarfield* starfieldWidget = new WidgetStarfield(5000, WidgetFlags::NoAction, 10);
-                starfieldWidget->setAction(WidgetFlags::DefaultWidget);
+                WidgetStarfield* starfieldWidget = new WidgetStarfield(5000, WidgetFlags::DefaultWidget, 10);
                 _widgetManager->addWidget(starfieldWidget);
                 bRet = true;
             }
@@ -355,11 +359,11 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             if (command.compare(11, 1, "r") == 0) // Remove Screensaver
             {
                 logInfoP("Removing 3D Cube Screensaver from display...");
-                Widget* widget = _widgetManager->getWidgetFromQueue("WidgetCube3D");
-                if (widget)
+                if (_widgetManager->getWidgetFromQueue("Cube3D") != nullptr)
                 {
-                    widget->addAction(WidgetFlags::AutoRemove);
-                    logInfoP("AutoRemove action added to 3D Cube widget. Will be removed shortly.");
+                    _widgetManager->getWidgetFromQueue("Cube3D")->removeAction(WidgetFlags::DefaultWidget); // Remove DefaultWidget action
+                    _widgetManager->getWidgetFromQueue("Cube3D")->addAction(WidgetFlags::AutoRemove);
+                    logInfoP("Remove DefaultWidget action and set AutoRemove --> 3D Cube widget.");
                 }
                 bRet = true;
             }
@@ -374,7 +378,22 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             _widgetManager->logWidgetManagerSettings();
             bRet = true;
         }
-    #ifdef DD_CONSOLE_CMDS
+    #ifdef DISPLAY_LOW_LEVEL_COMMANDS
+        else if (command.compare(4, 1, "?") == 0) // Help
+        {
+            logInfoP("ddc m                - Show Matrix Screensaver");
+            logInfoP("ddc clock            - Show Clock Screensaver");
+            logInfoP("ddc pong s|r        - Set or Remove Pong Screensaver as default widget");
+            logInfoP("ddc starfield s|r   - Set or Remove Starfield Screensaver as default widget");
+            logInfoP("ddc 3dcube s|r      - Set or Remove 3D Cube Screensaver as default widget");
+            logInfoP("ddc l                - List all widgets in the queue");
+            logInfoP("ddc i                - Info about the widget manager");
+            logInfoP("ddc dim <on|off|0-255> - Dim the display or set contrast (0-255)");
+            logInfoP("ddc vcom <on|off|value> - Enable/Disable VCOM detect or set value (0x00-0xFF)");
+            logInfoP("ddc inv <0|1>       - Invert the display (1=invert, 0=normal)");
+            logInfoP("ddc scroll <right|left|diag_right|diag_left|start|stop> - Start/Stop scrolling");
+            bRet = true;
+        }
         else if (command.compare(4, 4, "dim ") == 0) // ddc dim <on|off|0-255>
         {
             if (command.compare(8, 2, "on") == 0)
@@ -583,14 +602,15 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logInfoP("Display all-on mode disabled, resumed normal display");
             }
         }
-    #endif // DD_CONSOLE_CMDS
+    #endif // DISPLAY_LOW_LEVEL_COMMANDS
         else if (command.compare(4, 3, "qr ") == 0) // Show QR-Code
         {
             std::string url = command.substr(7);
             if (url.length() > 0 && url.length() < 128) // Limit URL length
             {
                 logInfoP("Showing QR-Code for URL: %s", url.c_str());
-                WidgetQRCode* qrcodeWidget = new WidgetQRCode(10000, WidgetFlags::AutoRemove, url, false);
+                WidgetQRCode* qrcodeWidget = new WidgetQRCode(10000, WidgetFlags::DefaultWidget, url, false);
+                qrcodeWidget->addAction(WidgetFlags::AutoRemove); // Remove after display time
                 _widgetManager->addWidget(qrcodeWidget);
                 bRet = true;
             }
@@ -599,10 +619,105 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
                 logErrorP("Invalid URL length. Please provide a URL between 1 and 127 characters.");
             }
         }
+    #ifdef WIDGET_CONSOLE
         else if (command.compare(4, 2, "c ") == 0) // Display text on the display
         {
-          // For WidgetConsole
-        }
+            if (!_consoleWidget)
+            {
+                logErrorP("Console widget not initialized!");
+                return true;
+            }
+
+            if (command.compare(6, 1, "s") == 0) // Start (show) console
+            {
+                _consoleWidget->addAction(WidgetFlags::DisplayEnabled);
+                logInfoP("Console widget activated");
+            }
+            else if (command.compare(6, 1, "r") == 0) // Hide console
+            {
+                _consoleWidget->removeAction(WidgetFlags::DisplayEnabled);
+                _consoleWidget->removeAction(WidgetFlags::AutoRemove); // Ensure it is not removed
+                logInfoP("Console widget deactivated");
+            }
+            else if (command.compare(6, 1, "c") == 0) // Clear console
+            {
+                _consoleWidget->clear();
+                logInfoP("Console widget cleared");
+            }
+
+            else if (command.compare(6, 1, "l") == 0) // Log message
+            {
+                std::string text = command.substr(8);
+                if (text.length() > 0 && text.length() < 128) // Limit text length
+                {
+                    _consoleWidget->addLine(text, WidgetConsole::INFO);
+                    logInfoP("Added to console: %s", text.c_str());
+                }
+                else
+                {
+                    logErrorP("Invalid text length. Please provide a text between 1 and 127 characters.");
+                }
+            }
+            else if (command.compare(6, 6, "level ") == 0) // Set console log level
+            {
+                std::string level = command.substr(12);
+                if (level == "debug")
+                    _consoleWidget->setLogLevel(WidgetConsole::DEBUG);
+                else if (level == "info")
+                    _consoleWidget->setLogLevel(WidgetConsole::INFO);
+                else if (level == "warning")
+                    _consoleWidget->setLogLevel(WidgetConsole::WARNING);
+                else if (level == "error")
+                    _consoleWidget->setLogLevel(WidgetConsole::ERROR);
+                else if (level == "fatal")
+                    _consoleWidget->setLogLevel(WidgetConsole::FATAL);
+                else
+                {
+                    logErrorP("Unknown log level: %s", level.c_str());
+                }
+                logInfoP("Console log level set to: %s", level.c_str());
+            }
+            else if (command.compare(6, 10, "timestamps") == 0) // Toggle console timestamps
+            {
+                static bool enabled = true;
+                enabled = !enabled;
+                _consoleWidget->toggleTimestamps(enabled);
+                logInfoP("Console timestamps: %s", enabled ? "ON" : "OFF");
+            }
+            else if (command.compare(6, 10, "autoscroll") == 0) // Toggle console autoscroll
+            {
+                static bool enabled = true;
+                enabled = !enabled;
+                _consoleWidget->setAutoScroll(enabled);
+                logInfoP("Console autoscroll: %s", enabled ? "ON" : "OFF");
+            }
+            else if (command.compare(6, 5, "size ") == 0) // Set console text size
+            {
+                std::string sizeStr = command.substr(11);
+                uint8_t size = atoi(sizeStr.c_str());
+                if (size == 1 || size == 2)
+                {
+                    _consoleWidget->setTextSize(size);
+                    logInfoP("Console text size: %u", size);
+                }
+            }
+            else if (command.compare(6, 4, "test") == 0) // Test console messages
+            {
+                _consoleWidget->addLine("Test DEBUG message", WidgetConsole::DEBUG);
+                _consoleWidget->addLine("Test INFO message", WidgetConsole::INFO);
+                _consoleWidget->addLine("Test WARNING message", WidgetConsole::WARNING);
+                _consoleWidget->addLine("Test ERROR message", WidgetConsole::ERROR);
+                _consoleWidget->addLine("Test FATAL message", WidgetConsole::FATAL);
+                logInfoP("Console test messages added");
+            }
+            else
+            {
+                logErrorP("Invalid console command. Use 'ddc c l <text>' to log text, 'ddc c s' to show, 'ddc c h' to hide, 'ddc c c' to clear.");
+                bRet = false;
+            }
+            bRet = true;
+        } // end of "ddc c ..."
+    #endif // WIDGET_CONSOLE
         else
         {
             openknx.logger.begin();
@@ -624,8 +739,8 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc starfield <s|r>", "<s> set, <r> remove - Starfield Screensaver ");
             openknx.console.printHelpLine("ddc 3dcube <s|r>", "<s> set, <r> remove - 3D Cube Screensaver ");
             openknx.console.printHelpLine("ddc life <s|r>", "<s> set, <r> remove - Life Screensaver ");
-            //openknx.console.printHelpLine("ddc openknx <s|r>", "<s> set, <r> remove - OpenKNX Team Intro ");
-            #ifdef DD_CONSOLE_CMDS
+    // openknx.console.printHelpLine("ddc openknx <s|r>", "<s> set, <r> remove - OpenKNX Team Intro ");
+    #ifdef DISPLAY_LOW_LEVEL_COMMANDS
             openknx.logger.log("-------------------------DISPLAY CONFIGURATION COMMANDS-------------------------");
             openknx.console.printHelpLine("ddc scroll <cmd>", "<r|l|dr|dl|start|stop|sa> Scroll the display");
             openknx.console.printHelpLine("ddc vcom <on|off|value>", "Enable or disable VCOM detect or set the value");
@@ -635,7 +750,20 @@ bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
             openknx.console.printHelpLine("ddc chargepump <on|off>", "Enable or disable the charge pump");
             openknx.console.printHelpLine("ddc segremap <on|off>", "Enable or disable the segment remapping");
             openknx.console.printHelpLine("ddc displayall <on|off>", "Enable or disable the display all-on mode");
-            #endif // DD_CONSOLE_CMDS
+    #endif // DISPLAY_LOW_LEVEL_COMMANDS
+    #ifdef WIDGET_CONSOLE
+            openknx.logger.log("------------------------------CONSOLE WIDGET COMMANDS---------------------------");
+            openknx.console.printHelpLine("ddc c l <text>", "Log text to console widget");
+            openknx.console.printHelpLine("ddc c s", "Show console widget");
+            openknx.console.printHelpLine("ddc c h", "Hide console widget");
+            openknx.console.printHelpLine("ddc c c", "Clear console widget");
+            openknx.console.printHelpLine("ddc c level <level>", "Set console log level (debug, info, warning, error, fatal)");
+            openknx.console.printHelpLine("ddc c timestamps", "Toggle console timestamps on/off");
+            openknx.console.printHelpLine("ddc c autoscroll", "Toggle console autoscroll on/off");
+            openknx.console.printHelpLine("ddc c size <1|2>", "Set console text size (1 or 2)");
+            openknx.console.printHelpLine("ddc c test", "Add test messages to console");
+    #endif // WIDGET_CONSOLE
+            openknx.logger.log("--------------------------------------------------------------------------------");
             openknx.logger.color(CONSOLE_HEADLINE_COLOR);
             openknx.logger.log("Info: To test the progMode widget toogle the prog mode on the device.");
             openknx.logger.log("--------------------------------------------------------------------------------");
