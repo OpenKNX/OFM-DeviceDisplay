@@ -14,6 +14,8 @@ void WidgetsManager::setup()
             widget->setup();
         }
     }
+
+    rebuildBackgroundCache();
     _isInitialized = true; // setup is initialized
 }
 
@@ -22,11 +24,10 @@ void WidgetsManager::setup()
  */
 void WidgetsManager::start()
 {
-    for (auto& widget : _widgetQueue)
+    // We use the background widget cache here and start onyl the background widgets
+    for (auto& widget : _backgroundWidgets)
     {
-        if (!widget) continue;
-
-        if (widget->getAction() & WidgetFlags::Background)
+        if (widget)
         {
             logDebugP("Initial starting background widget: %s", widget->getName().c_str());
             widget->background();
@@ -154,11 +155,18 @@ void WidgetsManager::addWidget(Widget* widget)
     logDebugP("Widget added to queue: %s", widget->getName().c_str());
 
     // Initialize widget if manager is initialized, else will be done in setup()
-    if( _isInitialized )
+    if (_isInitialized)
     {
         widget->setup();
     }
     _widgetQueue.push_back(widget);
+
+    // Update background cache
+    if (widget->getAction() & Background)
+    {
+        _backgroundWidgets.push_back(widget);
+        logDebugP("Background widget added to cache: %s", widget->getName().c_str());
+    }
 }
 
 /**
@@ -220,6 +228,17 @@ void WidgetsManager::removeWidgetFromQueue(const char* widgetName)
         {
             logDebugP("Removing widget from queue: %s", widgetName);
             Widget* widget = *it;
+
+            if (widget->getAction() & Background)
+            {
+                auto cacheIt = std::find(_backgroundWidgets.begin(), _backgroundWidgets.end(), widget);
+                if (cacheIt != _backgroundWidgets.end())
+                {
+                    _backgroundWidgets.erase(cacheIt);
+                    logDebugP("Background widget removed from cache: %s", widgetName);
+                }
+            }
+
             _widgetQueue.erase(it);
             delete widget;
             return;
@@ -234,6 +253,25 @@ void WidgetsManager::removeWidgetFromQueue(const char* widgetName)
 void WidgetsManager::removeWidgetFromQueue(Widget* widget)
 {
     if (widget != nullptr) removeWidgetFromQueue(widget->getName().c_str());
+}
+
+/**
+ * @brief Rebuilds the background widget cache for O(1) access
+ * Called only when widgets are added/removed
+ */
+void WidgetsManager::rebuildBackgroundCache()
+{
+    _backgroundWidgets.clear();
+
+    for (auto& widget : _widgetQueue)
+    {
+        if (widget && (widget->getAction() & Background))
+        {
+            _backgroundWidgets.push_back(widget);
+        }
+    }
+
+    logDebugP("Background cache rebuilt: %d widgets", _backgroundWidgets.size());
 }
 
 /**
@@ -463,10 +501,9 @@ void WidgetsManager::handlePriorityState(uint32_t currentTime)
 
     if (_currentWidget != priorityWidget)
     {
-        for (auto& widget : _widgetQueue)
+        for (auto& widget : _backgroundWidgets)
         {
-            if (widget && (widget->getAction() & Background) &&
-                widget != priorityWidget &&
+            if (widget && widget != priorityWidget &&
                 widget->getState() == WidgetState::RUNNING)
             {
                 logDebugP("Pausing background widget for priority: %s", widget->getName().c_str());
@@ -641,11 +678,9 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
         _currentWidget->stop();
         _currentWidget = nullptr;
 
-        for (auto& widget : _widgetQueue)
+        for (auto& widget : _backgroundWidgets)
         {
-            if (widget &&
-                (widget->getAction() & Background) &&
-                widget->getState() == WidgetState::PAUSED)
+            if (widget && widget->getState() == WidgetState::PAUSED)
             {
                 logDebugP("Resuming paused background widget after priority: %s", widget->getName().c_str());
                 widget->resume();
@@ -696,7 +731,7 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
         return;
     }
 
-    //Background widget loses DisplayEnabled
+    // Background widget loses DisplayEnabled
     if ((flags & Background) && !(flags & DisplayEnabled))
     {
         logDebugP("Background widget no longer DisplayEnabled: %s", _currentWidget->getName().c_str());
@@ -717,9 +752,9 @@ void WidgetsManager::handleCurrentWidget(uint32_t currentTime)
  */
 void WidgetsManager::loopBackgroundWidgets()
 {
-    for (auto& widget : _widgetQueue)
+    for (auto& widget : _backgroundWidgets)
     {
-        if (widget && (widget->getAction() & Background))
+        if (widget) // We use the background widget cache here !!
         {
             widget->loop();
         }
@@ -840,11 +875,9 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
                 _currentWidget->resume();
             }
 
-            for (auto& widget : _widgetQueue)
+            for (auto& widget : _backgroundWidgets)
             {
-                if (widget &&
-                    (widget->getAction() & Background) &&
-                    widget->getState() == WidgetState::PAUSED)
+                if (widget && widget->getState() == WidgetState::PAUSED)
                 {
                     logDebugP("Resuming paused background widget: %s", widget->getName().c_str());
                     widget->resume();
@@ -989,12 +1022,11 @@ Widget* WidgetsManager::findNextStartupWidget()
  */
 Widget* WidgetsManager::findActiveBackgroundWidget()
 {
-    for (auto& widget : _widgetQueue)
+    for (auto& widget : _backgroundWidgets)
     {
         if (!widget) continue;
 
-        WidgetFlags flags = widget->getAction();
-        if ((flags & Background) && (flags & DisplayEnabled))
+        if (widget && (widget->getAction() & DisplayEnabled))
         {
             return widget;
         }
@@ -1097,7 +1129,7 @@ bool WidgetsManager::shouldRotateWidgets() const
         {
             defaultCount++;
         }
-        
+
         // Check for AutoRemove widgets
         if (flags & AutoRemove)
         {
@@ -1182,10 +1214,9 @@ Widget* WidgetsManager::getActiveButtonWidget()
     if (!backgroundWidget)
     {
         // Kein aktives Background-Widget, suche nach RUNNING Background-Widgets
-        for (auto& widget : _widgetQueue)
+        for (auto& widget : _backgroundWidgets)
         {
             if (widget &&
-                (widget->getAction() & Background) &&
                 widget->wantsButtonInput() &&
                 (widget->getState() == WidgetState::RUNNING ||
                  widget->getState() == WidgetState::BACKGROUND))

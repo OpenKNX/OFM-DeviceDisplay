@@ -158,7 +158,6 @@ class WidgetsManager // Manages the widget queue and state machine
   private:
     i2cDisplay* _displayModule = nullptr;
     std::vector<Widget*> _widgetQueue;
-    
     Widget* _currentWidget = nullptr;
 
     uint32_t _currentTime = 0;
@@ -178,9 +177,9 @@ class WidgetsManager // Manages the widget queue and state machine
     
     // Screensaver widget
     Widget* _screenSaverWidget = nullptr;
-    uint32_t _screenSaverFallbackStartTime = 0;
-    bool isScreenSaverValid() const;
-    void displayScreenSaverWarning();
+    //uint32_t _screenSaverFallbackStartTime = 0; // ToDo: Fallback handling
+    //bool isScreenSaverValid() const;    // Idea: Internal Widget for fallback display
+    //void displayScreenSaverWarning();   // With text "Screensaver Widget not set!" --> going off
 
     void updateState(uint32_t currentTime);
     void transitionTo(WidgetManagerState newState);
@@ -210,5 +209,8 @@ class WidgetsManager // Manages the widget queue and state machine
     bool shouldRotateWidgets() const;
     bool isIdleTimeoutReached(uint32_t currentTime) const;
     bool hasOnlyDefaultWidgets() const;
+
+    std::vector<Widget*> _backgroundWidgets; // Cache for background widgets
+    void rebuildBackgroundCache();  // Rebuilds the cache only when widgets are added/removed
 };
 #endif // DEVICE_DISPLAY_MODULE
