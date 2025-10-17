@@ -10,7 +10,6 @@
  *              Licensed under GNU GPL v3.0
  **/
 
-
 #include "OpenKNX.h"
 
 #include <functional>
@@ -18,6 +17,7 @@
 #include <vector>
 
 #define DISPLAY_LOW_LEVEL_COMMANDS
+#define WIDGET_CONSOLE
 
 // Forward declarations
 class Widget;

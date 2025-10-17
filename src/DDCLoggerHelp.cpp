@@ -168,13 +168,15 @@ bool DDCLoggerHelp::processConsoleCommand(const std::string& command)
 
     if (command.compare(pos, 1, "s") == 0)
     {
-        _consoleWidget->addAction(WidgetFlags::DisplayEnabled);
+      _consoleWidget->addAction(WidgetFlags::StatusWidget);
+      _consoleWidget->addAction(WidgetFlags::ManagedExternally);
+      _consoleWidget->addAction(WidgetFlags::DisplayEnabled);
+      _consoleWidget->setPriority(WidgetPriority::HIGH);
         logInfoP("Console activated");
     }
     else if (command.compare(pos, 1, "r") == 0)
     {
         _consoleWidget->removeAction(WidgetFlags::DisplayEnabled);
-        _consoleWidget->removeAction(WidgetFlags::AutoRemove);
         logInfoP("Console deactivated");
     }
     else if (command.compare(pos, 1, "c") == 0)

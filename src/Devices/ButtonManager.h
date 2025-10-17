@@ -8,7 +8,7 @@
  * @date        2025-02-15
  * @copyright   Copyright (c) 2025, Erkan Çolak
  *              Licensed under GNU GPL v3.0
- */
+ **/
 
 #include "OpenKNX.h"
 #include "ButtonEvent.h"
