@@ -1177,8 +1177,10 @@ bool WidgetsManager::hasOnlyDefaultWidgets() const
         else if (!(flags & Background) &&
                  !(flags & StatusWidget) &&
                  !(flags & AutoRemove) &&
-                 !(flags & ManagedExternally))
+                 !(flags & ManagedExternally) &&
+                 widget->getState() != WidgetState::STOPPED)
         {
+            // This could be happen if a valid flaged widget is in the queue but stopped
             return false; // Exit directly if a non-default, non-background widget is found
         }
     }
