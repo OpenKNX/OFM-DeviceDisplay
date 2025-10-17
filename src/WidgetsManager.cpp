@@ -280,34 +280,47 @@ void WidgetsManager::rebuildBackgroundCache()
 void WidgetsManager::logWidgetQueue()
 {
     logIndentUp();
-    logInfoP("------------------------------------------------------");
+    logInfoP("-----------------------------------------------------------");
     logInfoP("                Widget Queue                          ");
-    logInfoP("------------------------------------------------------");
+    logInfoP("-----------------------------------------------------------");
     logInfoP("Manager State      : %s", getStateName());
     logInfoP("Power Save Mode    : %s", getPowerSaveModeName(_powerSaveMode));
     logInfoP("Current Widget     : %s", _currentWidget ? _currentWidget->getName().c_str() : "none");
     logInfoP("Startup Complete   : %s", _startupComplete ? "yes" : "no");
-    logInfoP("------------------------------------------------------");
+    logInfoP("-----------------------------------------------------------");
 
     if (_widgetQueue.empty())
     {
         logInfoP("Queue is empty");
-        logInfoP("------------------------------------------------------");
+        logInfoP("-----------------------------------------------------------");
         return;
     }
 
-    logInfoP("Idx | Name                 | Flags   | State | Current");
-    logInfoP("----+----------------------+---------+-------+--------");
+    logInfoP("Idx | Name                | Flags | State |  Prio.  | Cur. ");
+    logInfoP("----+---------------------+-------+-------+-------+--------");
     for (size_t i = 0; i < _widgetQueue.size(); ++i)
     {
         Widget* widget = _widgetQueue[i];
         if (widget)
         {
-            logInfoP("%3d | %-20s | %7d | %5d | %s",
+            const char* priorityName = "N/A";
+            if (widget->getAction() & StatusWidget)
+            {
+                switch (widget->getPriority())
+                {
+                    case WidgetPriority::LOW: priorityName = "LOW"; break;
+                    case WidgetPriority::NORMAL: priorityName = "NORMAL"; break;
+                    case WidgetPriority::HIGH: priorityName = "HIGH"; break;
+                    case WidgetPriority::CRITICAL: priorityName = "CRITICAL"; break;
+                }
+            }
+
+            logInfoP("%3d | %-19s | %5d | %5d | %-7s | %s",
                      (int)i,
                      widget->getName().c_str(),
                      widget->getAction(),
                      (int)widget->getState(),
+                     priorityName,
                      (_currentWidget == widget) ? "YES" : "no");
         }
         else
@@ -315,7 +328,9 @@ void WidgetsManager::logWidgetQueue()
             logInfoP("%3d | nullptr", (int)i);
         }
     }
-    logInfoP("------------------------------------------------------");
+
+    logInfoP("-----------------------------------------------------------");
+
     logIndentDown();
 }
 
@@ -754,7 +769,7 @@ void WidgetsManager::loopBackgroundWidgets()
 {
     for (auto& widget : _backgroundWidgets)
     {
-        // We use the background widget cache here!
+        // Use the background widget cache here!
         if (widget && (widget->getState() == WidgetState::BACKGROUND ||
                        widget->getState() == WidgetState::RUNNING))
         {
@@ -802,9 +817,9 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
     {
         return;
     }
-    
+
     lastPowerSaveCheck = currentTime;
-    
+
     // Debug: Log inactivity time every 10 seconds
     static uint32_t lastDebugLog = 0;
     if (currentTime - lastDebugLog > 10000)
@@ -989,6 +1004,9 @@ void WidgetsManager::userInteraction()
  */
 Widget* WidgetsManager::findNextPriorityWidget()
 {
+    Widget* highestPriorityWidget = nullptr;
+    uint8_t highestPriority = 0;
+
     for (auto& widget : _widgetQueue)
     {
         if (!widget) continue;
@@ -996,10 +1014,18 @@ Widget* WidgetsManager::findNextPriorityWidget()
         WidgetFlags flags = widget->getAction();
         if ((flags & StatusWidget) && (flags & DisplayEnabled))
         {
-            return widget;
+            uint8_t priority = static_cast<uint8_t>(widget->getPriority());
+
+            // Select widget with highest priority
+            // If same priority, keep first widget in queue (FIFO)
+            if (priority > highestPriority)
+            {
+                highestPriority = priority;
+                highestPriorityWidget = widget;
+            }
         }
     }
-    return nullptr;
+    return highestPriorityWidget;
 }
 
 /**
@@ -1082,7 +1108,23 @@ void WidgetsManager::switchToWidget(Widget* widget, uint32_t currentTime, const 
         }
     }
 
-    logDebugP("Activating %s: %s", reason, widget->getName().c_str());
+    if (widget->getAction() & StatusWidget)
+    {
+        const char* priorityName = "UNKNOWN";
+        switch (widget->getPriority())
+        {
+            case WidgetPriority::LOW: priorityName = "LOW"; break;
+            case WidgetPriority::NORMAL: priorityName = "NORMAL"; break;
+            case WidgetPriority::HIGH: priorityName = "HIGH"; break;
+            case WidgetPriority::CRITICAL: priorityName = "CRITICAL"; break;
+        }
+        logDebugP("Activating %s (Priority: %s): %s", reason, priorityName, widget->getName().c_str());
+    }
+    else
+    {
+        logDebugP("Activating %s: %s", reason, widget->getName().c_str());
+    }
+
     _currentWidget = widget;
 
     if (_currentWidget->getState() != WidgetState::RUNNING)

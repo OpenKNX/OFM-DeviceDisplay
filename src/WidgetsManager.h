@@ -212,5 +212,6 @@ class WidgetsManager // Manages the widget queue and state machine
 
     std::vector<Widget*> _backgroundWidgets; // Cache for background widgets
     void rebuildBackgroundCache();  // Rebuilds the cache only when widgets are added/removed
+
 };
 #endif // DEVICE_DISPLAY_MODULE

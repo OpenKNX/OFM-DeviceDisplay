@@ -26,15 +26,28 @@ typedef enum : uint8_t
 
 enum class WidgetState
 {
-    STOPPED,
-    RUNNING,
-    PAUSED,
-    BACKGROUND
+    STOPPED,   // Widget is not running
+    RUNNING,   // Widget is actively displayed and looping
+    PAUSED,    // Widget is paused (e.g. ProgMode)
+    BACKGROUND // Widget is running in the background
+};
+
+enum class WidgetPriority : uint8_t
+{
+    LOW = 0,     // Default widgets, animations (not used for StatusWidgets)
+    NORMAL = 1,  // Menu activation
+    HIGH = 2,    // Warnings (UseCase specific warnings - e.g., no Screensaver configured)
+    CRITICAL = 3 // Critical errors (ProgMode, System failure, etc.)
 };
 
 class Widget
 {
+  protected:
+    WidgetPriority _priority = WidgetPriority::NORMAL;
+
   public:
+
+    // Core functions
     virtual void setup() = 0;                       // setup the widget
     virtual void start() = 0;                       // start the widget
     virtual void stop() = 0;                        // stop the widget
@@ -42,6 +55,8 @@ class Widget
     virtual void resume() = 0;                      // resume the widget (will continue the current state and all internal timers, values, etc.)
     virtual void loop() = 0;                        // loop the widget
     virtual void background() {}                    // Optional - put the widget in background mode (will continue to run, but not be displayed)
+    
+    // Getters / Setters
     virtual const WidgetState getState() const = 0; // Get the current state of the widget
 
     virtual uint32_t getDisplayTime() const = 0;           // Time to display the widget in ms
@@ -62,4 +77,7 @@ class Widget
     {
         return (static_cast<uint8_t>(getAction()) & WantsButtonInput) != 0;
     }
+
+    virtual WidgetPriority getPriority() const { return _priority; }
+    virtual void setPriority(WidgetPriority priority) { _priority = priority; }
 };

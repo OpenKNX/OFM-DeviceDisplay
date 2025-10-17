@@ -1,3 +1,58 @@
+# OFM-DeviceDisplay
+
+`OFM-DeviceDisplay` is a comprehensive, hardware-agnostic library for managing displays on OpenKNX devices.
+
+---
+
+## TL;DR
+
+**What is this?**
+A powerful widget-based display manager for OpenKNX devices with state machine, priority system, and power management.
+
+**Key Features:**
+- **Widget System**: Sysinfo, Menu, ProgMode, Screensavers, OAM/OFM custom widgets
+- **Priority Levels**: CRITICAL > HIGH > NORMAL > LOW (automatic override)
+- **Power Save**: Screensaver, Display OFF, configurable timeouts
+- **Button Input**: 5-way navigation (UP/DOWN/LEFT/RIGHT/OK), long-press support
+- **State Machine**: STARTUP -> DEFAULT -> PRIORITY -> BACKGROUND -> POWER_SAVE
+
+**Quick Example:**
+```cpp
+// 1. Create widgets
+WidgetClock* clock = new WidgetClock();
+WidgetMenu* menu = new WidgetMenu();
+
+// 2. Add to manager
+widgetsManager.addWidget(clock);
+widgetsManager.addWidget(menu);
+
+// 3. Configure power save
+widgetsManager.setScreenSaverWidget(screensaver);
+widgetsManager.configurePowerSave(PowerSaveMode::SCREENSAVER, 30000); // 30s
+
+// 4. Done! Widget manager handles everything automatically
+```
+
+
+```cpp
+// Quick Start
+widgetsManager.addWidget(new WidgetClock());
+widgetsManager.addWidget(new WidgetMenu());
+widgetsManager.setScreenSaverWidget(new WidgetStarfield());
+
+// Critical error overrides everything
+errorWidget->setPriority(WidgetPriority::CRITICAL);
+errorWidget->addAction(DisplayEnabled); // → Shown immediately!
+```
+
+**Jump to:**
+- [Full Documentation](#table-of-contents)
+- [Widget Priority Levels](#widget-priority-levels)
+- [Multiple Widgets Behavior](#multiple-widgets-behavior)
+
+---
+
+
 ## ToDo:
 
 * [x] Implement centralized button handling system
@@ -6,12 +61,12 @@
 * [x] Provide Custom Widget examples
 * [x] Finalize the documentation
 * [x] Conduct an overall performance check
+* [x] PRIORITY Widgets handling - What if we have more then one PRIORITY Widget
 * [ ] Internal Widget to display informatios as a fallback (i.e. no Screensaver set etc.)
-* [ ] PRIORITY Widgets handling - What if we have more then one PRIORITY Widget
 
 ### Planned Features (Phase 2)
 - [ ] **Button Combinations**: UP/DOWN/LEFT/RIGHT simultaneously for special actions
-- [ ] **Long-Press Actions**: OK 5s → ProgMode toggle, configurable shortcuts
+- [ ] **Long-Press Actions**: OK 5s -> ProgMode toggle, configurable shortcuts
 - [ ] **Global Button Patterns**: Konami-code style sequences (LEFT, LEFT, UP, DOWN, OK)
 - [ ] **ETS Application**: Configuration via KNX parameters
   
@@ -28,12 +83,105 @@
 
 This library features a sophisticated widget management system, centralized button handling, power-save modes, and support for dynamic content including text, icons, QR codes, and varous animations.
 
+--- 
+## Table of Contents
 
+- [OFM-DeviceDisplay](#ofm-devicedisplay)
+  - [TL;DR](#tldr)
+  - [ToDo:](#todo)
+    - [Planned Features (Phase 2)](#planned-features-phase-2)
+    - [**Info:**](#info)
+- [OFM-DeviceDisplay](#ofm-devicedisplay-1)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture Overview](#architecture-overview)
+    - [State Machine](#state-machine)
+    - [Key Design Principles](#key-design-principles)
+  - [System Flow Diagram](#system-flow-diagram)
+  - [Features](#features)
+    - [Core Features](#core-features)
+    - [Display Features (i2c SSD1306/SSD1315)](#display-features-i2c-ssd1306ssd1315)
+    - [Button System](#button-system)
+    - [Power Management](#power-management)
+  - [Widget Management System](#widget-management-system)
+    - [Widget States](#widget-states)
+    - [Widget Priorities](#widget-priorities)
+    - [Widget Priority Levels](#widget-priority-levels)
+  - [Multiple Widgets Behavior](#multiple-widgets-behavior)
+    - [PRIORITY Widgets (StatusWidget + DisplayEnabled)](#priority-widgets-statuswidget--displayenabled)
+    - [BACKGROUND Widgets (Background + DisplayEnabled)](#background-widgets-background--displayenabled)
+    - [DEFAULT Widgets (DefaultWidget)](#default-widgets-defaultwidget)
+    - [STARTUP Widgets (AutoRemove)](#startup-widgets-autoremove)
+    - [Summary Table](#summary-table)
+    - [Widget Flags](#widget-flags)
+    - [Manager States](#manager-states)
+  - [PowerSave System](#powersave-system)
+    - [Power Save Modes](#power-save-modes)
+    - [Configuration Example](#configuration-example)
+    - [Wake-Up Behavior](#wake-up-behavior)
+  - [Button Handling System](#button-handling-system)
+    - [Button Event System](#button-event-system)
+    - [Widget Button Handling](#widget-button-handling)
+    - [Button Priority System](#button-priority-system)
+  - [Installation](#installation)
+  - [Dependencies](#dependencies)
+  - [Example Code](#example-code)
+    - [Basic Setup with PowerSave and Menu](#basic-setup-with-powersave-and-menu)
+    - [Creating a Custom Widget](#creating-a-custom-widget)
+    - [Status Widget with Auto-Remove](#status-widget-with-auto-remove)
+    - [Menu Configuration](#menu-configuration)
+  - [Classes and Methods](#classes-and-methods)
+    - [DeviceDisplay (Main Class)](#devicedisplay-main-class)
+    - [WidgetsManager (Core Widget Orchestration)](#widgetsmanager-core-widget-orchestration)
+    - [Widget (Base Class)](#widget-base-class)
+    - [i2cDisplay (Hardware Facade for SSD1306 / SSD1315](#i2cdisplay-hardware-facade-for-ssd1306--ssd1315)
+  - [Troubleshooting](#troubleshooting)
+    - [Widget doesn't appear](#widget-doesnt-appear)
+    - [Menu doesn't close](#menu-doesnt-close)
+    - [Power-Save doesn't activate](#power-save-doesnt-activate)
+    - [Widget Flags](#widget-flags-1)
+  - [Adapting to Other Display Types](#adapting-to-other-display-types)
+    - [Example: TFT Display (ST7789)](#example-tft-display-st7789)
+    - [Example: e-Paper Display (Waveshare)](#example-e-paper-display-waveshare)
+  - [Dynamic Menu System](#dynamic-menu-system)
+    - [MenuWidget Architecture](#menuwidget-architecture)
+    - [Key Architectural Features](#key-architectural-features)
+      - [1. **Runtime Menu Construction**](#1-runtime-menu-construction)
+      - [2. **Stack-Based Navigation**](#2-stack-based-navigation)
+      - [3. **Action Registry Pattern**](#3-action-registry-pattern)
+      - [4. **External Control API**](#4-external-control-api)
+      - [5. **Value Editing In-Place**](#5-value-editing-in-place)
+      - [6. **Info Overlays**](#6-info-overlays)
+    - [Menu Item Types](#menu-item-types)
+      - [1. **Action Items** (Execute Function)](#1-action-items-execute-function)
+      - [2. **Submenu Items** (Navigate to Child Menu)](#2-submenu-items-navigate-to-child-menu)
+      - [3. **Value Edit Items** (In-Place Editing)](#3-value-edit-items-in-place-editing)
+      - [4. **Info Display Items** (Read-Only)](#4-info-display-items-read-only)
+    - [Runtime Menu Construction](#runtime-menu-construction)
+      - [Example 1: **Sensor Menu (Dynamic Population)**](#example-1-sensor-menu-dynamic-population)
+      - [Example 2: **Device Discovery Menu**](#example-2-device-discovery-menu)
+      - [Example 3: **Configuration Menu (ETS Parameters)**](#example-3-configuration-menu-ets-parameters)
+    - [Action Registry System](#action-registry-system)
+      - [Register Actions Once](#register-actions-once)
+      - [Build Menu from Config File (JSON/XML)](#build-menu-from-config-file-jsonxml)
+    - [External Control API](#external-control-api)
+      - [KNX Group Object Control](#knx-group-object-control)
+      - [Web UI Control](#web-ui-control)
+    - [Value Change Callbacks](#value-change-callbacks)
+    - [Advanced Examples](#advanced-examples)
+      - [Multi-Language Menu (Runtime Switch)](#multi-language-menu-runtime-switch)
+      - [Wizard-Style Menu (Multi-Step Configuration)](#wizard-style-menu-multi-step-configuration)
+    - [Performance \& Memory](#performance--memory)
+    - [MenuWidget Complete API](#menuwidget-complete-api)
+  - [License](#license)
+  - [Contributing](#contributing)
+  - [Support](#support)
+
+---
 ## Architecture Overview
 
 ### State Machine
 ```
-STARTUP → IDLE → {PRIORITY, BACKGROUND, DEFAULT}
+STARTUP -> IDLE -> {PRIORITY, BACKGROUND, DEFAULT}
          ↑_______|
 ```
 
@@ -109,7 +257,7 @@ STARTUP → IDLE → {PRIORITY, BACKGROUND, DEFAULT}
    - **i2cDisplay**: Hardware facade (SSD1306 driver wrapper)
    - **Widgets**: Self-contained display logic (Menu, Clock, QR, animations)
 
-3. **Event-Driven**: Button events flow from hardware → manager → active widget
+3. **Event-Driven**: Button events flow from hardware -> manager -> active widget
 
 4. **Extensible**: Add new display types by implementing display interface
 
@@ -247,7 +395,7 @@ STARTUP → IDLE → {PRIORITY, BACKGROUND, DEFAULT}
 - **Priority Widgets**: High-priority widgets that override all others (e.g., ProgMode)
 - **Screensaver Support**: Dedicated screensaver widget with automatic activation
 
-### Display Features (i2c SSD1306)
+### Display Features (i2c SSD1306/SSD1315)
 - **Multiple Widget Types**: Boot logo, menu, clock, QR code, system info, animations
 - **Dynamic Text and Alignment**: Customizable text alignment, size, color, and scrolling
 - **Icons and QR Codes**: Built-in support for icons and QR code generation
@@ -282,7 +430,204 @@ PAUSED     → Widget is temporarily paused (by PRIORITY widget)
 1. **PRIORITY Widgets**: Displayed immediately, pause all other widgets (e.g., ProgMode)
 2. **BACKGROUND Widgets**: Run continuously, activated by `DisplayEnabled` flag (e.g., Menu)
 3. **DEFAULT Widgets**: Shown when no other widgets are active.
-4. 
+
+### Widget Priority Levels
+
+**Priority Order:**
+```cpp
+enum class WidgetPriority : uint8_t
+{
+    LOW      = 0,  // Animations, info messages
+    NORMAL   = 1,  // Menu, standard operations (default)
+    HIGH     = 2,  // Warnings (Battery low, WiFi lost)
+    CRITICAL = 3   // Critical errors (ProgMode, System failure)
+};
+```
+
+**Behavior:**
+- Higher priority widgets **override** lower priority widgets
+- Same priority widgets follow **FIFO** (First In, First Out)
+- Lower priority widgets are **paused** (not stopped) and **resumed** when higher priority ends
+- All widgets have **NORMAL** priority by default (no breaking changes)
+
+**Example:**
+```cpp
+// ProgMode (NORMAL priority)
+WidgetProgMode* progMode = new WidgetProgMode();
+progMode->setPriority(WidgetPriority::NORMAL);
+widgetsManager.addWidget(progMode);
+
+// ErrorWidget (CRITICAL priority)
+WidgetError* errorWidget = new WidgetError("SOME_ERROR!");
+errorWidget->setPriority(WidgetPriority::CRITICAL);
+widgetsManager.addWidget(errorWidget);
+
+// ProgMode is active
+progMode->addAction(DisplayEnabled);
+
+// Critical error occurs
+errorWidget->addAction(DisplayEnabled);
+// → ErrorWidget immediately overrides ProgMode (CRITICAL > NORMAL)
+// → ProgMode is PAUSED (not stopped)
+// → When ErrorWidget ends, ProgMode is RESUMED
+```
+
+**Default Priority:**
+- All widgets have **NORMAL** priority by default
+- No breaking changes (existing code works without modification)
+- Only set priority explicitly if you need different behavior
+
+---
+
+## Multiple Widgets Behavior
+
+### PRIORITY Widgets (StatusWidget + DisplayEnabled)
+
+**Current Behavior:**
+- When multiple PRIORITY widgets have the **same priority level**, the **oldest** widget (first in queue) is displayed first
+- This is **FIFO** (First In, First Out) behavior
+- Queue order determines display sequence for same-priority widgets
+
+**Example:**
+```cpp
+// Create 3 CRITICAL errors in sequence
+WidgetError* error1 = new WidgetError("SOME ERROR!");
+error1->addAction(StatusWidget | AutoRemove | DisplayEnabled);
+error1->setPriority(WidgetPriority::CRITICAL);
+widgetsManager.addWidget(error1);
+
+WidgetError* error2 = new WidgetError("HARDWARE FAILURE!");
+error2->addAction(StatusWidget | AutoRemove | DisplayEnabled);
+error2->setPriority(WidgetPriority::CRITICAL);
+widgetsManager.addWidget(error2);
+
+WidgetError* error3 = new WidgetError("POWER LOSS!");
+error3->addAction(StatusWidget | AutoRemove | DisplayEnabled);
+error3->setPriority(WidgetPriority::CRITICAL);
+widgetsManager.addWidget(error3);
+```
+
+**Display Sequence (FIFO):**
+```
+T=0-5s:   SOME ERROR!      (error1, oldest)
+T=5-10s:  HARDWARE FAILURE! (error2, next)
+T=10-15s: POWER LOSS!       (error3, youngest)
+```
+
+**User Responsibility:**
+
+**With AutoRemove (Recommended):**
+- Widgets are **automatically removed** after display time
+- Next widget in queue is displayed immediately
+- No manual cleanup needed
+
+**Without AutoRemove:**
+- Widget stays **permanently** in queue until user removes it
+- User must call `removeAction(DisplayEnabled)` or `removeWidgetFromQueue()` manually
+- If not removed, widget **blocks** other widgets from being displayed
+
+**Best Practice:**
+```cpp
+// Always use AutoRemove for temporary notifications/errors
+widget->addAction(StatusWidget | AutoRemove | DisplayEnabled);
+widget->setDisplayTime(5000); // 5 seconds
+
+// Only use persistent widgets (without AutoRemove) if you handle cleanup manually:
+widget->addAction(StatusWidget | DisplayEnabled);
+// Later, when done:
+widget->removeAction(DisplayEnabled); // ← User must do this!
+```
+
+---
+
+### BACKGROUND Widgets (Background + DisplayEnabled)
+
+**Current Behavior:**
+- Only **first** BACKGROUND widget in queue is displayed
+- Other BACKGROUND widgets are **ignored**
+
+**Problem:**
+```cpp
+Queue:
+  Menu       → Background + DisplayEnabled
+  StatusBar  → Background + DisplayEnabled  // NOT shown!
+  
+Only Menu is displayed, StatusBar is invisible!
+```
+
+**Workaround:**
+- Use **Composite Widget** (Menu with embedded StatusBar)
+- Or manually draw StatusBar in Menu's `draw()` method
+
+**Planned Feature (v2.0): Layer System**
+- BACKGROUND layer (full-screen): Menu
+- OVERLAY layer (partial): StatusBar (top 8 pixels)
+- POPUP layer (centered): Notifications
+
+---
+
+### DEFAULT Widgets (DefaultWidget)
+
+**Current Behavior: WORKS PERFECTLY**
+- All DEFAULT widgets are **rotated** automatically
+- Display time per widget is configurable
+- Rotation order follows queue order
+
+**Example:**
+```cpp
+Queue:
+  Clock      → DefaultWidget (5s)
+  QRCode     → DefaultWidget (10s)
+  Starfield  → DefaultWidget (8s)
+  
+Rotation:
+  1. Clock (5s)
+  2. QRCode (10s)
+  3. Starfield (8s)
+  4. Clock (5s)
+  ...
+```
+
+**Edge Case:**
+- If **only 1 DEFAULT widget** exists, rotation is **disabled**
+- Widget is displayed **permanently** (_currentTime = UINT32_MAX)
+
+---
+
+### STARTUP Widgets (AutoRemove)
+
+**Current Behavior: WORKS PERFECTLY**
+- All STARTUP widgets are displayed **sequentially**
+- Each widget is **automatically removed** after display time
+- Next STARTUP widget is shown immediately
+
+**Example:**
+```cpp
+Queue:
+  BootLogo1  → AutoRemove (3s)
+  BootLogo2  → AutoRemove (2s)
+  BootLogo3  → AutoRemove (1s)
+  
+Sequence:
+  1. BootLogo1 (3s) → removed
+  2. BootLogo2 (2s) → removed
+  3. BootLogo3 (1s) → removed
+  4. _startupComplete = true
+```
+
+---
+
+### Summary Table
+
+| Widget Type | Multiple Supported? | Behavior | Status |
+|-------------|---------------------|----------|--------|
+| PRIORITY (StatusWidget) |  Yes (FIFO) | Priority-Level System |   **Implemented** |
+| BACKGROUND |   No | Only first in queue |   **Needs Layer System** |
+| DEFAULT |   Yes | Automatic rotation |   **Works perfectly** |
+| STARTUP (AutoRemove) |   Yes | Sequential display |   **Works perfectly** |
+
+---
+
 ### Widget Flags
 - **`StatusWidget`**: High-priority, shown immediately
 - **`Background`**: Runs continuously in background
@@ -1295,24 +1640,9 @@ void setupKNXMenuControl(MenuWidget* menu) {
 }
 ```
 
-#### MQTT Control
-```cpp
-void setupMQTTMenuControl(MenuWidget* menu) {
-    mqtt.subscribe("openknx/menu/navigate", [menu](String payload) {
-        if (payload == "UP") menu->externalNavigateUp();
-        else if (payload == "DOWN") menu->externalNavigateDown();
-        else if (payload == "SELECT") menu->externalSelectItem();
-        else if (payload == "BACK") menu->externalNavigateLeft();
-    });
-    
-    mqtt.subscribe("openknx/menu/action", [menu](String payload) {
-        menu->executeAction(payload.c_str());
-    });
-}
-```
-
 #### Web UI Control
 ```cpp
+// Example - for Future Implementation
 void setupWebMenuControl(MenuWidget* menu) {
     server.on("/api/menu/navigate", [menu]() {
         String direction = server.arg("direction");
