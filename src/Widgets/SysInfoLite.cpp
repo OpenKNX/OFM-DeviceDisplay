@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "SysInfoLite.h"
 #include "../icons/logo.h"
 #include "OpenKNX.h"
@@ -154,3 +155,4 @@ void WidgetSysInfoLite::invertBitmap(uint8_t *bitmap, size_t width, size_t heigh
         }
     }
 }
+#endif // DEVICE_DISPLAY_MODULE

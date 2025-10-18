@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -95,3 +96,4 @@ class WidgetBootLogo : public Widget
   protected:
     const LogoBitmap *_logoBitmap = nullptr;
 };
+#endif // DEVICE_DISPLAY_MODULE

@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -50,3 +51,4 @@ class WidgetProgMode : public Widget
     uint8_t _drawStep = 0;    
 
 };
+#endif // DEVICE_DISPLAY_MODULE

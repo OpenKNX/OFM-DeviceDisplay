@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Console.h"
 #include "OpenKNX.h"
 
@@ -273,3 +274,4 @@ void WidgetConsole::drawConsole()
 
     _display->displayBuff();
 }
+#endif // DEVICE_DISPLAY_MODULE

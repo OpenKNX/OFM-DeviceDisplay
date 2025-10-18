@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Life.h"
 #include "OpenKNX.h"
 
@@ -147,3 +148,4 @@ void WidgetLife::drawGrid()
     }
     _display->displayBuff();
 }
+#endif // DEVICE_DISPLAY_MODULE

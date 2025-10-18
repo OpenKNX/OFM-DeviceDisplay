@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -48,3 +49,4 @@ class WidgetCube3D : public Widget
 
     void updateCube(); // Update and draw the cube
 };
+#endif // DEVICE_DISPLAY_MODULE

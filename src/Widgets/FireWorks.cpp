@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Fireworks.h"
 #include "OpenKNX.h"
 #include <cstdlib>
@@ -218,3 +219,4 @@ void WidgetFireworks::drawFireworks()
     }
     _display->displayBuff();
 }
+#endif // DEVICE_DISPLAY_MODULE

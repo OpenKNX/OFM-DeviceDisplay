@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 /**
  * @file        DDCLoggerHelp.h
@@ -71,3 +72,4 @@ class DDCLoggerHelp
 
     void registerWidgetCommands();
 };
+#endif // DEVICE_DISPLAY_MODULE

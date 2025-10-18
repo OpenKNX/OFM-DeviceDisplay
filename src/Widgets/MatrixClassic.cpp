@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "MatrixClassic.h"
 #include "OpenKNX.h"
 
@@ -123,3 +124,4 @@ void WidgetMatrixClassic::updateMatrix()
 
     _display->displayBuff(); // Update display
 }
+#endif // DEVICE_DISPLAY_MODULE

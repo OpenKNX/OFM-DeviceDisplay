@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -42,3 +43,4 @@ class WidgetClock : public Widget
     void drawClock();                                                      // Draw the clock on the display
     void fetchTime(uint16_t &days, uint16_t &hours, uint16_t &minutes, uint16_t &seconds); // Get current time
 };
+#endif // DEVICE_DISPLAY_MODULE

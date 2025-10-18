@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -54,3 +55,4 @@ class WidgetPong : public Widget
     // Draw the WidgetPong screensaver ToDo: Just draw the buffer, sending to display will managed seperately
     void drawScreensaver();
 };
+#endif // DEVICE_DISPLAY_MODULE

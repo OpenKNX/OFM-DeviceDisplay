@@ -1,7 +1,8 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "ButtonManager.h"
 #include "hardware.h"
 
-#define USE_GPIO_MODULE
+//#define USE_GPIO_MODULE
 
 ButtonManager::ButtonManager(WidgetsManager* widgetManager)
     : _widgetManager(widgetManager)
@@ -188,3 +189,4 @@ void ButtonManager::setEnabled(bool enabled)
     _enabled = enabled;
     logInfoP("%s", enabled ? "Enabled" : "Disabled");
 }
+#endif // DEVICE_DISPLAY_MODULE

@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Clock.h"
 #include "OpenKNX.h"
 
@@ -214,3 +215,4 @@ void WidgetClock::drawClock()
     _display->displayBuff();
     //logDebugP("WidgetClock: Clock updated.");
 }
+#endif // DEVICE_DISPLAY_MODULE

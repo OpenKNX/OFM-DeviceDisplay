@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -76,3 +77,4 @@ class WidgetFireworks : public Widget
     static constexpr int8_t DRAG = -1;
     static constexpr uint8_t SUBPIXEL_BITS = 4; // For 1/16 subpixel precision
 };
+#endif // DEVICE_DISPLAY_MODULE

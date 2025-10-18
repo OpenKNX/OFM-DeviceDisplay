@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -41,3 +42,4 @@ class WidgetSysInfoLite : public Widget
     uint32_t _lastUpdate;              // Last update time
     std::string _name = "SysInfoLite"; // Name of the widget
 };
+#endif // DEVICE_DISPLAY_MODULE

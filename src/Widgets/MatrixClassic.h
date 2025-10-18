@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -52,3 +53,4 @@ class WidgetMatrixClassic : public Widget
     void initMatrix();
     void updateMatrix();
 };
+#endif // DEVICE_DISPLAY_MODULE

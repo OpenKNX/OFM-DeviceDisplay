@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Matrix.h"
 #include "OpenKNX.h"
 
@@ -145,3 +146,4 @@ void WidgetMatrix::resetColumn(uint8_t col)
     _columnLengths[col] = random(3, MAX_TAIL_LENGTH);                // Zufällige Tropfenlänge
     _columnSpeeds[col] = random(1, 4);                               // Zufällige Geschwindigkeit
 }
+#endif // DEVICE_DISPLAY_MODULE

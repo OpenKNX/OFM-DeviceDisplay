@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Rain.h"
 #include "OpenKNX.h"
 
@@ -101,3 +102,4 @@ void WidgetRain::updateRain()
 
     _display->displayBuff(); // Refresh display
 }
+#endif // DEVICE_DISPLAY_MODULE

@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 /**
  * Display Size to QR Code Version Mapping:
@@ -208,3 +209,4 @@ class QRCodeWidget
     Icon _iconBitmap = {nullptr, 0, 0}; // Icon for the QR code
 #endif
 };
+#endif // DEVICE_DISPLAY_MODULE

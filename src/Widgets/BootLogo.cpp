@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "BootLogo.h"
 #include "../icons/logo.h"
 #include "OpenKNX.h"
@@ -254,3 +255,4 @@ void WidgetBootLogo::drawBootLogo()
             break;
     }
 }
+#endif // DEVICE_DISPLAY_MODULE

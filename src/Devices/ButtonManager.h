@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 /**
  * @file        ButtonManager.h
@@ -57,3 +58,4 @@ class ButtonManager
     bool readButton(uint16_t pin);
     void processButton(uint16_t pin, ButtonType type, size_t index);
 };
+#endif // DEVICE_DISPLAY_MODULE

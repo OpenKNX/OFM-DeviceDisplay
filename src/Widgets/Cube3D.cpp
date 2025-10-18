@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Cube3D.h"
 #include "OpenKNX.h"
 
@@ -148,3 +149,4 @@ void WidgetCube3D::updateCube()
     angleX += 0.05;
     angleY += 0.03;
 }
+#endif // DEVICE_DISPLAY_MODULE

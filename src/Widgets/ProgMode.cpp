@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "ProgMode.h"
 #include "OpenKNX.h"
 
@@ -126,3 +127,4 @@ void WidgetProgMode::draw()
             break;
     }
 }
+#endif // DEVICE_DISPLAY_MODULE

@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -50,3 +51,4 @@ class WidgetRain : public Widget
     void initRain();
     void updateRain();
 };
+#endif // DEVICE_DISPLAY_MODULE

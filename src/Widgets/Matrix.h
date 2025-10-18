@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -52,3 +53,4 @@ class WidgetMatrix : public Widget
     void updateMatrix();           // Update and draw the matrix animation
     void resetColumn(uint8_t col); // Reset a column's parameters
 };
+#endif // DEVICE_DISPLAY_MODULE

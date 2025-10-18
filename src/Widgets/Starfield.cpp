@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Starfield.h"
 #include "OpenKNX.h"
 
@@ -131,3 +132,4 @@ void WidgetStarfield::drawStars()
 
     _display->displayBuff();
 }
+#endif // DEVICE_DISPLAY_MODULE

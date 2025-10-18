@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "Pong.h"
 #include "OpenKNX.h"
 
@@ -171,3 +172,4 @@ void WidgetPong::drawScreensaver() // Draw the WidgetPong screensaver
     _display->display->fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE, WHITE);                                     // The Ball
     _display->displayBuff();                                                                                    // Send the data to the display
 }
+#endif // DEVICE_DISPLAY_MODULE

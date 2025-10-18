@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 
 #include "../Widget.h"
@@ -82,3 +83,4 @@ class WidgetConsole : public Widget
     LogLevel _minLogLevel;           // Minimum log level to display
     uint32_t _lastUpdateTime;        // For periodic refresh
 };
+#endif // DEVICE_DISPLAY_MODULE

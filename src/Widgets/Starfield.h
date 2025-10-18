@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -50,3 +51,4 @@ class WidgetStarfield : public Widget
     void updateStars();     // Update star positions
     void drawStars();       // Draw the stars on display
 };
+#endif // DEVICE_DISPLAY_MODULE

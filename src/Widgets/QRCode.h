@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -52,3 +53,4 @@ class WidgetQRCode : public Widget
     // Private methods
     void drawQRCode(); // Draw the QR code on the display
 };
+#endif // DEVICE_DISPLAY_MODULE

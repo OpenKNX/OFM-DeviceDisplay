@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 #include "../Widget.h"
 
@@ -48,3 +49,4 @@ class WidgetLife : public Widget
     void updateGrid();     // Update the grid based on Game of Life rules
     void drawGrid();       // Draw the grid to the display
 };
+#endif // DEVICE_DISPLAY_MODULE

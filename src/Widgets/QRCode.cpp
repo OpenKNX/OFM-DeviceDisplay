@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #include "QRCode.h"
 #include "OpenKNX.h"
 #include "qrcodegen.h"
@@ -155,3 +156,4 @@ void WidgetQRCode::drawQRCode()
     _display->displayBuff(); // Send buffer to display
     logDebugP("QR code drawn.");
 }
+#endif // DEVICE_DISPLAY_MODULE
