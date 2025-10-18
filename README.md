@@ -41,7 +41,7 @@ widgetsManager.addWidget(new WidgetMenu());
 widgetsManager.setScreenSaverWidget(new WidgetStarfield());
 
 // Critical error overrides everything
-errorWidget->setPriority(WidgetPriority::CRITICAL);
+errorWidget->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
 errorWidget->addAction(DisplayEnabled); // → Shown immediately!
 ```
 
@@ -437,10 +437,10 @@ PAUSED     → Widget is temporarily paused (by PRIORITY widget)
 ```cpp
 enum class WidgetPriority : uint8_t
 {
-    LOW      = 0,  // Animations, info messages
-    NORMAL   = 1,  // Menu, standard operations (default)
-    HIGH     = 2,  // Warnings (Battery low, WiFi lost)
-    CRITICAL = 3   // Critical errors (ProgMode, System failure)
+    WIDGET_PRIO_LOW      = 0,  // Animations, info messages
+    WIDGET_PRIO_NORMAL   = 1,  // Menu, standard operations (default)
+    WIDGET_PRIO_HIGH     = 2,  // Warnings (Battery low, WiFi lost)
+    WIDGET_PRIO_CRITICAL = 3   // Critical errors (ProgMode, System failure)
 };
 ```
 
@@ -454,12 +454,12 @@ enum class WidgetPriority : uint8_t
 ```cpp
 // ProgMode (NORMAL priority)
 WidgetProgMode* progMode = new WidgetProgMode();
-progMode->setPriority(WidgetPriority::NORMAL);
+progMode->setPriority(WidgetPriority::WIDGET_PRIO_NORMAL);
 widgetsManager.addWidget(progMode);
 
 // ErrorWidget (CRITICAL priority)
 WidgetError* errorWidget = new WidgetError("SOME_ERROR!");
-errorWidget->setPriority(WidgetPriority::CRITICAL);
+errorWidget->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
 widgetsManager.addWidget(errorWidget);
 
 // ProgMode is active
@@ -493,17 +493,17 @@ errorWidget->addAction(DisplayEnabled);
 // Create 3 CRITICAL errors in sequence
 WidgetError* error1 = new WidgetError("SOME ERROR!");
 error1->addAction(StatusWidget | AutoRemove | DisplayEnabled);
-error1->setPriority(WidgetPriority::CRITICAL);
+error1->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
 widgetsManager.addWidget(error1);
 
 WidgetError* error2 = new WidgetError("HARDWARE FAILURE!");
 error2->addAction(StatusWidget | AutoRemove | DisplayEnabled);
-error2->setPriority(WidgetPriority::CRITICAL);
+error2->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
 widgetsManager.addWidget(error2);
 
 WidgetError* error3 = new WidgetError("POWER LOSS!");
 error3->addAction(StatusWidget | AutoRemove | DisplayEnabled);
-error3->setPriority(WidgetPriority::CRITICAL);
+error3->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
 widgetsManager.addWidget(error3);
 ```
 

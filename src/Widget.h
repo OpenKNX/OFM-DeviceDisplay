@@ -1,3 +1,4 @@
+#ifdef DEVICE_DISPLAY_MODULE
 #pragma once
 /**
  * @file        Widget.h
@@ -34,16 +35,16 @@ enum class WidgetState
 
 enum class WidgetPriority : uint8_t
 {
-    LOW = 0,     // Default widgets, animations (not used for StatusWidgets)
-    NORMAL = 1,  // Menu activation
-    HIGH = 2,    // Warnings (UseCase specific warnings - e.g., no Screensaver configured)
-    CRITICAL = 3 // Critical errors (ProgMode, System failure, etc.)
+    WIDGET_PRIO_LOW = 0,     // Default widgets, animations (not used for StatusWidgets)
+    WIDGET_PRIO_NORMAL = 1,  // Menu activation
+    WIDGET_PRIO_HIGH = 2,    // Warnings (UseCase specific warnings - e.g., no Screensaver configured)
+    WIDGET_PRIO_CRITICAL = 3 // Critical errors (ProgMode, System failure, etc.)
 };
 
 class Widget
 {
   protected:
-    WidgetPriority _priority = WidgetPriority::NORMAL;
+    WidgetPriority _priority = WidgetPriority::WIDGET_PRIO_NORMAL;
 
   public:
 
@@ -81,3 +82,4 @@ class Widget
     virtual WidgetPriority getPriority() const { return _priority; }
     virtual void setPriority(WidgetPriority priority) { _priority = priority; }
 };
+#endif // DEVICE_DISPLAY_MODULE

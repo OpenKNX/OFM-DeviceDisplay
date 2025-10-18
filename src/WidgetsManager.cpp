@@ -308,10 +308,10 @@ void WidgetsManager::logWidgetQueue()
             {
                 switch (widget->getPriority())
                 {
-                    case WidgetPriority::LOW: priorityName = "LOW"; break;
-                    case WidgetPriority::NORMAL: priorityName = "NORMAL"; break;
-                    case WidgetPriority::HIGH: priorityName = "HIGH"; break;
-                    case WidgetPriority::CRITICAL: priorityName = "CRITICAL"; break;
+                    case WidgetPriority::WIDGET_PRIO_LOW: priorityName = "LOW"; break;
+                    case WidgetPriority::WIDGET_PRIO_NORMAL: priorityName = "NORMAL"; break;
+                    case WidgetPriority::WIDGET_PRIO_HIGH: priorityName = "HIGH"; break;
+                    case WidgetPriority::WIDGET_PRIO_CRITICAL: priorityName = "CRITICAL"; break;
                 }
             }
 
@@ -1113,10 +1113,10 @@ void WidgetsManager::switchToWidget(Widget* widget, uint32_t currentTime, const 
         const char* priorityName = "UNKNOWN";
         switch (widget->getPriority())
         {
-            case WidgetPriority::LOW: priorityName = "LOW"; break;
-            case WidgetPriority::NORMAL: priorityName = "NORMAL"; break;
-            case WidgetPriority::HIGH: priorityName = "HIGH"; break;
-            case WidgetPriority::CRITICAL: priorityName = "CRITICAL"; break;
+            case WidgetPriority::WIDGET_PRIO_LOW: priorityName = "LOW"; break;
+            case WidgetPriority::WIDGET_PRIO_NORMAL: priorityName = "NORMAL"; break;
+            case WidgetPriority::WIDGET_PRIO_HIGH: priorityName = "HIGH"; break;
+            case WidgetPriority::WIDGET_PRIO_CRITICAL: priorityName = "CRITICAL"; break;
         }
         logDebugP("Activating %s (Priority: %s): %s", reason, priorityName, widget->getName().c_str());
     }

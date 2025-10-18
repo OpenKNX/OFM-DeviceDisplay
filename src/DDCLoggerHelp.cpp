@@ -1,4 +1,5 @@
 
+#ifdef DEVICE_DISPLAY_MODULE
 #include "DDCLoggerHelp.h"
 #include "WidgetsManager.h"
 #include "devices/i2cDisplay.h"
@@ -171,7 +172,7 @@ bool DDCLoggerHelp::processConsoleCommand(const std::string& command)
       _consoleWidget->addAction(WidgetFlags::StatusWidget);
       _consoleWidget->addAction(WidgetFlags::ManagedExternally);
       _consoleWidget->addAction(WidgetFlags::DisplayEnabled);
-      _consoleWidget->setPriority(WidgetPriority::HIGH);
+      _consoleWidget->setPriority(WidgetPriority::WIDGET_PRIO_HIGH);
         logInfoP("Console activated");
     }
     else if (command.compare(pos, 1, "r") == 0)
@@ -518,3 +519,4 @@ bool DDCLoggerHelp::processScrollCommand(const std::string& command)
     openknx.logger.logDividingLine();
     openknx.logger.end();
 }
+#endif // DEVICE_DISPLAY_MODULE

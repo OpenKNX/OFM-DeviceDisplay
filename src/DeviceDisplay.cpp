@@ -154,7 +154,7 @@ void DeviceDisplay::initializeWidgets()
     // ProgMode (status widget with CRITICAL priority)
     WidgetProgMode* progMode = new WidgetProgMode();
     progMode->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);
-    progMode->setPriority(WidgetPriority::CRITICAL);
+    progMode->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
     _widgetManager->addWidget(progMode);
 
     _widgetManager->setup();
