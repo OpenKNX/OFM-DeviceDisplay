@@ -279,25 +279,30 @@ void WidgetsManager::rebuildBackgroundCache()
  */
 void WidgetsManager::logWidgetQueue()
 {
-    logIndentUp();
-    logInfoP("-----------------------------------------------------------");
-    logInfoP("                Widget Queue                          ");
-    logInfoP("-----------------------------------------------------------");
-    logInfoP("Manager State      : %s", getStateName());
-    logInfoP("Power Save Mode    : %s", getPowerSaveModeName(_powerSaveMode));
-    logInfoP("Current Widget     : %s", _currentWidget ? _currentWidget->getName().c_str() : "none");
-    logInfoP("Startup Complete   : %s", _startupComplete ? "yes" : "no");
-    logInfoP("-----------------------------------------------------------");
+    openknx.logger.begin();
+    openknx.logger.log("");
+    openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+    openknx.logger.log("=============================================================");
+    openknx.logger.log("=               WidgetsManager - Widget Queue               =");
+    openknx.logger.log("=============================================================");
+    openknx.logger.log("");
+    openknx.logger.color(0);
+    openknx.logger.logWithValues("Manager State      : %s", getStateName());
+    openknx.logger.logWithValues("Power Save Mode    : %s", getPowerSaveModeName(_powerSaveMode));
+    openknx.logger.logWithValues("Current Widget     : %s", _currentWidget ? _currentWidget->getName().c_str() : "none");
+    openknx.logger.logWithValues("Startup Complete   : %s", _startupComplete ? "yes" : "no");
+    openknx.logger.log("");
+    openknx.logger.log("-------------------------------------------------------------");
 
     if (_widgetQueue.empty())
     {
-        logInfoP("Queue is empty");
-        logInfoP("-----------------------------------------------------------");
+        openknx.logger.log("Queue is empty");
+        openknx.logger.log("-------------------------------------------------------------");
         return;
     }
 
-    logInfoP("Idx | Name                | Flags | State |  Prio.  | Cur. ");
-    logInfoP("----+---------------------+-------+-------+-------+--------");
+    openknx.logger.log("Idx | Name                | Flags | State |   Prio.   | Cur. ");
+    openknx.logger.log("----+---------------------+-------+-------+-----------+------");
     for (size_t i = 0; i < _widgetQueue.size(); ++i)
     {
         Widget* widget = _widgetQueue[i];
@@ -315,23 +320,26 @@ void WidgetsManager::logWidgetQueue()
                 }
             }
 
-            logInfoP("%3d | %-19s | %5d | %5d | %-7s | %s",
-                     (int)i,
-                     widget->getName().c_str(),
-                     widget->getAction(),
-                     (int)widget->getState(),
-                     priorityName,
-                     (_currentWidget == widget) ? "YES" : "no");
+            openknx.logger.logWithValues("%3d | %-19s | %5d | %5d | %-9s | %s",
+                                         (int)i,
+                                         widget->getName().c_str(),
+                                         widget->getAction(),
+                                         (int)widget->getState(),
+                                         priorityName,
+                                         (_currentWidget == widget) ? "YES" : "NO");
         }
         else
         {
-            logInfoP("%3d | nullptr", (int)i);
+            openknx.logger.logWithValues("%3d | nullptr", (int)i);
         }
     }
 
-    logInfoP("-----------------------------------------------------------");
-
-    logIndentDown();
+    openknx.logger.log("-------------------------------------------------------------");
+    openknx.logger.log("");
+    openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+    openknx.logger.log("=============================================================");
+    openknx.logger.color(0);
+    openknx.logger.end();
 }
 
 /**
@@ -339,30 +347,42 @@ void WidgetsManager::logWidgetQueue()
  */
 void WidgetsManager::logWidgetManagerSettings()
 {
-    logIndentUp();
-    logInfoP("======================================================");
-    logInfoP("                WidgetsManager SETTINGS               ");
-    logInfoP("------------------------------------------------------");
-    logInfoP(" Idle Timeout         : %-8lu ms (Min. %lu)", _idleTimeout, _idleTimeout / 60000);
-    logInfoP(" Startup Complete     : %-3s", _startupComplete ? "yes" : "no");
-    logInfoP(" Power Save Enabled   : %-3s", _powerSaveConfig.enabled ? "yes" : "no");
-    logInfoP("------------------------------------------------------");
-    logInfoP(" Power Save Timings (ms):");
-    logInfoP("   - Dim         : %8lu ms (Min. %lu)", _powerSaveConfig.dimTimeout, _powerSaveConfig.dimTimeout / 60000);
-    logInfoP("   - Screensaver : %8lu ms (Min. %lu)", _powerSaveConfig.screenSaverTimeout, _powerSaveConfig.screenSaverTimeout / 60000);
-    logInfoP("   - Sleep       : %8lu ms (Min. %lu)", _powerSaveConfig.sleepTimeout, _powerSaveConfig.sleepTimeout / 60000);
-    logInfoP("   - Off         : %8lu ms (Min. %lu)", _powerSaveConfig.offTimeout, _powerSaveConfig.offTimeout / 60000);
-    logInfoP("------------------------------------------------------");
-    logInfoP(" Brightness:");
-    logInfoP("   - Normal      : %3d%%", _powerSaveConfig.normalBrightness);
-    logInfoP("   - Dim         : %3d%%", _powerSaveConfig.dimBrightness);
-    logInfoP("------------------------------------------------------");
-    logInfoP(" Current State         : %-12s", getStateName());
-    logInfoP(" Power Save Mode       : %-12s", getPowerSaveModeName(_powerSaveMode));
-    logInfoP(" Current Widget        : %-20s", _currentWidget ? _currentWidget->getName().c_str() : "none");
-    logInfoP(" Screensaver Widget    : %-20s", _screenSaverWidget ? _screenSaverWidget->getName().c_str() : "none");
-    logInfoP("======================================================");
-    logIndentDown();
+    openknx.logger.begin();
+    openknx.logger.log("");
+    openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+    openknx.logger.log("=======================================================");
+    openknx.logger.log("=               WidgetsManager SETTINGS               =");
+    openknx.logger.log("=======================================================");
+    openknx.logger.color(0);
+    openknx.logger.logWithValues(" Idle Timeout         : %-8lu ms (Min. %lu)", _idleTimeout, _idleTimeout / 60000);
+    openknx.logger.logWithValues(" Startup Complete     : %-3s", _startupComplete ? "yes" : "no");
+    openknx.logger.logWithValues(" Power Save Enabled   : %-3s", _powerSaveConfig.enabled ? "yes" : "no");
+    openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+    openknx.logger.log("-------------------------------------------------------");
+    openknx.logger.color(0);
+    openknx.logger.log(" Power Save Timings (ms):");
+    openknx.logger.logWithValues("   - Dim         : %8lu ms (Min. %lu)", _powerSaveConfig.dimTimeout, _powerSaveConfig.dimTimeout / 60000);
+    openknx.logger.logWithValues("   - Screensaver : %8lu ms (Min. %lu)", _powerSaveConfig.screenSaverTimeout, _powerSaveConfig.screenSaverTimeout / 60000);
+    openknx.logger.logWithValues("   - Sleep       : %8lu ms (Min. %lu)", _powerSaveConfig.sleepTimeout, _powerSaveConfig.sleepTimeout / 60000);
+    openknx.logger.logWithValues("   - Off         : %8lu ms (Min. %lu)", _powerSaveConfig.offTimeout, _powerSaveConfig.offTimeout / 60000);
+    openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+    openknx.logger.log("-------------------------------------------------------");
+    openknx.logger.color(0);
+    openknx.logger.log(" Brightness:");
+    openknx.logger.logWithValues("   - Normal      : %3d%%", _powerSaveConfig.normalBrightness);
+    openknx.logger.logWithValues("   - Dim         : %3d%%", _powerSaveConfig.dimBrightness);
+    openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+    openknx.logger.log("-------------------------------------------------------");
+    openknx.logger.color(0);
+    openknx.logger.logWithValues(" Current State         : %-12s", getStateName());
+    openknx.logger.logWithValues(" Power Save Mode       : %-12s", getPowerSaveModeName(_powerSaveMode));
+    openknx.logger.logWithValues(" Current Widget        : %-20s", _currentWidget ? _currentWidget->getName().c_str() : "none");
+    openknx.logger.logWithValues(" Screensaver Widget    : %-20s", _screenSaverWidget ? _screenSaverWidget->getName().c_str() : "none");
+    openknx.logger.color(CONSOLE_HEADLINE_COLOR);
+    openknx.logger.log("=======================================================");
+    openknx.logger.log("");
+    openknx.logger.color(0);
+    openknx.logger.end();
 }
 
 /**
