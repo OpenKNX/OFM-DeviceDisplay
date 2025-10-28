@@ -52,15 +52,6 @@ void DeviceDisplay::init()
         return;
     }
 
-    // Configure I2C display
-    #ifdef USE_PIO_I2C
-      // Use PIO I2C: Create static instance
-      //static PIOI2CWire DisplayI2C( OKNXHW_DEVICE_DISPLAY_I2C_SDA, OKNXHW_DEVICE_DISPLAY_I2C_SCL, 400000);
-      //_displayModule->lcdSettings.i2cInst = &DisplayI2C;
-      logWarningP("+++++++++++++++++++++++++");
-      logInfoP("Using PIO I2C for display");
-      logWarningP("+++++++++++++++++++++++++");
-    #endif
     _displayModule->lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST;
 
     _displayModule->lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;

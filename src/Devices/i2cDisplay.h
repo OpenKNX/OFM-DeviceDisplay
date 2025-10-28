@@ -13,10 +13,6 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
-#ifdef USE_PIO_I2C
-  //#include "PIOI2CWire.h"
-#endif
-
 #define i2c_inst_t TwoWire // We will use TwoWire
 
 
