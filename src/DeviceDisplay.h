@@ -9,7 +9,6 @@
  **/
 
 #ifdef DEVICE_DISPLAY_MODULE
-    #define USE_GPIO_MODULE
     #define WIDGET_MANAGER
 
     #define WIDGET_CONSOLE             // Enable console widget

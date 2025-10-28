@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-    #include "DeviceDisplay.h"
     #include "DDCLoggerHelp.h"
+    #include "DeviceDisplay.h"
     #include "Devices/ButtonManager.h"
     #include "Devices/i2cDisplay.h"
     #include "WidgetsManager.h"
@@ -53,11 +53,16 @@ void DeviceDisplay::init()
     }
 
     // Configure I2C display
-    #ifdef ARDUINO_ARCH_ESP32
-    _displayModule->lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST;
-    #else
-    _displayModule->lcdSettings.i2cInst = OKNXHW_DEVICE_DISPLAY_I2C_INST;
+    #ifdef USE_PIO_I2C
+      // Use PIO I2C: Create static instance
+      //static PIOI2CWire DisplayI2C( OKNXHW_DEVICE_DISPLAY_I2C_SDA, OKNXHW_DEVICE_DISPLAY_I2C_SCL, 400000);
+      //_displayModule->lcdSettings.i2cInst = &DisplayI2C;
+      logWarningP("+++++++++++++++++++++++++");
+      logInfoP("Using PIO I2C for display");
+      logWarningP("+++++++++++++++++++++++++");
     #endif
+    _displayModule->lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST;
+
     _displayModule->lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;
     _displayModule->lcdSettings.scl = OKNXHW_DEVICE_DISPLAY_I2C_SCL;
     _displayModule->lcdSettings.i2cadress = OKNXHW_DEVICE_DISPLAY_I2C_ADDRESS;
