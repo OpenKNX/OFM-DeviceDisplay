@@ -45,13 +45,17 @@ bool i2cDisplay::InitDisplay()
         return false; // Width and height must be set
     }
 
-#ifdef ARDUINO_ARCH_ESP32
     CustomI2C = lcdSettings.i2cInst;
-    CustomI2C->begin(lcdSettings.sda, lcdSettings.scl);
+#ifdef ARDUINO_ARCH_ESP32
+    CustomI2C->begin(lcdSettings.sda, lcdSettings.scl); // For ESP32, specify SDA and SCL pins
 #else
-    CustomI2C = new TwoWire(lcdSettings.i2cInst, lcdSettings.sda, lcdSettings.scl);
+    CustomI2C->setSDA(lcdSettings.sda);
+    CustomI2C->setSCL(lcdSettings.scl);
+    CustomI2C->begin();
 #endif
-    display = new Adafruit_SSD1306(lcdSettings.width, lcdSettings.height, CustomI2C, lcdSettings.reset, 1000000UL, 1000000UL);
+    
+    //display = new Adafruit_SSD1306(lcdSettings.width, lcdSettings.height, CustomI2C, lcdSettings.reset, 1000000UL, 1000000UL);
+    display = new Adafruit_SSD1306(lcdSettings.width, lcdSettings.height, CustomI2C, lcdSettings.reset, OPENKNX_GPIO_CLOCK, OPENKNX_GPIO_CLOCK);
 
     if (!display->begin(SSD1306_SWITCHCAPVCC, lcdSettings.i2cadress, true, true))
     {
@@ -482,30 +486,30 @@ void i2cDisplay::displayFullBuffer()
 
 /**
  * @brief Sets the display brightness (0-100%)
- * 
+ *
  */
 void i2cDisplay::setBrightness(uint8_t brightness)
 {
     _brightness = brightness;
-    
-    if (!display) 
+
+    if (!display)
     {
         logDebugP("setBrightness(%d) - display not initialized", brightness);
         return;
     }
-    
+
     // Map 0-100% to 0-255 for SSD1306 contrast
     uint8_t contrast = map(brightness, 0, 100, 0, 255);
-    
+
     // Map 0-100% to VCOM range (0x00 to 0x40)
     // Bei 0% Brightness: VCOM = 0x00 (niedrigste Spannung)
     // Bei 100% Brightness: VCOM = 0x20 (Standard-Wert für volle Helligkeit)
     uint8_t vcom = map(brightness, 0, 100, 0, 0x20);
-    
+
     // Set contrast and VCOM
     SetDisplayContrast(contrast);
     SetDisplayVCOMDetect(vcom);
-    
+
     logDebugP("Display brightness set to %d%% (contrast: %d, VCOM: 0x%02X)", brightness, contrast, vcom);
 }
 
@@ -515,19 +519,19 @@ void i2cDisplay::setBrightness(uint8_t brightness)
 void i2cDisplay::displayOn()
 {
     _displayOn = true;
-    
+
     if (!display)
     {
         logDebugP("displayOn() - display not initialized");
         return;
     }
-    
+
     // SSD1306: Send display on command
     display->ssd1306_command(SSD1306_DISPLAYON);
-    
+
     // Restore last brightness (contrast and VCOM)
     setBrightness(_brightness);
-    
+
     logDebugP("Display turned ON");
 }
 
@@ -537,19 +541,19 @@ void i2cDisplay::displayOn()
 void i2cDisplay::displayOff()
 {
     _displayOn = false;
-    
+
     if (!display)
     {
         logDebugP("displayOff() - display not initialized");
         return;
     }
-    
+
     // Optional: Set contrast and VCOM to 0 before turning off
     SetDisplayContrast(0x00);
     SetDisplayVCOMDetect(0x00);
-    
+
     // SSD1306: Send display off command
     display->ssd1306_command(SSD1306_DISPLAYOFF);
-    
+
     logDebugP("Display turned OFF");
 }

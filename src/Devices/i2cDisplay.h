@@ -13,9 +13,12 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
-#ifdef ARDUINO_ARCH_ESP32
-  #define i2c_inst_t TwoWire
+#ifdef USE_PIO_I2C
+  //#include "PIOI2CWire.h"
 #endif
+
+#define i2c_inst_t TwoWire // We will use TwoWire
+
 
 // Define SSD13xx controller commands ToDo: Check if SSD1315 is correct supported
 #ifdef DEVICE_DISPLAY_MODULE_SSD1315
@@ -25,6 +28,7 @@
 #define SSD13XX_SETCONTRAST SSD1306_SETCONTRAST
 #define SSD13XX_SETVCOMDETECT SSD1306_SETVCOMDETECT
 #endif
+
 
 class i2cDisplay
 {
