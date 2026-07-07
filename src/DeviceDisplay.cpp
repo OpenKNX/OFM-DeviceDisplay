@@ -159,10 +159,12 @@ void DeviceDisplay::initializeWidgets()
     logInfoP("Widgets initialized");
 }
 
+#if (MASK_VERSION & 0x0900) != 0x0900 // Couplers (e.g. IP-Router 0x091A) have no GroupObjects
 void DeviceDisplay::processInputKo(GroupObject& obj)
 {
     // TODO: Implement KO processing for display control
 }
+#endif
 
 /**
  * @brief Main loop for device display

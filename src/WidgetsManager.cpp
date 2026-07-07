@@ -56,16 +56,16 @@ void WidgetsManager::loop()
     if (priorityWidget)
     {
         // Wake up display if in any power save mode
-        if (_powerSaveMode != PowerSaveMode::ACTIVE)
+        if (_powerSaveMode != PowerSaveMode::Active)
         {
             logDebugP("Priority widget detected, forcing wake from %s", getPowerSaveModeName(_powerSaveMode));
             wakeUpDisplay();
         }
 
         // Force state to PRIORITY
-        if (_state != WidgetManagerState::PRIORITY)
+        if (_state != WidgetManagerState::Priority)
         {
-            transitionTo(WidgetManagerState::PRIORITY);
+            transitionTo(WidgetManagerState::Priority);
         }
 
         // Handle priority state immediately
@@ -80,7 +80,7 @@ void WidgetsManager::loop()
     updatePowerSaveMode(currentTime);
 
     // 5. Screensaver mode
-    if (_powerSaveMode == PowerSaveMode::SCREENSAVER)
+    if (_powerSaveMode == PowerSaveMode::Screensaver)
     {
         if (_currentWidget == _screenSaverWidget &&
             _currentWidget->getState() == WidgetState::RUNNING)
@@ -93,7 +93,7 @@ void WidgetsManager::loop()
     }
 
     // 6. Sleep/Off mode
-    if (_powerSaveMode == PowerSaveMode::SLEEP || _powerSaveMode == PowerSaveMode::OFF)
+    if (_powerSaveMode == PowerSaveMode::Sleep || _powerSaveMode == PowerSaveMode::Off)
     {
         if (_displayModule) _displayModule->loop();
         return;
@@ -105,23 +105,23 @@ void WidgetsManager::loop()
     // 8. Execute state-specific logic
     switch (_state)
     {
-        case WidgetManagerState::STARTUP:
+        case WidgetManagerState::Startup:
             handleStartupState(currentTime);
             break;
 
-        case WidgetManagerState::IDLE:
+        case WidgetManagerState::Idle:
             handleIdleState(currentTime);
             break;
 
-        case WidgetManagerState::PRIORITY:
+        case WidgetManagerState::Priority:
             handlePriorityState(currentTime);
             break;
 
-        case WidgetManagerState::BACKGROUND:
+        case WidgetManagerState::Background:
             handleBackgroundState(currentTime);
             break;
 
-        case WidgetManagerState::DEFAULT:
+        case WidgetManagerState::Default:
             handleDefaultState(currentTime);
             break;
     }
@@ -393,11 +393,11 @@ const char* WidgetsManager::getStateName() const
 {
     switch (_state)
     {
-        case WidgetManagerState::STARTUP: return "STARTUP";
-        case WidgetManagerState::IDLE: return "IDLE";
-        case WidgetManagerState::PRIORITY: return "PRIORITY";
-        case WidgetManagerState::BACKGROUND: return "BACKGROUND";
-        case WidgetManagerState::DEFAULT: return "DEFAULT";
+        case WidgetManagerState::Startup: return "STARTUP";
+        case WidgetManagerState::Idle: return "IDLE";
+        case WidgetManagerState::Priority: return "PRIORITY";
+        case WidgetManagerState::Background: return "BACKGROUND";
+        case WidgetManagerState::Default: return "DEFAULT";
         default: return "UNKNOWN";
     }
 }
@@ -414,7 +414,7 @@ void WidgetsManager::updateState(uint32_t currentTime)
     // Priority 0: STARTUP
     if (!_startupComplete && findNextStartupWidget())
     {
-        transitionTo(WidgetManagerState::STARTUP);
+        transitionTo(WidgetManagerState::Startup);
         return;
     }
     else if (!_startupComplete)
@@ -426,14 +426,14 @@ void WidgetsManager::updateState(uint32_t currentTime)
     // Priority 1: StatusWidget (PRIORITY)
     if (findNextPriorityWidget())
     {
-        transitionTo(WidgetManagerState::PRIORITY);
+        transitionTo(WidgetManagerState::Priority);
         return;
     }
 
     // Priority 2: Background widgets
     if (findActiveBackgroundWidget())
     {
-        transitionTo(WidgetManagerState::BACKGROUND);
+        transitionTo(WidgetManagerState::Background);
         return;
     }
 
@@ -447,12 +447,12 @@ void WidgetsManager::updateState(uint32_t currentTime)
 
         if (showDefault)
         {
-            transitionTo(WidgetManagerState::DEFAULT);
+            transitionTo(WidgetManagerState::Default);
             return;
         }
     }
 
-    transitionTo(WidgetManagerState::IDLE);
+    transitionTo(WidgetManagerState::Idle);
 }
 
 /**
@@ -464,10 +464,10 @@ void WidgetsManager::transitionTo(WidgetManagerState newState)
     if (_state == newState) return;
 
     logDebugP("State transition: %s -> %s", getStateName(),
-              newState == WidgetManagerState::STARTUP ? "STARTUP" : newState == WidgetManagerState::IDLE     ? "IDLE"
-                                                                : newState == WidgetManagerState::PRIORITY   ? "PRIORITY"
-                                                                : newState == WidgetManagerState::BACKGROUND ? "BACKGROUND"
-                                                                : newState == WidgetManagerState::DEFAULT    ? "DEFAULT"
+              newState == WidgetManagerState::Startup ? "STARTUP" : newState == WidgetManagerState::Idle     ? "IDLE"
+                                                                : newState == WidgetManagerState::Priority   ? "PRIORITY"
+                                                                : newState == WidgetManagerState::Background ? "BACKGROUND"
+                                                                : newState == WidgetManagerState::Default    ? "DEFAULT"
                                                                                                              : "UNKNOWN");
 
     if (_stateTransitionCallback)
@@ -809,11 +809,11 @@ const char* WidgetsManager::getPowerSaveModeName(PowerSaveMode mode) const
 {
     switch (mode)
     {
-        case PowerSaveMode::ACTIVE: return "ACTIVE";
-        case PowerSaveMode::DIMMED: return "DIMMED";
-        case PowerSaveMode::SCREENSAVER: return "SCREENSAVER";
-        case PowerSaveMode::SLEEP: return "SLEEP";
-        case PowerSaveMode::OFF: return "OFF";
+        case PowerSaveMode::Active: return "ACTIVE";
+        case PowerSaveMode::Dimmed: return "DIMMED";
+        case PowerSaveMode::Screensaver: return "SCREENSAVER";
+        case PowerSaveMode::Sleep: return "SLEEP";
+        case PowerSaveMode::Off: return "OFF";
         default: return "UNKNOWN";
     }
 }
@@ -853,7 +853,7 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
     if (findActiveBackgroundWidget() ||
         findNextPriorityWidget())
     {
-        if (_powerSaveMode != PowerSaveMode::ACTIVE)
+        if (_powerSaveMode != PowerSaveMode::Active)
         {
             wakeUpDisplay();
         }
@@ -865,23 +865,23 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
     // Determine power save mode based on inactivity
     if (_powerSaveConfig.offTimeout > 0 && inactiveTime >= _powerSaveConfig.offTimeout)
     {
-        transitionToPowerSaveMode(PowerSaveMode::OFF);
+        transitionToPowerSaveMode(PowerSaveMode::Off);
     }
     else if (_powerSaveConfig.sleepTimeout > 0 && inactiveTime >= _powerSaveConfig.sleepTimeout)
     {
-        transitionToPowerSaveMode(PowerSaveMode::SLEEP);
+        transitionToPowerSaveMode(PowerSaveMode::Sleep);
     }
     else if (_powerSaveConfig.screenSaverTimeout > 0 && inactiveTime >= _powerSaveConfig.screenSaverTimeout)
     {
-        transitionToPowerSaveMode(PowerSaveMode::SCREENSAVER);
+        transitionToPowerSaveMode(PowerSaveMode::Screensaver);
     }
     else if (_powerSaveConfig.dimTimeout > 0 && inactiveTime >= _powerSaveConfig.dimTimeout)
     {
-        transitionToPowerSaveMode(PowerSaveMode::DIMMED);
+        transitionToPowerSaveMode(PowerSaveMode::Dimmed);
     }
     else
     {
-        transitionToPowerSaveMode(PowerSaveMode::ACTIVE);
+        transitionToPowerSaveMode(PowerSaveMode::Active);
     }
 }
 
@@ -907,7 +907,7 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
 
     switch (newMode)
     {
-        case PowerSaveMode::ACTIVE:
+        case PowerSaveMode::Active:
         {
             logDebugP("Display: ACTIVE mode (%d%%)", _powerSaveConfig.normalBrightness);
             _displayModule->setBrightness(_powerSaveConfig.normalBrightness);
@@ -931,14 +931,14 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
         }
         break;
 
-        case PowerSaveMode::DIMMED:
+        case PowerSaveMode::Dimmed:
         {
             logDebugP("Display: DIMMED mode (%d%%)", _powerSaveConfig.dimBrightness);
             _displayModule->setBrightness(_powerSaveConfig.dimBrightness);
         }
         break;
 
-        case PowerSaveMode::SCREENSAVER:
+        case PowerSaveMode::Screensaver:
         {
             logDebugP("Display: SCREENSAVER mode");
             _displayModule->setBrightness(50);
@@ -946,7 +946,7 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
             if (!_screenSaverWidget) // No screensaver widget set, fallback to SLEEP
             {
                 logWarningP("No screensaver widget set! Entering SLEEP mode instead.");
-                transitionToPowerSaveMode(PowerSaveMode::SLEEP);
+                transitionToPowerSaveMode(PowerSaveMode::Sleep);
                 return;
             }
             if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
@@ -960,7 +960,7 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
         }
         break;
 
-        case PowerSaveMode::SLEEP:
+        case PowerSaveMode::Sleep:
         {
             logDebugP("Display: SLEEP mode");
             if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
@@ -971,7 +971,7 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
         }
         break;
 
-        case PowerSaveMode::OFF:
+        case PowerSaveMode::Off:
         {
             logDebugP("Display: OFF mode");
             if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
@@ -991,14 +991,14 @@ void WidgetsManager::wakeUpDisplay()
 {
     logDebugP("Waking up display");
 
-    if (_powerSaveMode == PowerSaveMode::SCREENSAVER &&
+    if (_powerSaveMode == PowerSaveMode::Screensaver &&
         _currentWidget == _screenSaverWidget)
     {
         _currentWidget->stop();
         _currentWidget = nullptr;
     }
 
-    transitionToPowerSaveMode(PowerSaveMode::ACTIVE);
+    transitionToPowerSaveMode(PowerSaveMode::Active);
 }
 
 /**
@@ -1009,7 +1009,7 @@ void WidgetsManager::userInteraction()
     _lastInteractionTime = millis();
 
     // Wake up display if in power save mode
-    if (_powerSaveMode != PowerSaveMode::ACTIVE)
+    if (_powerSaveMode != PowerSaveMode::Active)
     {
         wakeUpDisplay();
     }
@@ -1266,7 +1266,7 @@ bool WidgetsManager::hasOnlyDefaultWidgets() const
 Widget* WidgetsManager::getActiveButtonWidget()
 {
     // Priority 1: PRIORITY-Widgets (ProgMode, StatusWidgets)
-    if (_state == WidgetManagerState::PRIORITY &&
+    if (_state == WidgetManagerState::Priority &&
         _currentWidget &&
         _currentWidget->wantsButtonInput())
     {
@@ -1274,7 +1274,7 @@ Widget* WidgetsManager::getActiveButtonWidget()
     }
 
     // Priority 2: BACKGROUND-Widgets (Menu aktiv mit DisplayEnabled)
-    if (_state == WidgetManagerState::BACKGROUND &&
+    if (_state == WidgetManagerState::Background &&
         _currentWidget &&
         _currentWidget->wantsButtonInput())
     {

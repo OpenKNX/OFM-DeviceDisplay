@@ -34,7 +34,7 @@ void WidgetMatrixClassic::start()
 {
     logInfoP("Start...");
     _state = WidgetState::RUNNING;
-    randomSeed(analogRead(0));
+    randomSeed(micros()); // arch-agnostic seed; analogRead(0) is not an ADC pin on ESP32-S3 (nor GP0 on RP2040)
     initMatrix();
 }
 
@@ -64,7 +64,7 @@ void WidgetMatrixClassic::resume()
 {
     logDebugP("Resume...");
     _state = WidgetState::RUNNING;
-    randomSeed(analogRead(0));
+    randomSeed(micros()); // arch-agnostic seed; analogRead(0) is not an ADC pin on ESP32-S3 (nor GP0 on RP2040)
     initMatrix();
 }
 

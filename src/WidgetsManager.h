@@ -89,20 +89,20 @@ class i2cDisplay;
 
 enum class WidgetManagerState : uint8_t // State of the WidgetManager, see state machine below
 {
-    STARTUP = 0,    // Boot sequence (BootLogo, AutoRemove widgets)
-    IDLE = 1,       // No widget active
-    PRIORITY = 2,   // StatusWidget (e.g., ProgMode) active - highest priority
-    BACKGROUND = 3, // Background widget (e.g., Menu) active
-    DEFAULT = 4     // DefaultWidget (e.g., Clock, QRCode) active - fallback
+    Startup = 0,    // Boot sequence (BootLogo, AutoRemove widgets)
+    Idle = 1,       // No widget active
+    Priority = 2,   // StatusWidget (e.g., ProgMode) active - highest priority
+    Background = 3, // Background widget (e.g., Menu) active
+    Default = 4     // DefaultWidget (e.g., Clock, QRCode) active - fallback
 };
 
 enum class PowerSaveMode : uint8_t // Power save mode states are used for display: brightness and power management
 {
-    ACTIVE = 0,      // Display is fully active
-    DIMMED = 1,      // Display is dimmed (e.g., 30% brightness)
-    SCREENSAVER = 2, // Screensaver is active (e.g., Matrix, Clock)
-    SLEEP = 3,       // Display is off, but can be reactivated
-    OFF = 4          // Display is completely off
+    Active = 0,      // Display is fully active
+    Dimmed = 1,      // Display is dimmed (e.g., 30% brightness)
+    Screensaver = 2, // Screensaver is active (e.g., Matrix, Clock)
+    Sleep = 3,       // Display is off, but can be reactivated
+    Off = 4          // Display is completely off
 };
 
 struct PowerSaveConfig // Configuration for power save modes and timeouts
@@ -168,15 +168,15 @@ class WidgetsManager // Manages the widget queue and state machine
     uint32_t _lastInteractionTime = 0;
     uint32_t _idleTimeout = 10000; // 10 seconds default idle timeout
 
-    WidgetManagerState _state = WidgetManagerState::STARTUP;
-    WidgetManagerState _previousState = WidgetManagerState::STARTUP;
+    WidgetManagerState _state = WidgetManagerState::Startup;
+    WidgetManagerState _previousState = WidgetManagerState::Startup;
     StateTransitionCallback _stateTransitionCallback;
     bool _startupComplete = false;
     bool _isInitialized = false; // Indicates if setup() has been called
 
     // Power save
     PowerSaveConfig _powerSaveConfig;
-    PowerSaveMode _powerSaveMode = PowerSaveMode::ACTIVE;
+    PowerSaveMode _powerSaveMode = PowerSaveMode::Active;
     PowerSaveCallback _powerSaveCallback;
     
     // Screensaver widget

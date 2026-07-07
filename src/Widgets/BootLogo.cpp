@@ -42,7 +42,7 @@ void WidgetBootLogo::calculateOptimalStepHeight(uint32_t maxLoopTimeUs)
     if (_logoBitmap && _logoBitmap->width >= 100 && _logoBitmap->height >= 60)
     {
         // Fullscreen: Double the stripe size (less overhead)
-        calculatedStepHeight = min(64, calculatedStepHeight * 2);
+        calculatedStepHeight = min((uint32_t)64, calculatedStepHeight * 2);
     }
 
     // Clamp to reasonable values

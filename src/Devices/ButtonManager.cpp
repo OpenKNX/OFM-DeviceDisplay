@@ -18,7 +18,7 @@ ButtonManager::~ButtonManager()
  */
 bool ButtonManager::setup()
 {
-#ifdef USE_GPIO_MODULE
+#ifdef FRONT_CTRL_UP // front-panel buttons exist when the HardwareConfig defines them; driven via native openknx.gpio (PCA9557)
     if (!openknx.gpio.isInitialized(1))
     {
         logErrorP("GPIO not initialized");
@@ -173,7 +173,7 @@ ButtonEvent* ButtonManager::checkButton(uint16_t pin, ButtonType type, size_t in
  */
 bool ButtonManager::readButton(uint16_t pin)
 {
-#ifdef USE_GPIO_MODULE
+#ifdef FRONT_CTRL_UP // front-panel buttons exist when the HardwareConfig defines them; driven via native openknx.gpio (PCA9557)
     return openknx.gpio.digitalRead(pin);
 #else
     return false;

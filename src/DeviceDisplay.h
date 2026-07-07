@@ -87,7 +87,9 @@ class DeviceDisplay : public OpenKNX::Module
     void init() override;
     void setup(bool configured) override;
     void loop(bool configured) override;
+#if (MASK_VERSION & 0x0900) != 0x0900 // Couplers (e.g. IP-Router 0x091A) have no GroupObjects
     void processInputKo(GroupObject& ko) override;
+#endif
     void showHelp() override;
     bool processCommand(const std::string command, bool diagnose) override;
 
