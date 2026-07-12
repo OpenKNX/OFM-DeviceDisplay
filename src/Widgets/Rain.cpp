@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Rain.h"
-#include "OpenKNX.h"
+    #include "Rain.h"
+    #include "OpenKNX.h"
 
 WidgetRain::WidgetRain(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(intensity), _display(nullptr), _lastUpdateScreenSaver(0), _initialized(false)
@@ -11,10 +11,10 @@ WidgetRain::WidgetRain(uint32_t displayTime, WidgetFlags action, uint8_t intensi
 
 void WidgetRain::setup()
 {
-    //logInfoP("Setting up Rain Widget...");
+    // logInfoP("Setting up Rain Widget...");
     if (_display == nullptr)
     {
-        //logErrorP("Display is NULL.");
+        // logErrorP("Display is NULL.");
         return;
     }
     initRain();
@@ -23,14 +23,14 @@ void WidgetRain::setup()
 void WidgetRain::start()
 {
     _state = WidgetState::RUNNING;
-    //logInfoP("Starting Rain Widget...");
+    // logDebugP("Starting Rain Widget...");
     initRain();
 }
 
 void WidgetRain::stop()
 {
     _state = WidgetState::STOPPED;
-    //logInfoP("Stopping Rain Widget...");
+    // logDebugP("Stopping Rain Widget...");
     if (_display)
     {
         _display->display->clearDisplay();
@@ -41,13 +41,13 @@ void WidgetRain::stop()
 void WidgetRain::pause()
 {
     _state = WidgetState::PAUSED;
-    //logInfoP("Pausing Rain Widget...");
+    // logInfoP("Pausing Rain Widget...");
 }
 
 void WidgetRain::resume()
 {
     _state = WidgetState::RUNNING;
-    //logInfoP("Resuming Rain Widget...");
+    // logInfoP("Resuming Rain Widget...");
 }
 
 void WidgetRain::loop()
@@ -71,7 +71,7 @@ i2cDisplay *WidgetRain::getDisplayModule() const { return _display; }
 
 void WidgetRain::initRain()
 {
-    //logInfoP("Initializing Rain Widget...");
+    // logInfoP("Initializing Rain Widget...");
     for (uint8_t i = 0; i < MAX_RAIN_DROPS; i++)
     {
         _dropsX[i] = random(_display->GetDisplayWidth());

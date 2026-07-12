@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Starfield.h"
-#include "OpenKNX.h"
+    #include "Starfield.h"
+    #include "OpenKNX.h"
 
 // Constructor
 WidgetStarfield::WidgetStarfield(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
@@ -24,7 +24,7 @@ void WidgetStarfield::start()
 {
     if (_state == WidgetState::RUNNING) return;
     // logDebugP("WidgetStarfield: Starting...");
-    logInfoP("Starting...");
+    logDebugP("Starting...");
 
     _state = WidgetState::RUNNING;
     initializeStars();
@@ -33,11 +33,11 @@ void WidgetStarfield::start()
 
 void WidgetStarfield::stop()
 {
-    _state =WidgetState::STOPPED;
+    _state = WidgetState::STOPPED;
     if (_display)
     {
         // logDebugP("WidgetStarfield: Stop...");
-        logInfoP("Stopping...");
+        logDebugP("Stopping...");
         _display->display->clearDisplay();
         _display->displayBuff();
     }

@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Cube3D.h"
-#include "OpenKNX.h"
+    #include "Cube3D.h"
+    #include "OpenKNX.h"
 
 // Define the cube vertices
 constexpr int8_t WidgetCube3D::cubeVertices[8][3] = {
@@ -9,14 +9,21 @@ constexpr int8_t WidgetCube3D::cubeVertices[8][3] = {
 // Define the cube edges
 constexpr uint8_t WidgetCube3D::cubeEdges[12][2] = {
     {0, 1}, {1, 2}, {2, 3}, {3, 0}, // Front face
-    {4, 5}, {5, 6}, {6, 7}, {7, 4}, // Back face
-    {0, 4}, {1, 5}, {2, 6}, {3, 7}  // Connections between front and back faces
+    {4, 5},
+    {5, 6},
+    {6, 7},
+    {7, 4}, // Back face
+    {0, 4},
+    {1, 5},
+    {2, 6},
+    {3, 7} // Connections between front and back faces
 };
 
 WidgetCube3D::WidgetCube3D(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _lastUpdateTime(0), _display(nullptr) {}
 
-void WidgetCube3D::setup() {
+void WidgetCube3D::setup()
+{
 
     logInfoP("Setup...");
     if (_display == nullptr)
@@ -34,8 +41,8 @@ void WidgetCube3D::start()
         return;
     }
     if (_state == WidgetState::RUNNING) return;
-    
-    logInfoP("Start...");
+
+    logDebugP("Start...");
 
     _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
@@ -45,7 +52,7 @@ void WidgetCube3D::start()
 
 void WidgetCube3D::stop()
 {
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     _state = WidgetState::STOPPED;
     if (_display)
     {
@@ -58,7 +65,7 @@ void WidgetCube3D::pause()
 {
     if (_state == WidgetState::RUNNING)
     {
-        logInfoP("Pause...");
+        logDebugP("Pause...");
         _state = WidgetState::PAUSED;
     }
 }
@@ -67,7 +74,7 @@ void WidgetCube3D::resume()
 {
     if (_state == WidgetState::PAUSED)
     {
-        logInfoP("Resume...");
+        logDebugP("Resume...");
         _state = WidgetState::RUNNING;
         _lastUpdateTime = millis();
     }
@@ -104,7 +111,6 @@ void WidgetCube3D::updateCube()
 
     // Clear display
     _display->display->clearDisplay();
-
 
     // Projected vertices
     float projectedVertices[8][2];

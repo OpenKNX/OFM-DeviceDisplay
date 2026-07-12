@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Console.h"
-#include "OpenKNX.h"
+    #include "Console.h"
+    #include "OpenKNX.h"
 
 // Static instance for callback hook
 WidgetConsole* WidgetConsole::instance = nullptr;
@@ -10,7 +10,7 @@ WidgetConsole::WidgetConsole(uint32_t displayTime, WidgetFlags action, uint8_t m
       _maxLines(maxLines), _scrollOffset(0), _textSize(1), _autoScroll(true), _showTimestamps(true),
       _minLogLevel(INFO), _lastUpdateTime(0)
 {
-    instance = this;  // Set singleton instance
+    instance = this; // Set singleton instance
 }
 
 void WidgetConsole::setDisplayModule(i2cDisplay* displayModule)
@@ -37,9 +37,9 @@ void WidgetConsole::setup()
 
     // Initialize with system info
     addLine("=== OpenKNX Console ===", INFO);
-#ifdef DEVICE_ID
+    #ifdef DEVICE_ID
     addLine(std::string("Device: ") + DEVICE_ID, INFO);
-#endif
+    #endif
     addLine("Addr: " + openknx.info.humanIndividualAddress(), INFO);
     addLine("SN: " + openknx.info.humanSerialNumber(), INFO);
     addLine("Ready.", INFO);
@@ -90,7 +90,7 @@ void WidgetConsole::loop()
         return;
 
     uint32_t currentTime = millis();
-    if (currentTime - _lastUpdateTime >= 100)  // Update 10x per second
+    if (currentTime - _lastUpdateTime >= 100) // Update 10x per second
     {
         drawConsole();
         _lastUpdateTime = currentTime;
@@ -110,7 +110,7 @@ WidgetFlags WidgetConsole::getAction() const
 void WidgetConsole::addLine(const std::string& text, LogLevel level)
 {
     if (level < _minLogLevel)
-        return;  // Filter by log level
+        return; // Filter by log level
 
     std::string formattedLine;
 

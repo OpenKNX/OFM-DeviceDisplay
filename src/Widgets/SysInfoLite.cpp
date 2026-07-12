@@ -1,7 +1,7 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "SysInfoLite.h"
-#include "../icons/logo.h"
-#include "OpenKNX.h"
+    #include "SysInfoLite.h"
+    #include "../icons/logo.h"
+    #include "OpenKNX.h"
 
 // Constructor
 WidgetSysInfoLite::WidgetSysInfoLite(uint32_t displayTime, WidgetFlags action)
@@ -52,7 +52,7 @@ void WidgetSysInfoLite::setup()
 // Starts the widget
 void WidgetSysInfoLite::start()
 {
-    logInfoP("Start...");
+    logDebugP("Start...");
     _state = WidgetState::RUNNING;
     _invertBitmap = false; // Reset inversion state
 }
@@ -60,21 +60,21 @@ void WidgetSysInfoLite::start()
 // Stops the widget
 void WidgetSysInfoLite::stop()
 {
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     _state = WidgetState::STOPPED;
 }
 
 // Pauses the widget
 void WidgetSysInfoLite::pause()
 {
-    logInfoP("Pause...");
+    logDebugP("Pause...");
     _state = WidgetState::PAUSED;
 }
 
 // Resumes the widget
 void WidgetSysInfoLite::resume()
 {
-    logInfoP("Resume...");
+    logDebugP("Resume...");
     if (_state == WidgetState::PAUSED)
     {
         _state = WidgetState::RUNNING;
@@ -135,7 +135,6 @@ void WidgetSysInfoLite::drawSysInfo()
 
     if (_invertBitmap) invertBitmap(logoBitmap, LOGO_WIDTH_ICON_SMALL_OKNX, LOGO_HEIGHT_ICON_SMALL_OKNX); // Invert the bitmap pixels
 
-
     _display->display->drawBitmap(
         (int16_t)((_display->GetDisplayWidth() - LOGO_WIDTH_ICON_SMALL_OKNX) / 2),
         (int16_t)((_display->GetDisplayHeight() - LOGO_HEIGHT_ICON_SMALL_OKNX + 20 /*SHIFT_TO_BOTTOM*/) / 2),
@@ -146,11 +145,14 @@ void WidgetSysInfoLite::drawSysInfo()
 }
 
 // Inverts the pixels of a bitmap
-void WidgetSysInfoLite::invertBitmap(uint8_t *bitmap, size_t width, size_t height) {
+void WidgetSysInfoLite::invertBitmap(uint8_t *bitmap, size_t width, size_t height)
+{
     size_t bytesPerRow = (width + 7) / 8; // Correctly round up to the nearest byte
-    for (size_t row = 0; row < height; row++) {
+    for (size_t row = 0; row < height; row++)
+    {
         uint8_t *rowStart = bitmap + row * bytesPerRow;
-        for (size_t col = 0; col < bytesPerRow; col++) {
+        for (size_t col = 0; col < bytesPerRow; col++)
+        {
             rowStart[col] = ~rowStart[col]; // Invert each byte
         }
     }

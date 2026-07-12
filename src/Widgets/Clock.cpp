@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Clock.h"
-#include "OpenKNX.h"
+    #include "Clock.h"
+    #include "OpenKNX.h"
 
 WidgetClock::WidgetClock(uint32_t displayTime, WidgetFlags action, bool roundedClock)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),
@@ -31,7 +31,9 @@ void WidgetClock::start()
     {
         logDebugP("Start...");
         _state = WidgetState::RUNNING;
-        _lastUpdateTime = millis();
+        // Backdate so the loop() the WidgetsManager calls right after start() draws the clock
+        // IMMEDIATELY (>= 1000 ms elapsed) instead of leaving a blank screen for up to 1 s.
+        _lastUpdateTime = millis() - 1000;
     }
 }
 
@@ -59,7 +61,7 @@ void WidgetClock::resume()
     {
         logDebugP("Resume...");
         _state = WidgetState::RUNNING;
-        _lastUpdateTime = millis();
+        _lastUpdateTime = millis() - 1000; // draw immediately on the next loop (no 1 s blank)
     }
 }
 
@@ -80,24 +82,24 @@ WidgetFlags WidgetClock::getAction() const { return _action; }
 
 void WidgetClock::fetchTime(uint16_t &days, uint16_t &hours, uint16_t &minutes, uint16_t &seconds)
 {
-  if (openknx.time.isValid())
-  {
-    auto time = openknx.time.getUtcTime();
-    hours = time.hour;
-    minutes = time.minute;
-    seconds = time.second;
-  }
-  else
-  {
-    uint32_t uptimeSecs = uptime();
-    seconds = uptimeSecs % 60;
-    uptimeSecs /= 60;
-    minutes = uptimeSecs % 60;
-    uptimeSecs /= 60;
-    hours = uptimeSecs % 24;
-    uptimeSecs /= 24;
-    days = uptimeSecs;
-  }
+    if (openknx.time.isValid())
+    {
+        auto time = openknx.time.getUtcTime();
+        hours = time.hour;
+        minutes = time.minute;
+        seconds = time.second;
+    }
+    else
+    {
+        uint32_t uptimeSecs = uptime();
+        seconds = uptimeSecs % 60;
+        uptimeSecs /= 60;
+        minutes = uptimeSecs % 60;
+        uptimeSecs /= 60;
+        hours = uptimeSecs % 24;
+        uptimeSecs /= 24;
+        days = uptimeSecs;
+    }
 }
 
 void WidgetClock::drawClock()
@@ -114,7 +116,7 @@ void WidgetClock::drawClock()
     const uint16_t CENTER_Y = (SCREEN_HEIGHT / 2) + 10;
     const uint16_t CLOCK_RADIUS = min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2 - 5;
 
-    uint16_t days=0, hours=0, minutes=0, seconds=0;
+    uint16_t days = 0, hours = 0, minutes = 0, seconds = 0;
     fetchTime(days, hours, minutes, seconds);
 
     _display->display->clearDisplay();
@@ -180,8 +182,8 @@ void WidgetClock::drawClock()
         _display->display->setTextColor(WHITE);
         _display->display->print(timeString);
 
-// Draw device ID on top
-#ifdef DEVICE_ID
+    // Draw device ID on top
+    #ifdef DEVICE_ID
         TextSize = 1;
         const char *deviceId = DEVICE_ID;
         FONT_WIDTH = 6 * TextSize;
@@ -189,7 +191,7 @@ void WidgetClock::drawClock()
         _display->display->setCursor((SCREEN_WIDTH - strlen(deviceId) * FONT_WIDTH) / 2, 0);
         _display->display->setTextSize(TextSize);
         _display->display->print(deviceId);
-#endif
+    #endif
 
         // Draw the KNX address with configuration status (vorletzte Zeile)
         const char *knxAddress = openknx.info.humanIndividualAddress().c_str();
@@ -213,6 +215,6 @@ void WidgetClock::drawClock()
     }
 
     _display->displayBuff();
-    //logDebugP("WidgetClock: Clock updated.");
+    // logDebugP("WidgetClock: Clock updated.");
 }
 #endif // DEVICE_DISPLAY_MODULE

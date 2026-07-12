@@ -1,7 +1,7 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "QRCode.h"
-#include "OpenKNX.h"
-#include "qrcodegen.h"
+    #include "QRCode.h"
+    #include "OpenKNX.h"
+    #include "qrcodegen.h"
 
 // Constructor
 WidgetQRCode::WidgetQRCode(uint32_t displayTime, WidgetFlags action, const std::string &defaultText, bool backgroundWhite)
@@ -105,7 +105,6 @@ void WidgetQRCode::setQRCodeText(const std::string &text)
         _needsRedraw = true;
         logDebugP("QR code text set.");
     }
-
 }
 
 // Set the background color

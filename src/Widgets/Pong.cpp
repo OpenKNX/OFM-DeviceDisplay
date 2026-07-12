@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Pong.h"
-#include "OpenKNX.h"
+    #include "Pong.h"
+    #include "OpenKNX.h"
 
 WidgetPong::WidgetPong(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED), _display(nullptr),
@@ -9,14 +9,14 @@ WidgetPong::WidgetPong(uint32_t displayTime, WidgetFlags action)
 void WidgetPong::setDisplayModule(i2cDisplay *displayModule)
 {
     _display = displayModule;
-    //logDebugP("WidgetPong: Display-Modul gesetzt.");
-    //logInfoP("Display-Modul gesetzt.");
+    // logDebugP("WidgetPong: Display-Modul gesetzt.");
+    // logInfoP("Display-Modul gesetzt.");
 }
 i2cDisplay *WidgetPong::getDisplayModule() const { return _display; }
 
 void WidgetPong::initSettings() // Initialize the screensaver default settings
 {
-    //logInfoP("Init...");
+    // logInfoP("Init...");
     const uint16_t SCREEN_HEIGHT = _display->GetDisplayHeight();
     const uint16_t SCREEN_WIDTH = _display->GetDisplayWidth();
 
@@ -38,29 +38,28 @@ void WidgetPong::setup()
         return;
     }
     initSettings();
-    
 }
 
 void WidgetPong::start() // Start the widget and display the WidgetPong screensaver
 {
     if (_state == WidgetState::STOPPED)
     {
-        logInfoP("Start...");
+        logDebugP("Start...");
         _state = WidgetState::RUNNING;
         _lastUpdateTime = millis();
-        //initSettings(); // Reset screensaver state
+        // initSettings(); // Reset screensaver state
     }
 }
 
 void WidgetPong::stop() // Stop the WidgetPong screensaver and clear the display
 {
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     if (_state != WidgetState::STOPPED)
     {
         _state = WidgetState::STOPPED;
         _display->display->clearDisplay();
         _display->displayBuff(); // Display leeren
-        logInfoP("Stopped.");
+        logDebugP("Stopped.");
     }
 }
 
@@ -68,9 +67,9 @@ void WidgetPong::pause() // Pause the WidgetPong screensaver
 {
     if (_state == WidgetState::RUNNING)
     {
-        logInfoP("Pause...");
+        logDebugP("Pause...");
         _state = WidgetState::PAUSED; // Set the state to paused
-                         // No need to reset the current WidgetPong pos and settings. Just pause WidgetPong
+                                      // No need to reset the current WidgetPong pos and settings. Just pause WidgetPong
     }
 }
 
@@ -78,7 +77,7 @@ void WidgetPong::resume() // Resume the WidgetPong screensaver
 {
     if (_state == WidgetState::PAUSED)
     {
-        logInfoP("Resume...");
+        logDebugP("Resume...");
         _state = WidgetState::RUNNING;
         _lastUpdateTime = millis(); // Reset last update time
     }
@@ -100,7 +99,7 @@ void WidgetPong::loop() // Loop is called every second to update the screensaver
 }
 
 uint32_t WidgetPong::getDisplayTime() const { return _displayTime; } // Retrun the display time in ms
-WidgetFlags WidgetPong::getAction() const { return _action; }      // Return the widget action
+WidgetFlags WidgetPong::getAction() const { return _action; }        // Return the widget action
 
 void WidgetPong::drawScreensaver() // Draw the WidgetPong screensaver
 {

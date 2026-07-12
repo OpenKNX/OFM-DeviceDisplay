@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "MatrixClassic.h"
-#include "OpenKNX.h"
+    #include "MatrixClassic.h"
+    #include "OpenKNX.h"
 
 // CP437 character set: Classic Matrix-style characters
 const char WidgetMatrixClassic::cp437[] = {
@@ -13,7 +13,7 @@ const char WidgetMatrixClassic::cp437[] = {
     0xB0, 0xB1, 0xB2, 0xB3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9};
 
 WidgetMatrixClassic::WidgetMatrixClassic(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
-    : _displayTime(displayTime), _action(action), _intensity(intensity), 
+    : _displayTime(displayTime), _action(action), _intensity(intensity),
       _display(nullptr), _lastUpdateScreenSaver(0), FallSpeed(0), _state(WidgetState::STOPPED)
 {
     FallSpeed = map(_intensity, 1, 10, 150, 30); // Map intensity to speed
@@ -32,7 +32,7 @@ void WidgetMatrixClassic::setup()
 
 void WidgetMatrixClassic::start()
 {
-    logInfoP("Start...");
+    logDebugP("Start...");
     _state = WidgetState::RUNNING;
     randomSeed(micros()); // arch-agnostic seed; analogRead(0) is not an ADC pin on ESP32-S3 (nor GP0 on RP2040)
     initMatrix();
@@ -40,7 +40,7 @@ void WidgetMatrixClassic::start()
 
 void WidgetMatrixClassic::stop()
 {
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     _state = WidgetState::STOPPED;
     if (_display)
     {

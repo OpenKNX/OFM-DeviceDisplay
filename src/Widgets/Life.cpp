@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Life.h"
-#include "OpenKNX.h"
+    #include "Life.h"
+    #include "OpenKNX.h"
 
 // Constructor
 WidgetLife::WidgetLife(uint32_t displayTime, WidgetFlags action)
@@ -25,14 +25,14 @@ void WidgetLife::start()
 {
     if (_state == WidgetState::RUNNING) return;
 
-    logInfoP("Start...");
+    logDebugP("Start...");
     _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
 }
 
 void WidgetLife::stop()
 {
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     _state = WidgetState::STOPPED;
     if (_display)
     {
@@ -45,7 +45,7 @@ void WidgetLife::pause()
 {
     if (_state == WidgetState::RUNNING)
     {
-        logInfoP("Pause...");
+        logDebugP("Pause...");
         _state = WidgetState::PAUSED;
     }
 }
@@ -54,7 +54,7 @@ void WidgetLife::resume()
 {
     if (_state == WidgetState::PAUSED)
     {
-        logInfoP("Resume...");
+        logDebugP("Resume...");
         _state = WidgetState::RUNNING;
     }
 }

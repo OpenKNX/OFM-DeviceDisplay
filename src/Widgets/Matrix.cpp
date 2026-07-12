@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Matrix.h"
-#include "OpenKNX.h"
+    #include "Matrix.h"
+    #include "OpenKNX.h"
 
 WidgetMatrix::WidgetMatrix(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(intensity),
@@ -39,23 +39,23 @@ void WidgetMatrix::setup()
 
 void WidgetMatrix::start()
 {
-    logInfoP("Starting Matrix widget...");
+    logDebugP("Starting Matrix widget...");
     _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
 }
 
 void WidgetMatrix::stop()
 {
-    logInfoP("Stopping Matrix widget...");
+    logDebugP("Stopping Matrix widget...");
     _state = WidgetState::STOPPED;
     if (_display)
     {
         _display->display->clearDisplay();
         _display->displayBuff();
     }
-    //delete[] _columnHeads;
-    //delete[] _columnLengths;
-    //delete[] _columnSpeeds;
+    // delete[] _columnHeads;
+    // delete[] _columnLengths;
+    // delete[] _columnSpeeds;
 }
 
 void WidgetMatrix::pause()

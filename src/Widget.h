@@ -5,7 +5,7 @@
  * @brief       This module offers a widget manager for displays on the OpenKNX ecosystem
  * @version     0.0.1
  * @date        2024-12-28
- * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@çolak.de)
+ * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@colak.de)
  *              Licensed under GNU GPL v3.0
  **/
 
@@ -45,6 +45,7 @@ class Widget
 {
   protected:
     WidgetPriority _priority = WidgetPriority::WIDGET_PRIO_NORMAL;
+    bool _enabled = true;
 
   public:
 
@@ -81,5 +82,16 @@ class Widget
 
     virtual WidgetPriority getPriority() const { return _priority; }
     virtual void setPriority(WidgetPriority priority) { _priority = priority; }
+
+    // Disabled DefaultWidgets are skipped by the rotation, but never deleted or torn down.
+    virtual bool isEnabled() const { return _enabled; }
+    virtual void setEnabled(bool enabled) { _enabled = enabled; }
+
+    // Single-page widgets need no override: default 1 page, current page 0, no-op paging.
+    virtual size_t getPageCount() const { return 1; }
+    virtual size_t getCurrentPage() const { return 0; }
+    virtual void setPage(size_t page) {}                      // Jump to a page (clamped/ignored by single-page widgets)
+    virtual void nextPage() {}                                // Advance to the next page (wrap is widget-defined)
+    virtual void prevPage() {}                                // Go to the previous page (wrap is widget-defined)
 };
 #endif // DEVICE_DISPLAY_MODULE

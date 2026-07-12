@@ -1,7 +1,7 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "Fireworks.h"
-#include "OpenKNX.h"
-#include <cstdlib>
+    #include "Fireworks.h"
+    #include "OpenKNX.h"
+    #include <cstdlib>
 
 WidgetFireworks::WidgetFireworks(uint32_t displayTime, WidgetFlags action, uint8_t intensity)
     : _displayTime(displayTime), _action(action), _intensity(constrain(intensity, 1, 10)),
@@ -40,14 +40,14 @@ void WidgetFireworks::setup()
 
 void WidgetFireworks::start()
 {
-    logInfoP("Start...");
+    logDebugP("Start...");
     _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
 }
 
 void WidgetFireworks::stop()
 {
-    logInfoP("Stop...");
+    logDebugP("Stop...");
     _state = WidgetState::STOPPED;
 
     if (_display)
@@ -59,13 +59,13 @@ void WidgetFireworks::stop()
 
 void WidgetFireworks::pause()
 {
-    logInfoP("Pause...");
+    logDebugP("Pause...");
     _state = WidgetState::PAUSED;
 }
 
 void WidgetFireworks::resume()
 {
-    logInfoP("Resume...");
+    logDebugP("Resume...");
     _state = WidgetState::RUNNING;
     _lastUpdateTime = millis();
 }

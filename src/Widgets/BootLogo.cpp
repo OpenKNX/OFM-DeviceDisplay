@@ -1,7 +1,7 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "BootLogo.h"
-#include "../icons/logo.h"
-#include "OpenKNX.h"
+    #include "BootLogo.h"
+    #include "../icons/logo.h"
+    #include "OpenKNX.h"
 
 WidgetBootLogo::WidgetBootLogo(uint32_t displayTime, WidgetFlags action, const LogoBitmap *logo)
     : _displayTime(displayTime), _action(action), _state(WidgetState::STOPPED),
