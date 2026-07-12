@@ -16,6 +16,16 @@ const MenuValue& MenuConfig::getValue(std::string_view key) const
     return it != dataStore.end() ? it->second : empty;
 }
 
+bool MenuConfig::hasValue(std::string_view key) const
+{
+    return dataStore.find(std::string(key)) != dataStore.end();
+}
+
+void MenuConfig::seedValue(const std::string& key, MenuValue value)
+{
+    dataStore[key] = std::move(value);
+}
+
 void MenuConfig::setValue(const std::string& key, MenuValue value)
 {
     dataStore[key] = std::move(value);
@@ -58,5 +68,17 @@ MenuConfig::MenuElementType MenuConfig::parseMenuElementType(std::string_view ty
     if (typeStr == "Action") return MenuElementType::Action;
     if (typeStr == "Submenu") return MenuElementType::Submenu;
     if (typeStr == "Back") return MenuElementType::Back;
+
+    // Accept both the mockup's lowercase spellings and the PascalCase enum names.
+    if (typeStr == "Readonly" || typeStr == "ro") return MenuElementType::Readonly;
+    if (typeStr == "IpEdit") return MenuElementType::IpEdit;
+    if (typeStr == "IpAddress" || typeStr == "ip") return MenuElementType::IpAddress;
+    if (typeStr == "Reorder" || typeStr == "reorder") return MenuElementType::Reorder;
+    if (typeStr == "Toast" || typeStr == "act") return MenuElementType::Toast;
+    if (typeStr == "ProgToggle" || typeStr == "progtoggle") return MenuElementType::ProgToggle;
+    if (typeStr == "Reboot" || typeStr == "reboot") return MenuElementType::Reboot;
+    if (typeStr == "Files" || typeStr == "files") return MenuElementType::Files;
+    if (typeStr == "About" || typeStr == "about") return MenuElementType::About;
+
     return MenuElementType::Unknown;
 }

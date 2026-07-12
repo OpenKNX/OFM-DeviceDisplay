@@ -62,6 +62,17 @@ class MenuConfig
         Action,
         Submenu,
         Back,
+        Readonly, // right-aligned value via valueProvider(), no action on select
+        IpEdit,   // 4-octet IP editor, backed by MenuOption::ip[4]
+        // Semantically identical to IpEdit (both back MenuOption::ip[4]); the separate
+        // name mirrors the mockup's "ip" element. parseMenuElementType maps both spellings.
+        IpAddress,  // 4-octet IP address editor, backed by MenuOption::ip[4]
+        Reorder,    // reorder screen (e.g. widget rotation order)
+        Toast,      // action that shows an overlay toast (MenuOption::toast)
+        ProgToggle, // KNX programming-mode toggle ([x]/[ ])
+        Reboot,     // trigger a device reboot
+        Files,      // open the SD-card file browser
+        About,      // open the "About" screen
         Unknown
     };
 
@@ -74,9 +85,24 @@ class MenuConfig
         std::vector<std::string> dropdownOptions;
         std::optional<std::pair<std::string, MenuValue>> visibleIf;
         std::vector<MenuOption> submenu;
+        // Lazy submenu: when `submenu` is empty but this is set, the children are BUILT on entry.
+        // Keeps the menu-open tree small — heavy submenus (Widgets per-widget subs, Netzwerk live
+        // IPs) pay their build cost only when actually opened, not on every menu open.
+        std::function<std::vector<MenuOption>()> submenuBuilder;
 
         std::function<void()> action;
         std::function<void(const MenuOption&, const MenuValue&)> onValueChanged;
+
+        std::string toast;                          // message shown when a Toast item is selected
+        std::function<std::string()> valueProvider; // right-aligned live value for Readonly items
+        uint8_t ip[4] = {0, 0, 0, 0};               // octet carrier for IpEdit items
+        bool devOnly = false;                       // item only visible when developer mode is active
+        int sortOrder = 0;                          // stable root ordering (0 = registration order)
+
+        // Richer editors for Dropdown items (else the item cycles in place on select).
+        bool radioList = false;                     // open a full-screen single-select picker
+        bool slider = false;                        // open a horizontal slider over the options (live-applied)
+        std::function<size_t()> radioIndexProvider; // optional: live current index (reflects runtime/store state)
     };
 
     MenuConfig();
@@ -91,6 +117,15 @@ class MenuConfig
 
     const MenuValue& getValue(std::string_view key) const;
     void setValue(const std::string& key, MenuValue value);
+
+    // True when `key` already has a stored value; seed defaultValues on menu
+    // (re)build only when absent, so a user-changed value is not overwritten.
+    bool hasValue(std::string_view key) const;
+
+    // Store `value` for `key` WITHOUT firing onValueChanged. Pure state seed used
+    // on menu (re)build to prime visibleIf state (e.g. net_dhcp); must not trigger
+    // side effects (contrast changes, DHCP enable/disable, ...) merely on load.
+    void seedValue(const std::string& key, MenuValue value);
 
     bool isMenuOptionVisible(const MenuOption& option) const;
     inline const std::vector<MenuOption>& getMenu() const { return menu; }
