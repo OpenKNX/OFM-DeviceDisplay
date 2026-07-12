@@ -320,25 +320,25 @@ STARTUP -> IDLE -> {PRIORITY, BACKGROUND, DEFAULT}
     ┌──────────┐  dimTimeout (30s)
     │  ACTIVE  │─────────────────────┐
     │ 100% Br. │                     │
-    └────▲─────┘                     │
-         │                           ▼
+    └──────────┘                     │
+         ▲                           ▼
          │ userInteraction()   ┌──────────┐  screenSaverTimeout (60s)
          │                     │  DIMMED  │─────────────────────┐
-         │                     │  30% Br. │                     │
-         │                     └──────────┘                     │
+         ├─────────────────────│  30% Br. │                     │
+         │   Any Button Press  └──────────┘                     │
          │                                                      ▼
          │                                            ┌──────────────────┐
          │                                            │  SCREENSAVER     │
-         │                                            │  Animation runs  │
-         │                                            └────────┬─────────┘
+         ├────────────────────────────────────────────│  Animation runs  │
+         │              Any Button Press              └────────┬─────────┘
          │                                                     │
          │                                   sleepTimeout      │
          │                                   (5 min)           │
          │                                                     ▼
          │                                            ┌──────────────────┐
          │                                            │      SLEEP       │
-         │                                            │  Display OFF     │
-         │                                            └────────┬─────────┘
+         ├────────────────────────────────────────────│  Display OFF     │
+         │              Any Button Press              └────────┬─────────┘
          │                                                     │
          │                                   offTimeout        │
          │                                   (disabled)        │
@@ -361,10 +361,10 @@ STARTUP -> IDLE -> {PRIORITY, BACKGROUND, DEFAULT}
    └─────────┘                  │
                                 ▼
                           ┌──────────┐
-                          │   IDLE   │◄────────────────┐
-                          └────┬─────┘                 │
-                               │                       │
-        ┌──────────────────────┼───────────────────────┼──────────────────┐
+                          │   IDLE   │◄───────────────────────────────────┐
+                          └────┬─────┘                                    │
+                               │                                          │
+        ┌──────────────────────┼───────────────────────┐                  │
         │                      │                       │                  │
         │ Priority Widget      │ Background            │ Default          │
         │ (ProgMode)           │ Widget                │ Widget           │
