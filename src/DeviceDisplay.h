@@ -151,6 +151,10 @@ class DeviceDisplay : public OpenKNX::Module
     // screen/gesture hooks the MenuWidget declared but left unset. Called once from setup().
     void wireMenuCallbacks();
 
+    // Re-seed the GestureEngine's Home-key map from the persisted display settings (used at
+    // init/setup and after a "Home-Tasten" menu change).
+    void seedGestureKeyMapFromSettings();
+
     // Is the Home screen currently shown? Directional gestures only arm there.
     bool isHomeScreen() const;
 

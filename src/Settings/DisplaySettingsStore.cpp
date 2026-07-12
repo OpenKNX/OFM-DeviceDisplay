@@ -218,7 +218,13 @@ bool DisplaySettingsStore::deserialize(const uint8_t *buf, size_t size)
     _settings.screenSaverTimeoutIdx = getU8(p);
     _settings.sleepTimeoutIdx = getU8(p);
     for (size_t i = 0; i < HOME_KEY_COUNT; ++i)
-        _settings.keyMap[i] = static_cast<HomeKeyAction>(getU8(p));
+    {
+        // clamp an unknown/future action byte to None (stale/downgraded blob safety)
+        const uint8_t a = getU8(p);
+        _settings.keyMap[i] = (a <= static_cast<uint8_t>(HomeKeyAction::DisplayOff))
+                                  ? static_cast<HomeKeyAction>(a)
+                                  : HomeKeyAction::None;
+    }
     _settings.iconMenu = getU8(p) != 0;
     _settings.screenSaverCustomMin = getU16(p);
     _settings.sleepCustomMin = getU16(p);

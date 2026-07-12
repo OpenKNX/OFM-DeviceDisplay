@@ -509,6 +509,7 @@ void MenuWidget::buildMenuFromRegistry()
     assignRegisteredActions(_currentMenu);
     assignOnValueChangedHandlers(_currentMenu);
     assignRadioIndexProviders(_currentMenu); // live current-index for radio-list dropdowns
+    seedOptionValuesFromStore(_currentMenu); // set each option's defaultValue from the persisted store
 
     // Seed keyed option defaults (incl. net_dhcp) so visibleIf resolves against real state
     // on first entry. Only seeds keys still absent, so a user's prior change is preserved.
@@ -588,6 +589,16 @@ void MenuWidget::assignOnValueChangedHandlers(std::vector<MenuConfig::MenuOption
         {
             assignOnValueChangedHandlers(option.submenu);
         }
+    }
+}
+
+void MenuWidget::seedOptionValuesFromStore(std::vector<MenuConfig::MenuOption>& menuOptions)
+{
+    if (!_valueSeeder) return;
+    for (auto& option : menuOptions)
+    {
+        if (!option.key.empty()) _valueSeeder(option);
+        if (!option.submenu.empty()) seedOptionValuesFromStore(option.submenu);
     }
 }
 

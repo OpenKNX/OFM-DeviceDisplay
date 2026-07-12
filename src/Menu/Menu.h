@@ -55,6 +55,9 @@ class MenuWidget : public Widget
     // effect (e.g. the persisted screensaver), not the static defaultValue.
     void registerRadioIndexProvider(const std::string& key, std::function<size_t()> provider);
 
+    // Seeds each keyed option's live defaultValue from the persisted store at build time.
+    void setValueSeeder(std::function<void(MenuConfig::MenuOption&)> seeder) { _valueSeeder = std::move(seeder); }
+
     // Root renders as an icon grid (true) or text list (false); toggled live from the Anzeige menu.
     void setIconMenu(bool on)
     {
@@ -261,9 +264,12 @@ class MenuWidget : public Widget
     std::unordered_map<std::string, std::function<void(const MenuConfig::MenuOption&, const MenuValue&)>> onValueChangedRegistry;
     // Current-index providers for radio-list dropdowns.
     std::unordered_map<std::string, std::function<size_t()>> radioIndexProviderRegistry;
+    // Seeds each keyed option's defaultValue from the persisted store (set by DeviceDisplay).
+    std::function<void(MenuConfig::MenuOption&)> _valueSeeder;
     void assignRegisteredActions(std::vector<MenuConfig::MenuOption>& menuOptions);
     void assignOnValueChangedHandlers(std::vector<MenuConfig::MenuOption>& menuOptions);
     void assignRadioIndexProviders(std::vector<MenuConfig::MenuOption>& menuOptions);
+    void seedOptionValuesFromStore(std::vector<MenuConfig::MenuOption>& menuOptions);
 
     // Seed each keyed option's defaultValue (crucially net_dhcp) so visibleIf resolves against real
     // state on first entry. Only seeds keys still absent (never overwrites a change).

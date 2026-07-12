@@ -30,6 +30,12 @@
 
 DeviceDisplay openknxDisplayModule;
 
+#if defined(ARDUINO_ARCH_ESP32)
+// Enlarge the ESP32 loopTask stack (default 8 KB): the eager display-root menu build overflows it.
+// Lives here (always-linked TU) so the requirement stays a DeviceDisplay concern.
+SET_LOOP_TASK_STACK_SIZE(32 * 1024);
+#endif
+
 // ============================================================================
 // Constructor / Destructor
 // ============================================================================
@@ -138,18 +144,21 @@ void DeviceDisplay::init()
     });
 
     // Seed the engine key map from the display settings; setup() re-applies after readFlash().
-    {
-        GestureKeyMap km;
-        km.up = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_UP));
-        km.down = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_DOWN));
-        km.left = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_LEFT));
-        km.right = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_RIGHT));
-        _gestureEngine.setKeyMap(km);
-    }
+    seedGestureKeyMapFromSettings();
 
     // Route raw events through DeviceDisplay so the gesture engine sees them before the widget.
     if (_buttonManager)
         _buttonManager->setGestureRouter(this);
+}
+
+void DeviceDisplay::seedGestureKeyMapFromSettings()
+{
+    GestureKeyMap km;
+    km.up = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_UP));
+    km.down = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_DOWN));
+    km.left = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_LEFT));
+    km.right = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_RIGHT));
+    _gestureEngine.setKeyMap(km);
 }
 
 void DeviceDisplay::setup(bool configured)
@@ -183,14 +192,7 @@ void DeviceDisplay::setup(bool configured)
     if (_menuWidget) _menuWidget->setIconMenu(_settingsStore.iconMenu());
 
     // (Re)seed the gesture key map from the restored settings after readFlash().
-    {
-        GestureKeyMap km;
-        km.up = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_UP));
-        km.down = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_DOWN));
-        km.left = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_LEFT));
-        km.right = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_RIGHT));
-        _gestureEngine.setKeyMap(km);
-    }
+    seedGestureKeyMapFromSettings();
 
     // Setup button input
     if (_buttonManager->setup())
@@ -221,6 +223,24 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("wireMenuCallbacks: no MenuWidget - hooks/callbacks skipped");
         return;
     }
+
+    // Seed each display option's live defaultValue from the persisted store, so the menu shows saved
+    // state after reboot instead of hardcoded defaults (and re-confirm can't silently revert it).
+    _menuWidget->setValueSeeder([this](MenuConfig::MenuOption& o) {
+        if (o.key == "brightness_level") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.brightnessIdx()));
+        else if (o.key == "auto_dimming") o.defaultValue = MenuValue(_settingsStore.autoDim());
+        else if (o.key == "display_invert") o.defaultValue = MenuValue(_settingsStore.invert());
+        else if (o.key == "font_size") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.fontSizeIdx()));
+        else if (o.key == "auto_paging") o.defaultValue = MenuValue(_settingsStore.autoPaging());
+        else if (o.key == "icon_menu") o.defaultValue = MenuValue(_settingsStore.iconMenu());
+        else if (o.key == "screensaver_type") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.screenSaverType()));
+        else if (o.key == "screensaver_after") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.screenSaverTimeoutIdx()));
+        else if (o.key == "sleep_after") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.sleepTimeoutIdx()));
+        else if (o.key == "homekey_up") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_UP)));
+        else if (o.key == "homekey_down") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_DOWN)));
+        else if (o.key == "homekey_left") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_LEFT)));
+        else if (o.key == "homekey_right") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_RIGHT)));
+    });
 
     // Helligkeit: Dropdown index 0..3; brightnessIdx maps to (idx+1)*25 % (25/50/75/100).
     _menuWidget->registerOnValueChanged("brightness_level", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
@@ -257,6 +277,38 @@ void DeviceDisplay::wireMenuCallbacks()
             _displayModule->setFontSize(static_cast<uint8_t>(idx));
         _settingsStore.requestSave();
         logDebugP("fontSize -> idx %u", static_cast<unsigned>(idx));
+    });
+
+    // Home-Tasten: dropdown 0..4 (HomeKeyAction) per direction -> persist + re-seed the gesture engine.
+    const auto homeKeyFromIdx = [](size_t idx) -> HomeKeyAction {
+        // clamp out-of-range/future index to None
+        return (idx <= static_cast<size_t>(HomeKeyAction::DisplayOff))
+                   ? static_cast<HomeKeyAction>(idx)
+                   : HomeKeyAction::None;
+    };
+    _menuWidget->registerOnValueChanged("homekey_up", [this, homeKeyFromIdx](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _settingsStore.setKeyAction(HOME_KEY_UP, homeKeyFromIdx(val.getSizeT()));
+        seedGestureKeyMapFromSettings();
+        _settingsStore.requestSave();
+        logDebugP("homekey up -> %u", static_cast<unsigned>(val.getSizeT()));
+    });
+    _menuWidget->registerOnValueChanged("homekey_down", [this, homeKeyFromIdx](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _settingsStore.setKeyAction(HOME_KEY_DOWN, homeKeyFromIdx(val.getSizeT()));
+        seedGestureKeyMapFromSettings();
+        _settingsStore.requestSave();
+        logDebugP("homekey down -> %u", static_cast<unsigned>(val.getSizeT()));
+    });
+    _menuWidget->registerOnValueChanged("homekey_left", [this, homeKeyFromIdx](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _settingsStore.setKeyAction(HOME_KEY_LEFT, homeKeyFromIdx(val.getSizeT()));
+        seedGestureKeyMapFromSettings();
+        _settingsStore.requestSave();
+        logDebugP("homekey left -> %u", static_cast<unsigned>(val.getSizeT()));
+    });
+    _menuWidget->registerOnValueChanged("homekey_right", [this, homeKeyFromIdx](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _settingsStore.setKeyAction(HOME_KEY_RIGHT, homeKeyFromIdx(val.getSizeT()));
+        seedGestureKeyMapFromSettings();
+        _settingsStore.requestSave();
+        logDebugP("homekey right -> %u", static_cast<unsigned>(val.getSizeT()));
     });
 
     // Seiten auto-blaettern: Checkbox -> WidgetsManager::setAutoPaging + persist.
@@ -667,9 +719,11 @@ void DeviceDisplay::updateGestureOverlay()
     // Show the overlay from Counting through Done, NOT during PreRoll: a short tap must not flash it
     // before it is resolved as navigation.
     const GesturePhase phase = _gestureEngine.getPhase();
-    const bool shouldShow = (phase == GesturePhase::Counting ||
-                             phase == GesturePhase::Firing ||
-                             phase == GesturePhase::Done);
+    // DisplayOff hides the panel on fire; keep its overlay OUT of Firing/Done or the priority-wake
+    // (it's a StatusWidget) turns the display right back on. Its countdown still shows during Counting.
+    const bool ack = (phase == GesturePhase::Firing || phase == GesturePhase::Done);
+    const bool shouldShow = (phase == GesturePhase::Counting) ||
+                            (ack && _gestureEngine.getCurrentAction() != GestureAction::DisplayOff);
 
     Widget* w = static_cast<Widget*>(_gestureOverlay);
     const bool isShown = (static_cast<uint8_t>(w->getAction()) & DisplayEnabled) != 0;
