@@ -1,8 +1,9 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#include "ButtonManager.h"
-#include "hardware.h"
+    #include "ButtonManager.h"
+    #include "../DeviceDisplay.h" // route events through the gesture engine before the widget
+    #include "hardware.h"
 
-//#define USE_GPIO_MODULE
+// #define USE_GPIO_MODULE
 
 ButtonManager::ButtonManager(WidgetsManager* widgetManager)
     : _widgetManager(widgetManager)
@@ -18,7 +19,7 @@ ButtonManager::~ButtonManager()
  */
 bool ButtonManager::setup()
 {
-#ifdef FRONT_CTRL_UP // front-panel buttons exist when the HardwareConfig defines them; driven via native openknx.gpio (PCA9557)
+    #ifdef FRONT_CTRL_UP // front-panel buttons; driven via openknx.gpio (PCA9557)
     if (!openknx.gpio.isInitialized(1))
     {
         logErrorP("GPIO not initialized");
@@ -42,10 +43,10 @@ bool ButtonManager::setup()
     _enabled = true;
     logInfoP("Initialized (5-way navigation)");
     return true;
-#else
+    #else
     logWarningP("GPIO module not available");
     return false;
-#endif
+    #endif
 }
 
 /**
@@ -87,30 +88,37 @@ void ButtonManager::processButton(uint16_t pin, ButtonType type, size_t index)
     ButtonEvent* event = checkButton(pin, type, index);
     if (!event) return;
 
-    //logDebugP("Button %d event %d", type, event->action);
-    // Log button type and action as text for easier debugging
     const char* typeStr = nullptr;
-    switch (type) {
-      case ButtonType::UP: typeStr = "UP"; break;
-      case ButtonType::DOWN: typeStr = "DOWN"; break;
-      case ButtonType::SELECT: typeStr = "SELECT"; break;
-      case ButtonType::LEFT: typeStr = "LEFT"; break;
-      case ButtonType::RIGHT: typeStr = "RIGHT"; break;
-      default: typeStr = "UNKNOWN"; break;
+    switch (type)
+    {
+        case ButtonType::UP: typeStr = "UP"; break;
+        case ButtonType::DOWN: typeStr = "DOWN"; break;
+        case ButtonType::SELECT: typeStr = "SELECT"; break;
+        case ButtonType::LEFT: typeStr = "LEFT"; break;
+        case ButtonType::RIGHT: typeStr = "RIGHT"; break;
+        default: typeStr = "UNKNOWN"; break;
     }
 
     const char* actionStr = nullptr;
-    switch (event->action) {
-      case ButtonAction::PRESS: actionStr = "PRESS"; break;
-      case ButtonAction::RELEASE: actionStr = "RELEASE"; break;
-      case ButtonAction::LONG_PRESS: actionStr = "LONG_PRESS"; break;
-      case ButtonAction::VERY_LONG_PRESS: actionStr = "VERY_LONG_PRESS"; break;
-      default: actionStr = "UNKNOWN"; break;
+    switch (event->action)
+    {
+        case ButtonAction::PRESS: actionStr = "PRESS"; break;
+        case ButtonAction::RELEASE: actionStr = "RELEASE"; break;
+        case ButtonAction::LONG_PRESS: actionStr = "LONG_PRESS"; break;
+        case ButtonAction::VERY_LONG_PRESS: actionStr = "VERY_LONG_PRESS"; break;
+        default: actionStr = "UNKNOWN"; break;
     }
     logDebugP("Button: %s (%d) Action: %s (%d)", typeStr, static_cast<int>(type), actionStr, static_cast<int>(event->action));
 
-    
-    // Get active widget that wants button input
+    // When a gesture router is wired it forwards to the active widget itself; do not also forward here.
+    if (_gestureRouter)
+    {
+        _gestureRouter->handleButtonEvent(*event);
+        delete event;
+        return;
+    }
+
+    // Legacy path (no router wired): forward straight to the active widget.
     Widget* activeWidget = _widgetManager->getActiveButtonWidget();
 
     if (!activeWidget)
@@ -173,11 +181,11 @@ ButtonEvent* ButtonManager::checkButton(uint16_t pin, ButtonType type, size_t in
  */
 bool ButtonManager::readButton(uint16_t pin)
 {
-#ifdef FRONT_CTRL_UP // front-panel buttons exist when the HardwareConfig defines them; driven via native openknx.gpio (PCA9557)
+    #ifdef FRONT_CTRL_UP // front-panel buttons; driven via openknx.gpio (PCA9557)
     return openknx.gpio.digitalRead(pin);
-#else
+    #else
     return false;
-#endif
+    #endif
 }
 
 /**
@@ -188,5 +196,43 @@ void ButtonManager::setEnabled(bool enabled)
 {
     _enabled = enabled;
     logInfoP("%s", enabled ? "Enabled" : "Disabled");
+}
+
+// --- Continuous hold-duration query API ---------------------------------------------
+// Getters only read the debounced state maintained by checkButton(); no hardware read, alloc or events.
+
+/**
+ * @brief Index (0..4) of the currently held button, lowest index wins; -1 if none held.
+ */
+int ButtonManager::getHeldButtonIndex() const
+{
+    for (size_t i = 0; i < ButtonCount; ++i)
+    {
+        if (_buttonPressed[i]) return static_cast<int>(i);
+    }
+    return -1;
+}
+
+/**
+ * @brief ButtonType of the currently held button (lowest index wins).
+ * @param outType receives the held button's type; untouched when nothing is held
+ * @return true if a button is currently held, false otherwise
+ */
+bool ButtonManager::getHeldButton(ButtonType& outType) const
+{
+    const int idx = getHeldButtonIndex();
+    if (idx < 0) return false;
+
+    // Index order matches loop(): UP=0, DOWN=1, SELECT=2, LEFT=3, RIGHT=4 (== ButtonType values).
+    outType = static_cast<ButtonType>(idx);
+    return true;
+}
+
+/**
+ * @brief True while any navigation button is currently held down.
+ */
+bool ButtonManager::isAnyButtonDown() const
+{
+    return getHeldButtonIndex() >= 0;
 }
 #endif // DEVICE_DISPLAY_MODULE

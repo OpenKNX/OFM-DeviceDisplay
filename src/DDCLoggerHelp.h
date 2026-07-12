@@ -1,5 +1,5 @@
 #ifdef DEVICE_DISPLAY_MODULE
-#pragma once
+    #pragma once
 /**
  * @file        DDCLoggerHelp.h
  * @brief       Device Display Control - Logger & Help System
@@ -7,18 +7,18 @@
  *              logging and help system (extens the OpenKNX logger)
  * @version     0.0.1
  * @date        2024-11-27
- * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@çolak.de)
+ * @copyright   Copyright (c) 2024, Erkan Çolak (erkan@colak.de)
  *              Licensed under GNU GPL v3.0
  **/
 
-#include "OpenKNX.h"
+    #include "OpenKNX.h"
 
-#include <functional>
-#include <string>
-#include <vector>
+    #include <functional>
+    #include <string>
+    #include <vector>
 
-#define DISPLAY_LOW_LEVEL_COMMANDS
-#define WIDGET_CONSOLE
+    #define DISPLAY_LOW_LEVEL_COMMANDS
+    #define WIDGET_CONSOLE
 
 // Forward declarations
 class Widget;
@@ -56,19 +56,23 @@ class DDCLoggerHelp
     // Command routing
     bool processListCommand();
     bool processInfoCommand();
+
+    // "ddc i" extra sections (see processInfoCommand()).
+    void logMenuSettings(); // every menu-set value from DisplaySettingsStore
+    void logMemoryInfo();   // free heap now / min-ever / total (cross-platform)
     bool processQRCommand(const std::string& command);
     bool processWidgetCommand(const std::string& command);
     bool isWidgetCommand(const std::string& command);
 
-#ifdef WIDGET_CONSOLE
+    #ifdef WIDGET_CONSOLE
     bool processConsoleCommand(const std::string& command);
-#endif
+    #endif
 
-#ifdef DISPLAY_LOW_LEVEL_COMMANDS
+    #ifdef DISPLAY_LOW_LEVEL_COMMANDS
     bool processLowLevelCommand(const std::string& command);
     bool isLowLevelCommand(const std::string& command);
     bool processScrollCommand(const std::string& command);
-#endif
+    #endif
 
     void registerWidgetCommands();
 };

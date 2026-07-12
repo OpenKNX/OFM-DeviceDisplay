@@ -1,5 +1,7 @@
 #include "i2cdisplay.h"
 
+#include "OpenKNX/I2C/Wire1Lock.h" // shared Wire1 (display+PCA9557) mutex; no-op on RP2040
+
 #define SSD1306_NO_SPLASH // Suppress the internal display splash screen
 
 /**
@@ -53,19 +55,23 @@ bool i2cDisplay::InitDisplay()
     CustomI2C->setSCL(lcdSettings.scl);
     CustomI2C->begin();
 #endif
-    
-    //display = new Adafruit_SSD1306(lcdSettings.width, lcdSettings.height, CustomI2C, lcdSettings.reset, 1000000UL, 1000000UL);
+
+    // display = new Adafruit_SSD1306(lcdSettings.width, lcdSettings.height, CustomI2C, lcdSettings.reset, 1000000UL, 1000000UL);
     display = new Adafruit_SSD1306(lcdSettings.width, lcdSettings.height, CustomI2C, lcdSettings.reset, OPENKNX_GPIO_CLOCK, OPENKNX_GPIO_CLOCK);
 
-    if (!display->begin(SSD1306_SWITCHCAPVCC, lcdSettings.i2cadress, true, true))
+    // One Wire1 lock for the whole begin+config block. No-op on RP2040.
     {
-        return false; // Display not found or not initialized. Check the wiring and i2c address
-    }
+        OPENKNX_WIRE1_LOCK();
+        if (!display->begin(SSD1306_SWITCHCAPVCC, lcdSettings.i2cadress, true, true))
+        {
+            return false; // Display not found or not initialized. Check the wiring and i2c address
+        }
 
-    display->ssd1306_command(SSD1306_SEGREMAP);   // Spiegele die Spaltenanordnung
-    display->ssd1306_command(SSD1306_COMSCANINC); // Ändere die Zeilenrichtung
-    display->clearDisplay();                      // Clear initialy the display buffer. Previous arcifacts could be displayed
-    display->display();                           // Display the cleared buffer
+        display->ssd1306_command(SSD1306_SEGREMAP);   // Spiegele die Spaltenanordnung
+        display->ssd1306_command(SSD1306_COMSCANINC); // Ändere die Zeilenrichtung
+        display->clearDisplay();                      // Clear initialy the display buffer. Previous arcifacts could be displayed
+        display->display();                           // Display the cleared buffer
+    }
 
     return true;
 }
@@ -88,26 +94,34 @@ void i2cDisplay::setup()
 }
 
 /**
- * @brief Partial content-transfer to display, when loop time is available.
+ * @brief Non-blocking partial transfer: push at most FLUSH_PAGES_PER_LOOP dirty pages per call so
+ *        a full-frame change never blocks the loop (whole 128x64 push at 400kHz was ~54ms).
  */
 void i2cDisplay::loop()
 {
-    if (__loopColumnMethod) // Check if the loop column method is enabled
-    {
+    if (!_curDispBuffer || !_prevDispBuffer || !display) return;
 
-        if (_loopColumn <= (lcdSettings.width - _loopColumnCount))
+    const int pages = lcdSettings.height / 8;
+    const int width = lcdSettings.width;
+    if (pages <= 0) return;
+    uint8_t pushed = 0;
+    // Round-robin the scan start so a page re-dirtied every frame never starves the lower body pages.
+    for (int i = 0; i < pages && i < MAX_PAGES && pushed < FLUSH_PAGES_PER_LOOP; i++)
+    {
+        const int page = (_flushCursor + i) % pages;
+        if (!_pageDirty[page]) continue;
+        const int startCol = _dirtyStartCol[page];
+        const int endCol = _dirtyEndCol[page];
+        updatePage(page, startCol, endCol); // one bounded I2C transfer for this page's dirty range
+        for (int col = startCol; col <= endCol; col++)
         {
-            if (openknx.freeLoopTime())
-            {
-                updateCols(_loopColumn, _loopColumn + _loopColumnCount - 1);
-                _loopColumn += _loopColumnCount;
-            }
+            const size_t index = (size_t)page * width + col;
+            _prevDispBuffer[index] = _curDispBuffer[index]; // this page's range is now on-screen
         }
-        else if (_loopColumn == 0xff)
-        {
-            _loopColumn = 0;
-        }
-    } // End of loop column method
+        _pageDirty[page] = false;
+        pushed++;
+        _flushCursor = (uint8_t)((page + 1) % pages); // continue after this page on the next loop()
+    }
 }
 
 /**
@@ -229,7 +243,9 @@ void i2cDisplay::SetDisplaySettings(uint8_t width, uint8_t height, uint8_t i2cad
  */
 void i2cDisplay::SetDisplayContrast(uint8_t contrast) // Set the contrast of the display
 {
-    display->ssd1306_command(SSD13XX_SETCONTRAST);
+    // Contrast is 0x81 (SSD1306_SETCONTRAST) on both SSD1306 and SSD1315 (0xD9 is pre-charge).
+    OPENKNX_WIRE1_LOCK();                          // shared Wire1 vs LED flush; no-op on RP2040
+    display->ssd1306_command(SSD1306_SETCONTRAST); // 0x81 on SSD1306 AND SSD1315
     display->ssd1306_command(contrast);
 }
 
@@ -246,6 +262,7 @@ void i2cDisplay::SetDisplayVCOMDetect(uint8_t vcomh) // Set the VCOMH regulator 
     if (vcomh < 0 || vcomh > 0xFF)
         return;
 
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
     display->ssd1306_command(SSD13XX_SETVCOMDETECT);
     display->ssd1306_command(vcomh);
 }
@@ -257,8 +274,37 @@ void i2cDisplay::SetDisplayVCOMDetect(uint8_t vcomh) // Set the VCOMH regulator 
  */
 void i2cDisplay::SetInvertDisplay(bool invert) // Invert the display
 {
-    // display->ssd1306_command(invert ? SSD1306_INVERTDISPLAY : SSD1306_NORMALDISPLAY);
+    _invert = invert;     // track state so it can be re-applied after DISPLAYON/contrast
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
     display->invertDisplay(invert);
+}
+
+/**
+ * @brief Set the invert state (live + persistent); re-applied by displayOn().
+ * @param invert true to invert the display, false for normal
+ */
+void i2cDisplay::setInvert(bool invert)
+{
+    SetInvertDisplay(invert);
+}
+
+/**
+ * @brief Central font-size control. Level 0/1/2 maps to Adafruit setTextSize(1/2/3).
+ * @param level 0 (Normal), 1 (Groß) or 2 (Größer); values >2 are clamped to 2.
+ */
+void i2cDisplay::setFontSize(uint8_t level)
+{
+    if (level > 2) level = 2;
+    _fontSize = level;
+
+    if (!display)
+    {
+        logDebugP("setFontSize(%d) - display not initialized", level);
+        return;
+    }
+
+    display->setTextSize(level + 1); // 0/1/2 -> 1/2/3
+    logDebugP("Display font size set to level %d (textSize %d)", level, level + 1);
 }
 
 /**
@@ -268,6 +314,7 @@ void i2cDisplay::SetInvertDisplay(bool invert) // Invert the display
  */
 void i2cDisplay::SetDisplayStartLine(uint8_t startline) // Set the display start line
 {
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
     display->ssd1306_command(SSD1306_SETSTARTLINE | startline);
 }
 
@@ -278,6 +325,7 @@ void i2cDisplay::SetDisplayStartLine(uint8_t startline) // Set the display start
  */
 void i2cDisplay::SetDisplayOffset(uint8_t offset) // Set the display offset
 {
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
     display->ssd1306_command(SSD1306_SETDISPLAYOFFSET);
     display->ssd1306_command(offset);
 }
@@ -289,6 +337,7 @@ void i2cDisplay::SetDisplayOffset(uint8_t offset) // Set the display offset
  */
 void i2cDisplay::SetDisplayClockDiv(uint8_t clockdiv) // Set the display clock division
 {
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
     display->ssd1306_command(SSD1306_SETDISPLAYCLOCKDIV);
     display->ssd1306_command(clockdiv);
 }
@@ -301,6 +350,7 @@ void i2cDisplay::SetDisplayClockDiv(uint8_t clockdiv) // Set the display clock d
  */
 void i2cDisplay::SetDisplayPreCharge(uint8_t precharge) // Set the display precharge
 {
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
     display->ssd1306_command(SSD1306_SETPRECHARGE);
     display->ssd1306_command(precharge);
 }
@@ -311,41 +361,38 @@ void i2cDisplay::SetDisplayPreCharge(uint8_t precharge) // Set the display prech
  */
 void i2cDisplay::displayBuff()
 {
-    if (__loopColumnMethod)
-    {
-        // start sending to display on change only
-        if (memcmp(_curDispBuffer, display->getBuffer(), _sizeDispBuff) != 0)
-        {
-            memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
-            _loopColumn = 0xff;
-        }
-        else
-        {
-            logError("DeviceDisplay", "Warning: i2cDisplay::displayBuff() was called for unchaned output");
-        }
-    }
-    else
-    {
-        memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff); // Copy the display buffer to the current buffer
-        for (int page = 0; page < lcdSettings.height / 8; page++)    // Loop through the pages of the display
-        {
-            int startColumn = lcdSettings.width; // Set the start column to the width of the display
-            int endColumn = -1;                  // Set the end column to -1
-            bool pageChanged = false;            // Set the page changed flag to false.
+    if (!_curDispBuffer || !_prevDispBuffer || !display) return;
 
-            for (int col = 0; col < lcdSettings.width; col++) // Loop through the columns of the display
+    // Snapshot + diff only, no I2C; loop() pushes the pixels. prev is synced per page only when that
+    // page is actually sent (in loop()), so the diff always reflects what is physically on-screen.
+    memcpy(_curDispBuffer, display->getBuffer(), _sizeDispBuff);
+    const int pages = lcdSettings.height / 8;
+    const int width = lcdSettings.width;
+    for (int page = 0; page < pages && page < MAX_PAGES; page++)
+    {
+        int startCol = width, endCol = -1;
+        for (int col = 0; col < width; col++)
+        {
+            const size_t index = (size_t)page * width + col;
+            if (_curDispBuffer[index] != _prevDispBuffer[index])
             {
-                size_t index = page * lcdSettings.width + col;       // Calculate the index of the current byte
-                if (_curDispBuffer[index] != _prevDispBuffer[index]) // Check if the current byte is different from the previous byte
-                {
-                    pageChanged = true;
-                    if (col < startColumn) startColumn = col;       // Set the start column
-                    if (col > endColumn) endColumn = col;           // Set the end column
-                    _prevDispBuffer[index] = _curDispBuffer[index]; // Update the previous buffer
-                }
+                if (col < startCol) startCol = col;
+                if (col > endCol) endCol = col;
             }
-            if (pageChanged) // Update only if the page has changed. This will reduce the number of updates
-                updatePage(page, startColumn, endColumn);
+        }
+        if (endCol >= 0) // this page changed -> (merge and) flag its dirty column range
+        {
+            if (_pageDirty[page])
+            {
+                if (startCol < _dirtyStartCol[page]) _dirtyStartCol[page] = (int16_t)startCol;
+                if (endCol > _dirtyEndCol[page]) _dirtyEndCol[page] = (int16_t)endCol;
+            }
+            else
+            {
+                _dirtyStartCol[page] = (int16_t)startCol;
+                _dirtyEndCol[page] = (int16_t)endCol;
+                _pageDirty[page] = true;
+            }
         }
     }
 }
@@ -384,20 +431,28 @@ bool i2cDisplay::initDisplayBuffer()
  */
 void i2cDisplay::updatePage(int page, int startCol, int endCol)
 {
-    if (startCol > endCol) return;                       // Return if the start column is greater than the end column
-    sendCommand(SSD1306_PAGEADDR);                       // Set the page address
-    sendCommand(page);                                   // Set the page
-    sendCommand(page);                                   // Set the page
-    sendCommand(SSD1306_COLUMNADDR);                     // Set the column address
-    sendCommand(startCol);                               // Set the start column
-    sendCommand(endCol);                                 // Set the end column
-    CustomI2C->beginTransmission(lcdSettings.i2cadress); // Begin the transmission of the changes
-    CustomI2C->write(0x40);                              // Set the data mode
-    for (int col = startCol; col <= endCol; col++)       // Loop through the columns
+    if (startCol > endCol) return;
+    // Push in small column chunks, each in its own Wire1 lock scope, so the bus is held <1ms/chunk and
+    // the LED flush isn't starved. Each chunk re-arms the page+column window (the LED write may run in between).
+    static constexpr int WIRE1_CHUNK_COLS = 32; // ~<1 ms bus hold @ 400 kHz
+    for (int c0 = startCol; c0 <= endCol; c0 += WIRE1_CHUNK_COLS)
     {
-        CustomI2C->write(_curDispBuffer[page * lcdSettings.width + col]); // Write the data to the display
+        const int c1 = (c0 + WIRE1_CHUNK_COLS - 1 < endCol) ? (c0 + WIRE1_CHUNK_COLS - 1) : endCol;
+        OPENKNX_WIRE1_LOCK();                                // released each iteration so the LED can slip in
+        sendCommandUnlocked(SSD1306_PAGEADDR);               // Set the page address
+        sendCommandUnlocked(page);                           // start page
+        sendCommandUnlocked(page);                           // end page (single page)
+        sendCommandUnlocked(SSD1306_COLUMNADDR);             // Set the column address
+        sendCommandUnlocked(c0);                             // chunk start column
+        sendCommandUnlocked(c1);                             // chunk end column
+        CustomI2C->beginTransmission(lcdSettings.i2cadress); // Begin the transmission of the changes
+        CustomI2C->write(0x40);                              // Set the data mode
+        for (int col = c0; col <= c1; col++)                 // Loop through this chunk's columns
+        {
+            CustomI2C->write(_curDispBuffer[page * lcdSettings.width + col]); // Write the data to the display
+        }
+        CustomI2C->endTransmission(); // End the transmission for this chunk
     }
-    CustomI2C->endTransmission(); // End the transmission
 }
 
 /**
@@ -407,13 +462,15 @@ void i2cDisplay::updatePage(int page, int startCol, int endCol)
  */
 void i2cDisplay::updateCols(int startCol, int endCol)
 {
-    if (startCol > endCol) return;                            // Return if the start column is greater than the end column
-    sendCommand(SSD1306_PAGEADDR);                            // Set the page address
-    sendCommand(0);                                           // Set the page
-    sendCommand((lcdSettings.height / 8) - 1);                // Set the page
-    sendCommand(SSD1306_COLUMNADDR);                          // Set the column address
-    sendCommand(startCol);                                    // Set the start column
-    sendCommand(endCol);                                      // Set the end column
+    if (startCol > endCol) return;
+    // Whole multi-page column push is one Wire1 critical section. No-op on RP2040.
+    OPENKNX_WIRE1_LOCK();
+    sendCommandUnlocked(SSD1306_PAGEADDR);                    // Set the page address
+    sendCommandUnlocked(0);                                   // Set the page
+    sendCommandUnlocked((lcdSettings.height / 8) - 1);        // Set the page
+    sendCommandUnlocked(SSD1306_COLUMNADDR);                  // Set the column address
+    sendCommandUnlocked(startCol);                            // Set the start column
+    sendCommandUnlocked(endCol);                              // Set the end column
     CustomI2C->beginTransmission(lcdSettings.i2cadress);      // Begin the transmission of the changes
     CustomI2C->write(0x40);                                   // Set the data mode
     for (int page = 0; page < lcdSettings.height / 8; page++) // Loop through the pages of the display
@@ -427,10 +484,20 @@ void i2cDisplay::updateCols(int startCol, int endCol)
 }
 
 /**
- * @brief Send a command to the display.
+ * @brief Send a single command to the display (one atomic Wire1 transaction). No-op lock on RP2040.
  * @param command to send
  */
 void i2cDisplay::sendCommand(uint8_t command)
+{
+    OPENKNX_WIRE1_LOCK();
+    sendCommandUnlocked(command);
+}
+
+/**
+ * @brief Raw command send without taking the Wire1 lock. Only call from a context that already holds it.
+ * @param command to send
+ */
+void i2cDisplay::sendCommandUnlocked(uint8_t command)
 {
     CustomI2C->beginTransmission(lcdSettings.i2cadress);
     CustomI2C->write(0x00);
@@ -449,13 +516,15 @@ void i2cDisplay::updateArea(int x, int y, int byteIndex)
     int page = y / 8; // Page from 0 to 7
     int column = x;   // Column from 0 to 127
 
-    sendCommand(SSD1306_PAGEADDR); // Set the page address
-    sendCommand(page);             // Set the page
-    sendCommand(page);             // Set the page second time, because the display expects two values
+    // Whole area push is one Wire1 critical section. No-op on RP2040.
+    OPENKNX_WIRE1_LOCK();
+    sendCommandUnlocked(SSD1306_PAGEADDR); // Set the page address
+    sendCommandUnlocked(page);             // Set the page
+    sendCommandUnlocked(page);             // Set the page second time, because the display expects two values
 
-    sendCommand(SSD1306_COLUMNADDR);    // Set the column address
-    sendCommand(column);                // Set the column
-    sendCommand(lcdSettings.width - 1); // Set the last column
+    sendCommandUnlocked(SSD1306_COLUMNADDR);    // Set the column address
+    sendCommandUnlocked(column);                // Set the column
+    sendCommandUnlocked(lcdSettings.width - 1); // Set the last column
 
     CustomI2C->beginTransmission(lcdSettings.i2cadress); // Send the changes pixel by pixel
     CustomI2C->write(0x40);                              // Data mode
@@ -468,12 +537,14 @@ void i2cDisplay::updateArea(int x, int y, int byteIndex)
  */
 void i2cDisplay::displayFullBuffer()
 {
-    sendCommand(SSD1306_PAGEADDR);
-    sendCommand(0);                            // First page
-    sendCommand((lcdSettings.height / 8) - 1); // Last page
-    sendCommand(SSD1306_COLUMNADDR);
-    sendCommand(0);                     // First column
-    sendCommand(lcdSettings.width - 1); // Last column
+    // Whole-frame push is one Wire1 critical section. No-op on RP2040.
+    OPENKNX_WIRE1_LOCK();
+    sendCommandUnlocked(SSD1306_PAGEADDR);
+    sendCommandUnlocked(0);                            // First page
+    sendCommandUnlocked((lcdSettings.height / 8) - 1); // Last page
+    sendCommandUnlocked(SSD1306_COLUMNADDR);
+    sendCommandUnlocked(0);                     // First column
+    sendCommandUnlocked(lcdSettings.width - 1); // Last column
 
     CustomI2C->beginTransmission(lcdSettings.i2cadress);
     CustomI2C->write(0x40); // Data mode
@@ -526,13 +597,22 @@ void i2cDisplay::displayOn()
         return;
     }
 
-    // SSD1306: Send display on command
-    display->ssd1306_command(SSD1306_DISPLAYON);
+    // Scoped lock on the raw display-> call only; setBrightness()/SetDisplay* self-lock (non-recursive mutex).
+    {
+        OPENKNX_WIRE1_LOCK();
+        display->ssd1306_command(SSD1306_DISPLAYON);
+    }
 
-    // Restore last brightness (contrast and VCOM)
+    // Restore last brightness (contrast and VCOM) - SetDisplayContrast/VCOMDetect self-lock Wire1
     setBrightness(_brightness);
 
-    logDebugP("Display turned ON");
+    // Re-apply invert; the SSD1306 can reset it after DISPLAYON/contrast changes.
+    {
+        OPENKNX_WIRE1_LOCK();
+        display->invertDisplay(_invert);
+    }
+
+    logDebugP("Display turned ON (invert=%d)", _invert);
 }
 
 /**
@@ -548,12 +628,15 @@ void i2cDisplay::displayOff()
         return;
     }
 
-    // Optional: Set contrast and VCOM to 0 before turning off
+    // Optional: Set contrast and VCOM to 0 before turning off (these self-lock Wire1)
     SetDisplayContrast(0x00);
     SetDisplayVCOMDetect(0x00);
 
-    // SSD1306: Send display off command
-    display->ssd1306_command(SSD1306_DISPLAYOFF);
+    // Scoped lock on the raw display-> call only (SetDisplay* helpers self-lock). No-op on RP2040.
+    {
+        OPENKNX_WIRE1_LOCK();
+        display->ssd1306_command(SSD1306_DISPLAYOFF);
+    }
 
     logDebugP("Display turned OFF");
 }
