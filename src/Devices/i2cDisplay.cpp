@@ -289,6 +289,22 @@ void i2cDisplay::setInvert(bool invert)
 }
 
 /**
+ * @brief 180deg rotation: segment-remap (H-mirror) + COM-scan direction (V-mirror) = 180deg turn.
+ * @details Default panel orientation is SEGREMAP (0xA0) + COMSCANINC (0xC0), set in init(). Rotating
+ *          sends SEGREMAP|1 (0xA1) + COMSCANDEC (0xC8). The remap applies to the live RAM->panel scan,
+ *          so the currently shown frame flips on the next refresh; callers still request a redraw.
+ * @param flip180 true = upside-down (rotated), false = default orientation
+ */
+void i2cDisplay::setRotation(bool flip180)
+{
+    _rotate180 = flip180;
+    if (!display) return;
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
+    display->ssd1306_command(SSD1306_SEGREMAP | (flip180 ? 0x1 : 0x0));
+    display->ssd1306_command(flip180 ? SSD1306_COMSCANDEC : SSD1306_COMSCANINC);
+}
+
+/**
  * @brief Central font-size control. Level 0/1/2 maps to Adafruit setTextSize(1/2/3).
  * @param level 0 (Normal), 1 (Groß) or 2 (Größer); values >2 are clamped to 2.
  */

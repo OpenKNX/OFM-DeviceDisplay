@@ -241,6 +241,11 @@ void GestureEngine::setOnDisplayOff(ActionCallback cb)
     _onDisplayOff = cb;
 }
 
+void GestureEngine::setOnScreenshot(ActionCallback cb)
+{
+    _onScreenshot = cb;
+}
+
 void GestureEngine::fireAction()
 {
     // Fire exactly once per gesture. Guarding here (rather than only at the call site) makes
@@ -264,6 +269,9 @@ void GestureEngine::fireAction()
             break;
         case GestureAction::DisplayOff:
             if (_onDisplayOff) _onDisplayOff();
+            break;
+        case GestureAction::Screenshot:
+            if (_onScreenshot) _onScreenshot();
             break;
         case GestureAction::None:
         default:

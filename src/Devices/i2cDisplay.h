@@ -90,11 +90,20 @@ class i2cDisplay
     void setInvert(bool invert); // Track + apply invert state
     bool isInverted() const { return _invert; }
 
+    // 180deg rotation via segment-remap + COM-scan direction (self-locking; safe at runtime, NOT
+    // inside the already-locked init block). Applies to the live panel scan -> caller redraws.
+    void setRotation(bool flip180);
+    bool isRotated() const { return _rotate180; }
+
+    // Raw 1-bit framebuffer (SSD1306 vertical packing) for the screenshot encoder; nullptr if uninit.
+    const uint8_t* getFramebuffer() const { return display ? display->getBuffer() : nullptr; }
+
   private:
     uint8_t _brightness = 100;
     bool _displayOn = true;
-    uint8_t _fontSize = 0; // 0/1/2 -> setTextSize(1/2/3); menu default is 0
-    bool _invert = false;  // current invert state, re-applied after DISPLAYON
+    uint8_t _fontSize = 0;   // 0/1/2 -> setTextSize(1/2/3); menu default is 0
+    bool _invert = false;    // current invert state, re-applied after DISPLAYON
+    bool _rotate180 = false; // current 180deg rotation state
 
     // #define BUFFER_SIZE (128 * ((64 + 7 ) / 8))
     uint16_t _sizeDispBuff;

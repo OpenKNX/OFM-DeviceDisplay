@@ -136,6 +136,8 @@ const char *WidgetGestureOverlay::titleForAction(GestureAction action) const
             return "Prog-Mode";
         case GestureAction::DisplayOff:
             return "Display";
+        case GestureAction::Screenshot:
+            return "Screenshot";
         default:
             return "Aktion";
     }
@@ -159,6 +161,8 @@ const char *WidgetGestureOverlay::labelForAction(GestureAction action) const
             return _progActive ? "BEENDEN" : "AKTIVIEREN";
         case GestureAction::DisplayOff:
             return "AUS";
+        case GestureAction::Screenshot:
+            return "AUFNEHMEN";
         default:
             return "";
     }

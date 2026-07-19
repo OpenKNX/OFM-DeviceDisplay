@@ -31,11 +31,12 @@
  */
 enum class GestureAction : uint8_t
 {
-    None = 0,  // No action (e.g. released too early, or key not mapped)
-    Pause,     // Pause the widget rotation
-    Reboot,    // Reboot the device
-    ProgMode,  // Toggle KNX programming mode
-    DisplayOff // Turn the display off immediately (#17); any button wakes it
+    None = 0,   // No action (e.g. released too early, or key not mapped)
+    Pause,      // Pause the widget rotation
+    Reboot,     // Reboot the device
+    ProgMode,   // Toggle KNX programming mode
+    DisplayOff, // Turn the display off immediately (#17); any button wakes it
+    Screenshot  // Capture the framebuffer to SD (#value MUST match HomeKeyAction::Screenshot = 5)
 };
 
 /**
@@ -81,10 +82,10 @@ static constexpr uint32_t GESTURE_DONE_MS = 1300; // ms Done dwell after Prog/Pa
  */
 struct GestureKeyMap
 {
-    GestureAction up = GestureAction::Pause;        // Home: button Up
-    GestureAction down = GestureAction::Reboot;     // Home: button Down
-    GestureAction left = GestureAction::DisplayOff; // Home: button Left-hold -> display off (#17)
-    GestureAction right = GestureAction::None;      // Home: button Right
+    GestureAction up = GestureAction::Pause;          // Home: button Up
+    GestureAction down = GestureAction::Reboot;       // Home: button Down
+    GestureAction left = GestureAction::DisplayOff;   // Home: button Left-hold -> display off (#17)
+    GestureAction right = GestureAction::Screenshot;  // Home: button Right-hold -> screenshot to SD
 };
 
 /**
@@ -210,6 +211,13 @@ class GestureEngine
      */
     void setOnDisplayOff(ActionCallback cb);
 
+    /**
+     * @brief Set the callback fired when a Screenshot gesture reaches Firing.
+     * @note  Must only REQUEST a screenshot (latch a flag); the actual SD write runs from loop().
+     *        A blocking file write in this callback would reboot the RP2040. Invoked once, non-blocking.
+     */
+    void setOnScreenshot(ActionCallback cb);
+
   private:
     GesturePhase _phase = GesturePhase::Idle;    // Current gesture phase
     GestureAction _action = GestureAction::None; // Action of the current gesture
@@ -227,6 +235,7 @@ class GestureEngine
     ActionCallback _onReboot;      // fired for GestureAction::Reboot
     ActionCallback _onPauseToggle; // fired for GestureAction::Pause
     ActionCallback _onDisplayOff;  // fired for GestureAction::DisplayOff (#17)
+    ActionCallback _onScreenshot;  // fired for GestureAction::Screenshot
 
     bool _fired = false;   // Firing callback already dispatched for this gesture
     uint32_t _firedAt = 0; // millis() when the action fired (for the Done dwell)
