@@ -1,6 +1,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
     #include "DeviceDisplay.h"
-    #include "DDCLoggerHelp.h"
+    #include "ddc_console.h"
     #include "Devices/ButtonManager.h"
     #include "Devices/i2cDisplay.h"
     #include "WidgetsManager.h"
@@ -12,6 +12,7 @@
     #include "Widgets/Clock.h"
     #include "Widgets/GestureOverlay.h"
     #include "Widgets/ProgMode.h"
+    #include "Widgets/OTAUpdate.h"
     #include "Widgets/WidgetTime.h"
     #include "Widgets/Cube3D.h"
     #include "Widgets/Doom.h"
@@ -26,7 +27,27 @@
         #include "Widgets/Console.h"
     #endif
 
+    // OFM-Network is optional. Its header body only exists when an IP transport is configured
+    // (NetworkModule.h is wrapped in #if KNX_IP_WIFI || KNX_IP_LAN), so guard on BOTH the header
+    // presence AND a transport - otherwise a display build without a transport would reference the
+    // non-existent openknxNetwork and fail to compile.
+    #if defined(__has_include)
+        #if __has_include("NetworkModule.h") && (defined(KNX_IP_WIFI) || defined(KNX_IP_LAN))
+            #include "NetworkModule.h"
+            #define DDISP_HAS_NETWORK_MODULE 1
+        #endif
+    #endif
+
     #include <algorithm> // std::min/std::max for index clamping
+    #include <cstring>   // memcpy for the framebuffer snapshot
+
+    #include "ScreenshotBmp.h"
+    #ifdef OPENKNX_SD_CARD_MODULE_ENABLE
+        #include "SDCardModule.h" // sdCardModule + FSFILE (screenshot -> SD)
+
+// One shot at a time: a single static file handle held across the writer FSM's loop ticks.
+static FSFILE s_screenshotFile;
+    #endif
 
 DeviceDisplay openknxDisplayModule;
 
@@ -47,13 +68,16 @@ DeviceDisplay::DeviceDisplay()
 DeviceDisplay::~DeviceDisplay()
 {
     delete _buttonManager;
-    delete _ddcLoggerHelp;
+    #ifndef DDC_CONSOLE_DISABLE
+    delete _ddcConsole;
+    #endif
     delete _menuRegistry;
     delete _widgetManager;
     delete _displayModule;
     // DeviceDisplay owns the screensaver instance; free it after the manager is gone.
     delete _screenSaverOwned;
-    // _progModeWidget / _gestureOverlay are owned by the WidgetsManager queue - do not double-free.
+    // _progModeWidget / _gestureOverlay / _aboutWidget / _otaWidget are owned by the WidgetsManager
+    // queue - do not double-free.
 }
 
 // ============================================================================
@@ -68,12 +92,18 @@ void DeviceDisplay::init()
     _displayModule = new i2cDisplay();
     _widgetManager = new WidgetsManager();
     _buttonManager = new ButtonManager(_widgetManager);
-    _ddcLoggerHelp = new DDCLoggerHelp(_widgetManager, _displayModule);
+    #ifndef DDC_CONSOLE_DISABLE
+    _ddcConsole = new DdcConsole(_widgetManager, _displayModule);
+    #endif
 
     // Central menu-item registry, valid once init() has run so modules can register.
     _menuRegistry = new MenuRegistry();
 
-    if (!_displayModule || !_widgetManager || !_buttonManager || !_ddcLoggerHelp || !_menuRegistry)
+    if (!_displayModule || !_widgetManager || !_buttonManager || !_menuRegistry
+        #ifndef DDC_CONSOLE_DISABLE
+        || !_ddcConsole
+        #endif
+    )
     {
         logErrorP("Failed to create components!");
         return;
@@ -142,6 +172,11 @@ void DeviceDisplay::init()
         _displayOffSwallow = true;
         _displayOffButton = _heldGestureButton;
     });
+    _gestureEngine.setOnScreenshot([this]() { // hold the Screenshot key -> save the frozen frame
+        logInfoP("Gesture: screenshot");
+        // Clean frame was frozen at the Counting transition (see loop()); write from that buffer.
+        requestScreenshot(false);
+    });
 
     // Seed the engine key map from the display settings; setup() re-applies after readFlash().
     seedGestureKeyMapFromSettings();
@@ -151,6 +186,15 @@ void DeviceDisplay::init()
         _buttonManager->setGestureRouter(this);
 }
 
+namespace {
+// "Display" submenu preset idx (0..5) -> SSD1306 register byte. Precharge 0xD9 (phase2|phase1),
+// clock/refresh 0xD5 (osc-freq|divide). Index clamped to the array to stay in bounds.
+constexpr uint8_t kPreChargeBytes[6] = {0x11, 0x22, 0x44, 0x82, 0xC1, 0xF1};
+constexpr uint8_t kRefreshBytes[6] = {0x00, 0x30, 0x50, 0x80, 0xB0, 0xF0};
+inline uint8_t preChargeByte(uint8_t idx) { return kPreChargeBytes[idx < 6 ? idx : 5]; }
+inline uint8_t refreshByte(uint8_t idx) { return kRefreshBytes[idx < 6 ? idx : 5]; }
+} // namespace
+
 void DeviceDisplay::seedGestureKeyMapFromSettings()
 {
     GestureKeyMap km;
@@ -159,6 +203,98 @@ void DeviceDisplay::seedGestureKeyMapFromSettings()
     km.left = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_LEFT));
     km.right = static_cast<GestureAction>(_settingsStore.keyAction(HOME_KEY_RIGHT));
     _gestureEngine.setKeyMap(km);
+}
+
+// Push EVERY persisted display setting onto the live runtime. Mirrors the individual menu handlers so
+// boot-restore and the "Zuruecksetzen" action share ONE code path; keep it complete when adding a
+// new display setting (store + live effect + this function + the seeder in wireMenuCallbacks()).
+void DeviceDisplay::applyAllSettingsToRuntime()
+{
+    // Power-save timeouts + dim level + invert (owned by the store's applyToRuntime).
+    _settingsStore.applyToRuntime(_widgetManager, _displayModule);
+
+    // Brightness: idx 0..9 -> (idx+1)*10 = 10..100 %, straight to the panel.
+    if (_displayModule)
+        _displayModule->setBrightness(static_cast<uint8_t>((_settingsStore.brightnessIdx() + 1) * 10));
+
+    // Auto-paging (widget rotation auto-advance).
+    if (_widgetManager)
+        _widgetManager->setAutoPaging(_settingsStore.autoPaging());
+
+    // Screensaver family selection (replaces the default seeded in initializeWidgets()).
+    setScreenSaverType(static_cast<ScreenSaverType>(_settingsStore.screenSaverType()));
+
+    // Root-menu style (text list vs icon grid).
+    if (_menuWidget) _menuWidget->setIconMenu(_settingsStore.iconMenu());
+
+    // "Display" hardware tuning from the store; also (re)seed the live "pending" mirror so the menu
+    // and a later save reflect the saved baseline (important after loadDefaults/KONAMI).
+    _pendDispRotate = _settingsStore.displayRotate();
+    _pendDispPrechargeIdx = _settingsStore.preChargeIdx();
+    _pendDispRefreshIdx = _settingsStore.refreshIdx();
+    if (_displayModule)
+    {
+        _displayModule->setRotation(_pendDispRotate);
+        _displayModule->SetDisplayPreCharge(preChargeByte(_pendDispPrechargeIdx));
+        _displayModule->SetDisplayClockDiv(refreshByte(_pendDispRefreshIdx));
+    }
+
+    // Home-key gesture map.
+    seedGestureKeyMapFromSettings();
+}
+
+// KONAMI unbrick sequence: UP UP DOWN DOWN LEFT RIGHT LEFT RIGHT SELECT SELECT (OK replaces B/A).
+bool DeviceDisplay::matchKonami(ButtonType t)
+{
+    static const ButtonType SEQ[] = {
+        ButtonType::UP, ButtonType::UP, ButtonType::DOWN, ButtonType::DOWN,
+        ButtonType::LEFT, ButtonType::RIGHT, ButtonType::LEFT, ButtonType::RIGHT,
+        ButtonType::SELECT, ButtonType::SELECT};
+    constexpr uint8_t N = sizeof(SEQ) / sizeof(SEQ[0]);
+
+    if (t == SEQ[_konamiPos])
+    {
+        if (++_konamiPos >= N)
+        {
+            _konamiPos = 0;
+            triggerKonamiRestore();
+            return true;
+        }
+    }
+    else
+    {
+        // Mismatch: restart. This press still seeds a fresh match if it equals the first step.
+        _konamiPos = (t == SEQ[0]) ? 1 : 0;
+    }
+    return false;
+}
+
+// Restore ALL display settings to defaults, apply live, PERSIST (survives reboot), wake + redraw.
+// The emergency escape when a saved config left the panel unreadable.
+void DeviceDisplay::triggerKonamiRestore()
+{
+    logInfoP("KONAMI: restoring display defaults");
+    _settingsStore.loadDefaults();
+    applyAllSettingsToRuntime();       // also re-seeds _pendDisp* from the fresh defaults
+    _settingsStore.requestSave(true);  // persist so the fix survives a reboot
+    if (_widgetManager) _widgetManager->wakeUpDisplay();
+    if (_menuWidget) _menuWidget->rebuild();
+    showToast("Werkseinstellung wiederhergestellt");
+}
+
+// Console hook: push the (already-mutated) store live, persist, refresh the menu.
+void DeviceDisplay::consoleApplyAndSave()
+{
+    applyAllSettingsToRuntime();
+    _settingsStore.requestSave(true);
+    if (_menuWidget) _menuWidget->rebuild();
+}
+
+// Console hook: restore ALL display settings to defaults (same path as the menu reset / KONAMI).
+void DeviceDisplay::consoleResetToDefaults()
+{
+    _settingsStore.loadDefaults();
+    consoleApplyAndSave();
 }
 
 void DeviceDisplay::setup(bool configured)
@@ -181,18 +317,9 @@ void DeviceDisplay::setup(bool configured)
 
     wireMenuCallbacks();
 
-    // Apply the persisted display settings to the runtime (readFlash() already ran):
-    // derives the PowerSaveConfig and pushes invert/fontSize to the display.
-    _settingsStore.applyToRuntime(_widgetManager, _displayModule);
-
-    // Select the persisted screensaver type (replaces the default seeded in initializeWidgets()).
-    setScreenSaverType(static_cast<ScreenSaverType>(_settingsStore.screenSaverType()));
-
-    // Apply the persisted root-menu style (text list vs icon grid) to the menu widget.
-    if (_menuWidget) _menuWidget->setIconMenu(_settingsStore.iconMenu());
-
-    // (Re)seed the gesture key map from the restored settings after readFlash().
-    seedGestureKeyMapFromSettings();
+    // Apply ALL persisted display settings to the runtime (readFlash() already ran). One canonical
+    // path so every switch is restored - previously autoPaging/brightness were not applied at boot.
+    applyAllSettingsToRuntime();
 
     // Setup button input
     if (_buttonManager->setup())
@@ -200,11 +327,13 @@ void DeviceDisplay::setup(bool configured)
         logInfoP("Buttons initialized");
     }
 
+    #ifndef DDC_CONSOLE_DISABLE
     // Setup help system for console commands
-    _ddcLoggerHelp->setup();
+    _ddcConsole->setup();
 
-    #ifdef WIDGET_CONSOLE
-    _ddcLoggerHelp->setConsoleWidget(_consoleWidget);
+        #ifdef WIDGET_CONSOLE
+    _ddcConsole->setConsoleWidget(_consoleWidget);
+        #endif
     #endif
 }
 
@@ -228,36 +357,52 @@ void DeviceDisplay::wireMenuCallbacks()
     // state after reboot instead of hardcoded defaults (and re-confirm can't silently revert it).
     _menuWidget->setValueSeeder([this](MenuConfig::MenuOption& o) {
         if (o.key == "brightness_level") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.brightnessIdx()));
-        else if (o.key == "auto_dimming") o.defaultValue = MenuValue(_settingsStore.autoDim());
+        else if (o.key == "dim_after") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.dimMin()));
+        else if (o.key == "dim_level") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.dimLevelIdx()));
         else if (o.key == "display_invert") o.defaultValue = MenuValue(_settingsStore.invert());
-        else if (o.key == "font_size") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.fontSizeIdx()));
         else if (o.key == "auto_paging") o.defaultValue = MenuValue(_settingsStore.autoPaging());
         else if (o.key == "icon_menu") o.defaultValue = MenuValue(_settingsStore.iconMenu());
         else if (o.key == "screensaver_type") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.screenSaverType()));
-        else if (o.key == "screensaver_after") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.screenSaverTimeoutIdx()));
-        else if (o.key == "sleep_after") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.sleepTimeoutIdx()));
+        else if (o.key == "screensaver_after") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.screenSaverMin()));
+        else if (o.key == "sleep_after") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.sleepMin()));
         else if (o.key == "homekey_up") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_UP)));
         else if (o.key == "homekey_down") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_DOWN)));
         else if (o.key == "homekey_left") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_LEFT)));
         else if (o.key == "homekey_right") o.defaultValue = MenuValue(static_cast<size_t>(_settingsStore.keyAction(HOME_KEY_RIGHT)));
+        else if (o.key == "screenshot_invert") o.defaultValue = MenuValue(_settingsStore.screenshotInvert());
+        // "Display" tunings seed from the LIVE pending mirror (may differ from the saved store value).
+        else if (o.key == "disp_rotate") o.defaultValue = MenuValue(_pendDispRotate);
+        else if (o.key == "disp_precharge") o.defaultValue = MenuValue(static_cast<size_t>(_pendDispPrechargeIdx));
+        else if (o.key == "disp_refresh") o.defaultValue = MenuValue(static_cast<size_t>(_pendDispRefreshIdx));
     });
 
-    // Helligkeit: Dropdown index 0..3; brightnessIdx maps to (idx+1)*25 % (25/50/75/100).
+    // Helligkeit: slider idx 0..9; brightnessIdx maps to (idx+1)*10 % (10..100). Dim re-applies too
+    // (min(dim,normal) rule lives in applyDisplaySettings).
     _menuWidget->registerOnValueChanged("brightness_level", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        const size_t idx = std::min(val.getSizeT(), static_cast<size_t>(3));
+        const size_t idx = std::min(val.getSizeT(), static_cast<size_t>(9));
         _settingsStore.setBrightnessIdx(static_cast<uint8_t>(idx));
         if (_displayModule)
-            _displayModule->setBrightness(static_cast<uint8_t>((idx + 1) * 25));
+            _displayModule->setBrightness(static_cast<uint8_t>((idx + 1) * 10));
+        _settingsStore.applyToRuntime(_widgetManager, _displayModule); // refresh dim = min(dim, normal)
         _settingsStore.requestSave();
         logDebugP("brightness -> idx %u", static_cast<unsigned>(idx));
     });
 
-    // Auto-Dimmen: Checkbox. applyToRuntime() owns the dim behaviour.
-    _menuWidget->registerOnValueChanged("auto_dimming", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        _settingsStore.setAutoDim(val.getBool());
+    // Dim-Level: slider idx 0..9 (0 = nie). applyToRuntime owns the min(dim,normal) + dim-off logic.
+    _menuWidget->registerOnValueChanged("dim_level", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
+        const size_t idx = std::min(val.getSizeT(), static_cast<size_t>(9));
+        _settingsStore.setDimLevelIdx(static_cast<uint8_t>(idx));
         _settingsStore.applyToRuntime(_widgetManager, _displayModule);
         _settingsStore.requestSave();
-        logDebugP("autoDim -> %u", val.getBool() ? 1u : 0u);
+        logDebugP("dimLevel -> idx %u", static_cast<unsigned>(idx));
+    });
+
+    // Auto-Dim nach: NumberEdit minutes (0 = aus). applyToRuntime() owns the dim behaviour.
+    _menuWidget->registerOnValueChanged("dim_after", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _settingsStore.setDimMin(static_cast<uint16_t>(val.getSizeT()));
+        _settingsStore.applyToRuntime(_widgetManager, _displayModule);
+        _settingsStore.requestSave();
+        logDebugP("dimMin -> %u", static_cast<unsigned>(val.getSizeT()));
     });
 
     // Invertieren: Checkbox -> i2cDisplay::SetInvertDisplay + persist.
@@ -269,20 +414,17 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("invert -> %u", val.getBool() ? 1u : 0u);
     });
 
-    // Schriftgroesse: Dropdown 0..2 ("Normal"/"Gross"/"Groesser") -> i2cDisplay::setFontSize.
-    _menuWidget->registerOnValueChanged("font_size", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        const size_t idx = std::min(val.getSizeT(), static_cast<size_t>(2));
-        _settingsStore.setFontSizeIdx(static_cast<uint8_t>(idx));
-        if (_displayModule)
-            _displayModule->setFontSize(static_cast<uint8_t>(idx));
+    // Screenshot -> Invertieren: Checkbox, persisted; the BMP encoder reads it at write time.
+    _menuWidget->registerOnValueChanged("screenshot_invert", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _settingsStore.setScreenshotInvert(val.getBool());
         _settingsStore.requestSave();
-        logDebugP("fontSize -> idx %u", static_cast<unsigned>(idx));
+        logDebugP("screenshotInvert -> %u", val.getBool() ? 1u : 0u);
     });
 
-    // Home-Tasten: dropdown 0..4 (HomeKeyAction) per direction -> persist + re-seed the gesture engine.
+    // Home-Tasten: dropdown 0..5 (HomeKeyAction) per direction -> persist + re-seed the gesture engine.
     const auto homeKeyFromIdx = [](size_t idx) -> HomeKeyAction {
-        // clamp out-of-range/future index to None
-        return (idx <= static_cast<size_t>(HomeKeyAction::DisplayOff))
+        // clamp out-of-range/future index to None (Screenshot=5 is the highest valid action)
+        return (idx <= static_cast<size_t>(HomeKeyAction::Screenshot))
                    ? static_cast<HomeKeyAction>(idx)
                    : HomeKeyAction::None;
     };
@@ -348,21 +490,68 @@ void DeviceDisplay::wireMenuCallbacks()
         return static_cast<size_t>(_settingsStore.brightnessIdx());
     });
 
-    // Screensaver nach: Dropdown index -> store timeout index, re-apply.
+    // Screensaver nach: NumberEdit minutes (0 = aus) -> store + re-apply, persist.
     _menuWidget->registerOnValueChanged("screensaver_after", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        _settingsStore.setScreenSaverTimeoutIdx(static_cast<uint8_t>(val.getSizeT()));
+        _settingsStore.setScreenSaverMin(static_cast<uint16_t>(val.getSizeT()));
         _settingsStore.applyToRuntime(_widgetManager, _displayModule);
         _settingsStore.requestSave();
-        logDebugP("screensaverAfter -> idx %u", static_cast<unsigned>(val.getSizeT()));
+        logDebugP("screenSaverMin -> %u", static_cast<unsigned>(val.getSizeT()));
     });
 
-    // Schlafen nach: Dropdown index -> store sleep timeout index, re-apply, persist.
+    // Schlafen nach: NumberEdit minutes (0 = nie) -> store + re-apply, persist.
     _menuWidget->registerOnValueChanged("sleep_after", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        _settingsStore.setSleepTimeoutIdx(static_cast<uint8_t>(val.getSizeT()));
+        _settingsStore.setSleepMin(static_cast<uint16_t>(val.getSizeT()));
         _settingsStore.applyToRuntime(_widgetManager, _displayModule);
         _settingsStore.requestSave();
-        logDebugP("sleepAfter -> idx %u", static_cast<unsigned>(val.getSizeT()));
+        logDebugP("sleepMin -> %u", static_cast<unsigned>(val.getSizeT()));
     });
+
+    // Zuruecksetzen: restore ALL display settings to defaults, apply them live via the SAME canonical
+    // path as boot, persist, then rebuild the menu so every shown value refreshes. Nein/Ja guard is
+    // handled by the Action's confirmText.
+    _menuWidget->registerAction("display_reset", [this]() {
+        _settingsStore.loadDefaults();
+        applyAllSettingsToRuntime();
+        _settingsStore.requestSave(true);
+        if (_menuWidget) _menuWidget->rebuild();
+        showToast("Anzeige zurueckgesetzt");
+        logInfoP("Display settings reset to defaults");
+    });
+
+    // --- "Display" hardware tuning: LIVE preview ONLY, never auto-saved. Values go straight to the
+    //     panel and into _pendDisp*; the store/flash are written ONLY by the disp_save action. This is
+    //     the safety net - a bad precharge/refresh can be reverted by a reboot (no save) or the KONAMI.
+    _menuWidget->registerOnValueChanged("disp_rotate", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _pendDispRotate = val.getBool();
+        if (_displayModule) _displayModule->setRotation(_pendDispRotate); // flips the live scan
+        logDebugP("disp_rotate(live) -> %u", _pendDispRotate ? 1u : 0u);
+    });
+    _menuWidget->registerOnValueChanged("disp_precharge", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _pendDispPrechargeIdx = static_cast<uint8_t>(std::min(val.getSizeT(), static_cast<size_t>(5)));
+        if (_displayModule) _displayModule->SetDisplayPreCharge(preChargeByte(_pendDispPrechargeIdx));
+        logDebugP("disp_precharge(live) -> idx %u", _pendDispPrechargeIdx);
+    });
+    _menuWidget->registerOnValueChanged("disp_refresh", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
+        _pendDispRefreshIdx = static_cast<uint8_t>(std::min(val.getSizeT(), static_cast<size_t>(5)));
+        if (_displayModule) _displayModule->SetDisplayClockDiv(refreshByte(_pendDispRefreshIdx));
+        logDebugP("disp_refresh(live) -> idx %u", _pendDispRefreshIdx);
+    });
+
+    // Speichern: commit the live "Display" tuning into store + flash (Nein/Ja guard via confirmText).
+    _menuWidget->registerAction("disp_save", [this]() {
+        _settingsStore.setDisplayRotate(_pendDispRotate);
+        _settingsStore.setPreChargeIdx(_pendDispPrechargeIdx);
+        _settingsStore.setRefreshIdx(_pendDispRefreshIdx);
+        _settingsStore.requestSave(true);
+        showToast("Display gespeichert");
+        logInfoP("Display tuning saved: rotate=%u pre=%u refresh=%u",
+                 _pendDispRotate ? 1u : 0u, _pendDispPrechargeIdx, _pendDispRefreshIdx);
+    });
+
+    // Sliders open on the LIVE value: dim_level from the store, the "Display" tunings from _pendDisp*.
+    _menuWidget->registerRadioIndexProvider("dim_level", [this]() -> size_t { return _settingsStore.dimLevelIdx(); });
+    _menuWidget->registerRadioIndexProvider("disp_precharge", [this]() -> size_t { return _pendDispPrechargeIdx; });
+    _menuWidget->registerRadioIndexProvider("disp_refresh", [this]() -> size_t { return _pendDispRefreshIdx; });
 
     // Gesture hook (prog/reboot).
     _menuWidget->setOnGestureAction([this](const std::string& action, const MenuConfig::MenuOption&) {
@@ -463,6 +652,13 @@ void DeviceDisplay::initializeWidgets()
     _aboutWidget->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
     _widgetManager->addWidget(_aboutWidget);
 
+    // OTA overlay: SYSTEM priority (> CRITICAL) so it takes over above ProgMode and everything else
+    // during a firmware/filesystem update. Driven by handleOTA() polling the NetworkModule.
+    _otaWidget = new WidgetOTA();
+    _otaWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget);
+    _otaWidget->setPriority(WidgetPriority::WIDGET_PRIO_SYSTEM);
+    _widgetManager->addWidget(_otaWidget);
+
     _widgetManager->setup();
     _widgetManager->start();
 
@@ -496,6 +692,9 @@ void DeviceDisplay::loop(bool configured)
     // from the button callback, where a flash write reboots the RP2040.
     _settingsStore.tickSave();
 
+    // Drive the non-blocking screenshot writer (SD), chunked across ticks (same shallow context).
+    screenshotTick();
+
     // Process button input (routes raw events through DeviceDisplay::handleButtonEvent()).
     _buttonManager->loop();
 
@@ -514,6 +713,14 @@ void DeviceDisplay::loop(bool configured)
         }
     }
 
+    // Screenshot: freeze the CLEAN framebuffer the instant the confirm bar starts (Counting) - i.e.
+    // BEFORE updateGestureOverlay() below draws the overlay - so the saved image has no overlay.
+    if (!_shotFrozen && _gestureEngine.getCurrentAction() == GestureAction::Screenshot &&
+        _gestureEngine.getPhase() == GesturePhase::Counting)
+    {
+        captureFramebuffer();
+    }
+
     // Show/hide the confirm overlay while a gesture is live (PreRoll..Done).
     updateGestureOverlay();
 
@@ -523,11 +730,59 @@ void DeviceDisplay::loop(bool configured)
     // Handle ProgMode widget (ETS path + prog-exclusive display)
     handleProgMode();
 
-    // Update display (only when CPU time available)
+    // OTA overlay (SYSTEM priority; overrides ProgMode et al. during a firmware update)
+    handleOTA();
+
+    // Update display (only when CPU time available). A screenshot toast briefly holds the screen.
     if (openknx.freeLoopTime())
     {
-        _widgetManager->loop();
+        if (_toastUntil != 0 && millis() < _toastUntil)
+        {
+            // Hold the toast: skip widget rendering, but keep pushing it to the panel - the
+            // incremental page flush lives in _widgetManager->loop(), which we skip here.
+            _displayModule->loop();
+        }
+        else
+        {
+            if (_toastUntil != 0) _toastUntil = 0; // toast expired -> resume normal rendering
+            _widgetManager->loop();
+        }
     }
+}
+
+void DeviceDisplay::forceHome()
+{
+    if (_menuWidget) _menuWidget->externalClose();
+    if (_aboutActive) hideAbout();
+
+    // Clear every latch that would otherwise eat the NEXT event and make the following test step
+    // measure a state nobody asked for.
+    _aboutSwallowRelease = false;
+    _menuExitSwallowRelease = false;
+    _displayOffSwallow = false;
+
+    // Disarm any half-held gesture so the engine folds back to Idle and can re-arm.
+    _gestureEngine.endHold();
+    _gestureButtonArmed = false;
+    _gestureReachedBar = false;
+    _shotFrozen = false;
+
+    if (_widgetManager)
+    {
+        _widgetManager->wakeUpDisplay();
+        _widgetManager->userInteraction();
+    }
+    logInfoP("forceHome: menu closed, overlays cleared, latches reset");
+}
+
+void DeviceDisplay::setMenuDisplayEnabled(bool on)
+{
+    if (!_menuWidget) return;
+    if (on)
+        _menuWidget->addAction(static_cast<uint8_t>(WidgetFlags::DisplayEnabled));
+    else
+        _menuWidget->removeAction(static_cast<uint8_t>(WidgetFlags::DisplayEnabled));
+    logDebugP("Menu display %s (modal hand-over)", on ? "enabled" : "released");
 }
 
 /**
@@ -540,6 +795,11 @@ void DeviceDisplay::loop(bool configured)
 void DeviceDisplay::handleButtonEvent(const ButtonEvent& event)
 {
     if (!_widgetManager) return;
+
+    // KONAMI unbrick: record every PRESS here - BEFORE the swallow/wake/routing below - so the code
+    // works even when the display is off or misconfigured. On full match it restores + saves defaults.
+    if (event.action == ButtonAction::PRESS && matchKonami(event.type))
+        return; // sequence completed this press -> consume it
 
     // A gesture forced the display OFF and its button is still held. Swallow every event from
     // that button until RELEASE (before userInteraction()) so it cannot re-wake the panel.
@@ -595,6 +855,8 @@ void DeviceDisplay::handleButtonEvent(const ButtonEvent& event)
             _gestureButtonArmed = true;
             _gestureReachedBar = false; // fresh hold: bar not reached yet
             _heldGestureButton = event.type;
+            if (action == GestureAction::Screenshot)
+                _shotFrozen = false; // re-freeze the clean frame for this new gesture (at Counting)
         }
         else
         {
@@ -719,11 +981,13 @@ void DeviceDisplay::updateGestureOverlay()
     // Show the overlay from Counting through Done, NOT during PreRoll: a short tap must not flash it
     // before it is resolved as navigation.
     const GesturePhase phase = _gestureEngine.getPhase();
-    // DisplayOff hides the panel on fire; keep its overlay OUT of Firing/Done or the priority-wake
-    // (it's a StatusWidget) turns the display right back on. Its countdown still shows during Counting.
+    // DisplayOff hides the panel on fire and Screenshot shows its own toast; keep their overlay OUT
+    // of Firing/Done (for DisplayOff the priority-wake would otherwise re-light the panel). Both still
+    // show the countdown during Counting.
     const bool ack = (phase == GesturePhase::Firing || phase == GesturePhase::Done);
-    const bool shouldShow = (phase == GesturePhase::Counting) ||
-                            (ack && _gestureEngine.getCurrentAction() != GestureAction::DisplayOff);
+    const GestureAction gact = _gestureEngine.getCurrentAction();
+    const bool suppressAck = (gact == GestureAction::DisplayOff || gact == GestureAction::Screenshot);
+    const bool shouldShow = (phase == GesturePhase::Counting) || (ack && !suppressAck);
 
     Widget* w = static_cast<Widget*>(_gestureOverlay);
     const bool isShown = (static_cast<uint8_t>(w->getAction()) & DisplayEnabled) != 0;
@@ -746,6 +1010,112 @@ void DeviceDisplay::updateGestureOverlay()
         if (knx.progMode() && _progModeWidget)
             _progModeWidget->addAction(WidgetFlags::DisplayEnabled);
     }
+}
+
+// --- Screenshot -----------------------------------------------------------------------------------
+
+void DeviceDisplay::requestScreenshot(bool captureNow)
+{
+    if (_shotState != ShotState::Idle) return; // one shot at a time
+    if (captureNow || !_shotFrozen)            // console: freeze the live frame now; gesture: pre-frozen
+        captureFramebuffer();
+    _shotPending = true;
+}
+
+void DeviceDisplay::captureFramebuffer()
+{
+    _shotFrozen = false;
+    if (!_displayModule) return;
+    const uint8_t* fb = _displayModule->getFramebuffer();
+    _shotW = _displayModule->GetDisplayWidth();
+    _shotH = _displayModule->GetDisplayHeight();
+    const size_t bytes = static_cast<size_t>(_shotW / 8) * _shotH;
+    if (fb == nullptr || bytes == 0 || bytes > SHOT_MAX_BYTES) return; // memory-safe bounds
+    memcpy(_shotBuf, fb, bytes);
+    _shotFrozen = true;
+}
+
+void DeviceDisplay::screenshotTick()
+{
+    if (_shotState == ShotState::Idle && !_shotPending) return;
+
+#ifdef OPENKNX_SD_CARD_MODULE_ENABLE
+    switch (_shotState)
+    {
+        case ShotState::Idle:
+        {
+            _shotPending = false;
+            if (!_shotFrozen || _shotW == 0 || _shotH == 0) { _shotState = ShotState::Failed; break; }
+            if (!sdCardModule.isMounted()) { showToast("Keine SD-Karte"); _shotFrozen = false; break; }
+
+            char path[28];
+            bool found = false;
+            for (uint16_t n = _nextShot; n < 1000 && !found; ++n)
+            {
+                snprintf(path, sizeof(path), "/screenshot_%03u.bmp", static_cast<unsigned>(n));
+                if (!sdCardModule.exists(path)) { _nextShot = static_cast<uint16_t>(n + 1); found = true; }
+            }
+            if (!found) { _shotState = ShotState::Failed; break; }
+            _shotPath = path;
+
+            s_screenshotFile = sdCardModule.open(_shotPath.c_str(), "w");
+            if (!s_screenshotFile) { _shotState = ShotState::Failed; break; }
+            ScreenshotBmp::writeHeader(s_screenshotFile, _shotW, _shotH, _settingsStore.screenshotInvert());
+            _shotRow = 0;
+            _shotState = ShotState::Rows;
+            break;
+        }
+        case ShotState::Rows:
+            if (!sdCardModule.isMounted() || !s_screenshotFile) { _shotState = ShotState::Failed; break; }
+            ScreenshotBmp::writeRows(s_screenshotFile, _shotBuf, _shotW, _shotH, _shotRow, SHOT_ROWS_PER_TICK);
+            _shotRow = static_cast<uint16_t>(_shotRow + SHOT_ROWS_PER_TICK);
+            if (_shotRow >= _shotH) _shotState = ShotState::Close;
+            break;
+        case ShotState::Close:
+            s_screenshotFile.close();
+            _shotState = ShotState::Done;
+            break;
+        case ShotState::Done:
+            showToast(std::string("Screenshot:\n") + _shotPath);
+            logInfoP("Screenshot saved: %s", _shotPath.c_str());
+            _shotFrozen = false;
+            _shotState = ShotState::Idle;
+            break;
+        case ShotState::Failed:
+        default:
+            if (s_screenshotFile) s_screenshotFile.close();
+            showToast("Screenshot fehlgeschlagen");
+            logErrorP("Screenshot failed (no SD / open / write)");
+            _shotFrozen = false;
+            _shotState = ShotState::Idle;
+            break;
+    }
+#else
+    // No SD module in this build: nowhere to write. Consume the request with a toast.
+    _shotPending = false;
+    _shotFrozen = false;
+    showToast("Kein SD-Modul");
+#endif
+}
+
+void DeviceDisplay::showToast(const std::string& msg)
+{
+    _toastMsg = msg;
+    _toastUntil = millis() + SHOT_TOAST_MS;
+    if (_toastUntil == 0) _toastUntil = 1; // guard the "inactive" sentinel across a millis() wrap
+    drawToast();
+}
+
+void DeviceDisplay::drawToast()
+{
+    if (!_displayModule || !_displayModule->display) return;
+    Adafruit_SSD1306* d = _displayModule->display;
+    d->clearDisplay();
+    d->setTextSize(1);
+    d->setTextColor(WHITE);
+    d->setCursor(0, 0);
+    d->print(_toastMsg.c_str());
+    _displayModule->displayBuff();
 }
 
 /**
@@ -806,6 +1176,45 @@ void DeviceDisplay::handleProgMode()
         logInfoP("ProgMode deactivated");
         wasActive = false;
     }
+}
+
+/**
+ * @brief Drive the SYSTEM-priority OTA overlay from the live NetworkModule OTA status.
+ *
+ * Polls otaActive()/otaProgress() and toggles the OTA widget's DisplayEnabled + feeds the percent.
+ * WIDGET_PRIO_SYSTEM (> CRITICAL) makes it win over ProgMode and every other overlay via the
+ * existing priority path - no manual suppression needed. When OTA ends/errors the widget releases
+ * DisplayEnabled and the previous state (e.g. ProgMode) resumes on its own.
+ *
+ * Guarded by DDISP_HAS_NETWORK_MODULE: a build without OFM-Network compiles this to a no-op and the
+ * OTA widget simply never activates.
+ */
+void DeviceDisplay::handleOTA()
+{
+    #ifdef DDISP_HAS_NETWORK_MODULE
+    if (!_otaWidget) return;
+
+    static bool wasActive = false;
+    const bool active = openknxNetwork.otaActive();
+
+    if (active)
+    {
+        if (!wasActive)
+        {
+            _widgetManager->userInteraction(); // wake the panel for the update
+            _otaWidget->addAction(WidgetFlags::DisplayEnabled);
+            logInfoP("OTA overlay shown");
+            wasActive = true;
+        }
+        _otaWidget->setProgress(openknxNetwork.otaProgress());
+    }
+    else if (wasActive)
+    {
+        _otaWidget->removeAction(WidgetFlags::DisplayEnabled);
+        logInfoP("OTA overlay hidden");
+        wasActive = false;
+    }
+    #endif // DDISP_HAS_NETWORK_MODULE
 }
 
 /**
@@ -922,7 +1331,12 @@ void DeviceDisplay::showHelp()
 bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 {
     if (diagnose) return false;
-    return _ddcLoggerHelp->processCommand(command);
+    #ifndef DDC_CONSOLE_DISABLE
+    return _ddcConsole->processCommand(command);
+    #else
+    (void)command; // "ddc" console stripped at build time
+    return false;
+    #endif
 }
 
 /**
@@ -942,7 +1356,7 @@ namespace
 {
     // Bumped when the serialized layout changes so an older/newer image is rejected (readFlash
     // falls back to defaults). Stored as the first flash byte.
-    constexpr uint8_t DD_SETTINGS_FORMAT_VERSION = 2; // v2: removed the bogus ssd1315 field
+    constexpr uint8_t DD_SETTINGS_FORMAT_VERSION = 3; // v3: appended screenshotInvert byte
 
     // On-flash blob = 1 version byte + the store's serialized size; must not exceed flashSize().
     constexpr size_t DD_FLASH_BLOB_SIZE = 1u + DisplaySettingsStore::SERIALIZED_SIZE;
