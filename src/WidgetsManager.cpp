@@ -248,9 +248,10 @@ void WidgetsManager::setScreenSaverWidget(Widget* widget)
         }
         else
         {
-            // "Off": no screensaver -> drop straight to SLEEP.
-            logDebugP("Screensaver widget cleared while live -> entering SLEEP");
-            transitionToPowerSaveMode(PowerSaveMode::Sleep);
+            // Screensaver cleared to "Aus" while live: do NOT force SLEEP (that conflated "no
+            // animation" with "off"). Wake to the normal display; Dim/Sleep timeouts then decide.
+            logDebugP("Screensaver widget cleared while live -> wake to active");
+            wakeUpDisplay();
         }
         return;
     }
@@ -391,6 +392,7 @@ void WidgetsManager::logWidgetQueue()
                     case WidgetPriority::WIDGET_PRIO_NORMAL: priorityName = "NORMAL"; break;
                     case WidgetPriority::WIDGET_PRIO_HIGH: priorityName = "HIGH"; break;
                     case WidgetPriority::WIDGET_PRIO_CRITICAL: priorityName = "CRITICAL"; break;
+                    case WidgetPriority::WIDGET_PRIO_SYSTEM: priorityName = "SYSTEM"; break;
                 }
             }
 
@@ -992,8 +994,12 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
     {
         transitionToPowerSaveMode(PowerSaveMode::Sleep);
     }
-    else if (_powerSaveConfig.screenSaverTimeout > 0 && inactiveTime >= _powerSaveConfig.screenSaverTimeout)
+    else if (_powerSaveConfig.screenSaverTimeout > 0 && inactiveTime >= _powerSaveConfig.screenSaverTimeout &&
+             _screenSaverWidget)
     {
+        // Only enter the Screensaver stage when a screensaver actually exists. With type "Aus"
+        // (no widget) the stage is skipped -> the chain falls through to Dim/Sleep, so whether the
+        // display turns off is decided solely by "Schlafen nach" (sleepTimeout 0 = nie -> stays on).
         transitionToPowerSaveMode(PowerSaveMode::Screensaver);
     }
     else if (_powerSaveConfig.dimTimeout > 0 && inactiveTime >= _powerSaveConfig.dimTimeout)
@@ -1064,10 +1070,10 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
             logDebugP("Display: SCREENSAVER mode");
             _displayModule->setBrightness(50);
 
-            if (!_screenSaverWidget) // No screensaver widget set, fallback to SLEEP
+            if (!_screenSaverWidget) // No screensaver widget (type "Aus") -> skip stage, don't force SLEEP
             {
-                logWarningP("No screensaver widget set! Entering SLEEP mode instead.");
-                transitionToPowerSaveMode(PowerSaveMode::Sleep);
+                logDebugP("No screensaver widget -> wake to active (sleep governed by sleepTimeout).");
+                wakeUpDisplay();
                 return;
             }
             if (_currentWidget && _currentWidget->getState() == WidgetState::RUNNING)
@@ -1114,7 +1120,10 @@ void WidgetsManager::wakeUpDisplay()
 
     _forcedOff = false; // a real wake clears the manual display-off latch
 
+    // Null-guard: setScreenSaverWidget(nullptr) can clear both _currentWidget and _screenSaverWidget
+    // before waking, which would make this branch match as nullptr==nullptr and deref a null widget.
     if (_powerSaveMode == PowerSaveMode::Screensaver &&
+        _currentWidget != nullptr &&
         _currentWidget == _screenSaverWidget)
     {
         _currentWidget->stop();
@@ -1216,17 +1225,28 @@ Widget* WidgetsManager::findNextStartupWidget()
 /**
  * @brief Finds an active background widget in the queue
  * @return Pointer to the active background widget or nullptr if none found
+ *
+ * A ManagedExternally widget (e.g. the SD file browser) is a MODAL takeover: when it and a plain
+ * background widget (the menu) BOTH request the screen (DisplayEnabled), the modal must win — else
+ * the first-added widget (usually the menu) would keep focus while the browser only draws on top,
+ * so the browser never receives navigation. Preferring the modal makes it the active button widget
+ * (and puts the manager into Background state, so directional buttons navigate instead of arming
+ * Home-key gestures). When the modal drops DisplayEnabled, the plain widget below is returned again.
  */
 Widget* WidgetsManager::findActiveBackgroundWidget()
 {
+    Widget* fallback = nullptr;
     for (auto& widget : _backgroundWidgets)
     {
         if (widget && (widget->getAction() & DisplayEnabled))
         {
-            return widget;
+            if (widget->getAction() & ManagedExternally)
+                return widget; // modal takeover wins over a plain background widget
+            if (!fallback)
+                fallback = widget; // first plain background widget (e.g. the menu)
         }
     }
-    return nullptr;
+    return fallback;
 }
 
 /**
@@ -1300,6 +1320,7 @@ void WidgetsManager::switchToWidget(Widget* widget, uint32_t currentTime, const 
             case WidgetPriority::WIDGET_PRIO_NORMAL: priorityName = "NORMAL"; break;
             case WidgetPriority::WIDGET_PRIO_HIGH: priorityName = "HIGH"; break;
             case WidgetPriority::WIDGET_PRIO_CRITICAL: priorityName = "CRITICAL"; break;
+            case WidgetPriority::WIDGET_PRIO_SYSTEM: priorityName = "SYSTEM"; break;
         }
         logDebugP("Activating %s (Priority: %s): %s", reason, priorityName, widget->getName().c_str());
     }
@@ -1886,53 +1907,42 @@ uint32_t WidgetsManager::getWidgetDisplayTime(const std::string& widgetName) con
 /**
  * @brief Map persisted DisplaySettings onto the PowerSaveConfig
  * @details Replaces the hardcoded init() defaults with the on-device settings:
- *          - normalBrightness  <- brightnessIdx     (['25%','50%','75%','100%'])
- *          - screenSaverTimeout<- screenSaverTimeoutIdx (['1','2','5','10'] min)
- *          - sleepTimeout      <- sleepTimeoutIdx    (['5','10','30'] min, 'nie' -> 0)
- *          - dimTimeout        <- autoDim==false -> 0 ("never", no DIMMED stage)
- *          Index ranges mirror the mock; out-of-range indices are clamped to the last
- *          option. offTimeout and dimBrightness are left as configured elsewhere.
+ *          - normalBrightness  <- brightnessIdx  (idx 0..9 -> 10..100 %)
+ *          - dimBrightness      <- dimLevelIdx   (0 = nie -> = normal; 1..9 -> min(idx*10, normal))
+ *          - dimTimeout        <- dimMin         (minutes; 0 OR dimLevel "nie" -> no DIMMED stage)
+ *          - screenSaverTimeout<- screenSaverMin (direct minutes, 0 -> no screensaver)
+ *          - sleepTimeout      <- sleepMin       (direct minutes, 0 -> "nie")
+ *          Timeouts are user-set minutes (0 = off/never). offTimeout is left as configured elsewhere.
  * @param settings the persisted DisplaySettings to apply
  */
 void WidgetsManager::applyDisplaySettings(const DisplaySettings& settings)
 {
-    // Value tables taken verbatim from the mock choice lists (indices are option indices).
-    static constexpr uint8_t kBrightnessPct[] = {25, 50, 75, 100};                // "Helligkeit"
-    static constexpr uint32_t kScreenSaverMs[] = {60000, 120000, 300000, 600000}; // "Screensaver nach": 1/2/5/10 min
-    static constexpr uint32_t kSleepMs[] = {300000, 600000, 1800000, 0};          // "Schlafen nach": 5/10/30 min / nie(0)
+    // Normal brightness: idx 0..9 -> (idx+1)*10 = 10..100 %.
+    const uint8_t bIdx = settings.brightnessIdx > 9 ? 9 : settings.brightnessIdx;
+    const uint8_t normalPct = static_cast<uint8_t>((bIdx + 1) * 10);
+    _powerSaveConfig.normalBrightness = normalPct;
 
-    auto clampIdx = [](uint8_t idx, size_t count) -> size_t {
-        return (idx < count) ? static_cast<size_t>(idx) : (count - 1);
-    };
-
-    // Normal brightness from the brightness index.
-    _powerSaveConfig.normalBrightness =
-        kBrightnessPct[clampIdx(settings.brightnessIdx, sizeof(kBrightnessPct) / sizeof(kBrightnessPct[0]))];
-
-    // Screensaver + sleep timeouts from their indices ("nie" maps to 0 = never).
-    // Screensaver + sleep timeouts: a preset index picks from the table; the index PAST the presets
-    // ("Eigene…") uses the custom-minutes value from the number editor (sleep custom 0 == "nie").
-    constexpr size_t kScreenSaverCount = sizeof(kScreenSaverMs) / sizeof(kScreenSaverMs[0]);
-    constexpr size_t kSleepCount = sizeof(kSleepMs) / sizeof(kSleepMs[0]);
-    _powerSaveConfig.screenSaverTimeout =
-        (settings.screenSaverTimeoutIdx >= kScreenSaverCount)
-            ? static_cast<uint32_t>(settings.screenSaverCustomMin) * 60000u
-            : kScreenSaverMs[clampIdx(settings.screenSaverTimeoutIdx, kScreenSaverCount)];
-    _powerSaveConfig.sleepTimeout =
-        (settings.sleepTimeoutIdx >= kSleepCount)
-            ? static_cast<uint32_t>(settings.sleepCustomMin) * 60000u
-            : kSleepMs[clampIdx(settings.sleepTimeoutIdx, kSleepCount)];
-
-    // Auto-Dimmen toggle. Disabled -> dimTimeout 0 ("never") so the display goes
-    // straight from ACTIVE to SCREENSAVER without a DIMMED stage. Enabled -> keep the
-    // existing/configured dim timeout (the mock has no separate dim-timeout choice).
-    if (!settings.autoDim)
+    // Dim-Level: idx 0 = "nie" (no dim), 1..9 -> 10..90 %. Effective dim is never brighter than
+    // normal (min-rule). Dim is disabled if the level is "nie" OR the time is 0 (either off-switch).
+    const uint8_t dIdx = settings.dimLevelIdx > 9 ? 9 : settings.dimLevelIdx;
+    const bool dimOff = (dIdx == 0) || (settings.dimMin == 0);
+    if (dIdx == 0)
     {
-        _powerSaveConfig.dimTimeout = 0;
+        _powerSaveConfig.dimBrightness = normalPct; // "nie" -> no visible dim
+    }
+    else
+    {
+        const uint8_t dimPct = static_cast<uint8_t>(dIdx * 10);
+        _powerSaveConfig.dimBrightness = dimPct < normalPct ? dimPct : normalPct; // min(dim, normal)
     }
 
-    logDebugP("applyDisplaySettings: brightness=%d%%, dim=%lu, screensaver=%lu, sleep=%lu",
-              _powerSaveConfig.normalBrightness,
+    // Dim / screensaver / sleep timeouts are DIRECT minutes; 0 = off/never (that stage is skipped).
+    _powerSaveConfig.dimTimeout = dimOff ? 0u : static_cast<uint32_t>(settings.dimMin) * 60000u;
+    _powerSaveConfig.screenSaverTimeout = static_cast<uint32_t>(settings.screenSaverMin) * 60000u;
+    _powerSaveConfig.sleepTimeout = static_cast<uint32_t>(settings.sleepMin) * 60000u;
+
+    logDebugP("applyDisplaySettings: normal=%d%%, dim=%d%%/%lu, screensaver=%lu, sleep=%lu",
+              _powerSaveConfig.normalBrightness, _powerSaveConfig.dimBrightness,
               (unsigned long)_powerSaveConfig.dimTimeout,
               (unsigned long)_powerSaveConfig.screenSaverTimeout,
               (unsigned long)_powerSaveConfig.sleepTimeout);

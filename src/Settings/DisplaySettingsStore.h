@@ -30,10 +30,12 @@ class DisplaySettingsStore
 {
   public:
     // Fixed byte size of the serialized blob (little-endian, hand-packed; see serialize()).
-    static constexpr size_t SETTINGS_BYTES = 9 + HOME_KEY_COUNT + 4; // 8 scalars + iconMenu + keyMap + 2*u16 custom min
+    // 9 u8 (brightness, invert, dimLevel, autoPaging, ssType, iconMenu, rotate, preCharge, refresh)
+    // + 3 u16 (dimMin, screenSaverMin, sleepMin) + keyMap.
+    static constexpr size_t SETTINGS_BYTES = 9 + 3 * 2 + HOME_KEY_COUNT;
     static constexpr size_t WIDGET_RECORD_BYTES = 4 + 1 + 1 + 2;     // hash + order + enabled + duration
     static constexpr size_t SERIALIZED_SIZE =
-        SETTINGS_BYTES + 1 /*count*/ + (WIDGET_SETTINGS_MAX * WIDGET_RECORD_BYTES);
+        SETTINGS_BYTES + 1 /*count*/ + (WIDGET_SETTINGS_MAX * WIDGET_RECORD_BYTES) + 1 /*screenshotInvert*/;
 
     DisplaySettingsStore()
     {
@@ -88,10 +90,10 @@ class DisplaySettingsStore
 
     /**
      * Push the persisted settings onto the running system: PowerSaveConfig via
-     * WidgetsManager::applyDisplaySettings(), invert + fontSize onto the i2cDisplay.
+     * WidgetsManager::applyDisplaySettings(), invert onto the i2cDisplay.
      * Safe with nullptr arguments (each handled independently).
      * @param wm   the live WidgetsManager (may be nullptr -> power config skipped).
-     * @param disp the live i2cDisplay (may be nullptr -> invert/font skipped).
+     * @param disp the live i2cDisplay (may be nullptr -> invert skipped).
      */
     void applyToRuntime(WidgetsManager *wm, i2cDisplay *disp = nullptr);
 
@@ -104,16 +106,18 @@ class DisplaySettingsStore
     }
 
     uint8_t brightnessIdx() const { return _settings.brightnessIdx; }
-    bool autoDim() const { return _settings.autoDim; }
+    uint16_t dimMin() const { return _settings.dimMin; }
+    uint8_t dimLevelIdx() const { return _settings.dimLevelIdx; }
     bool invert() const { return _settings.invert; }
-    uint8_t fontSizeIdx() const { return _settings.fontSizeIdx; }
     bool autoPaging() const { return _settings.autoPaging; }
     uint8_t screenSaverType() const { return _settings.screenSaverType; }
-    uint8_t screenSaverTimeoutIdx() const { return _settings.screenSaverTimeoutIdx; }
-    uint8_t sleepTimeoutIdx() const { return _settings.sleepTimeoutIdx; }
+    uint16_t screenSaverMin() const { return _settings.screenSaverMin; }
+    uint16_t sleepMin() const { return _settings.sleepMin; }
     bool iconMenu() const { return _settings.iconMenu; }
-    uint16_t screenSaverCustomMin() const { return _settings.screenSaverCustomMin; }
-    uint16_t sleepCustomMin() const { return _settings.sleepCustomMin; }
+    bool screenshotInvert() const { return _settings.screenshotInvert; }
+    bool displayRotate() const { return _settings.displayRotate; }
+    uint8_t preChargeIdx() const { return _settings.preChargeIdx; }
+    uint8_t refreshIdx() const { return _settings.refreshIdx; }
 
     /** @return action bound to a Home-screen key; None for out-of-range index. */
     HomeKeyAction keyAction(HomeKeyIndex key) const
@@ -123,16 +127,19 @@ class DisplaySettingsStore
     }
 
     void setBrightnessIdx(uint8_t idx) { assign(_settings.brightnessIdx, idx); }
-    void setAutoDim(bool v) { assign(_settings.autoDim, v); }
+    void setDimMin(uint16_t v) { assign(_settings.dimMin, v); }
+    void setDimLevelIdx(uint8_t idx) { assign(_settings.dimLevelIdx, idx); }
     void setInvert(bool v) { assign(_settings.invert, v); }
-    void setFontSizeIdx(uint8_t idx) { assign(_settings.fontSizeIdx, idx); }
     void setAutoPaging(bool v) { assign(_settings.autoPaging, v); }
     void setScreenSaverType(uint8_t idx) { assign(_settings.screenSaverType, idx); }
-    void setScreenSaverTimeoutIdx(uint8_t idx) { assign(_settings.screenSaverTimeoutIdx, idx); }
-    void setSleepTimeoutIdx(uint8_t idx) { assign(_settings.sleepTimeoutIdx, idx); }
+    void setScreenSaverMin(uint16_t v) { assign(_settings.screenSaverMin, v); }
+    void setSleepMin(uint16_t v) { assign(_settings.sleepMin, v); }
     void setIconMenu(bool v) { assign(_settings.iconMenu, v); }
-    void setScreenSaverCustomMin(uint16_t v) { assign(_settings.screenSaverCustomMin, v); }
-    void setSleepCustomMin(uint16_t v) { assign(_settings.sleepCustomMin, v); }
+    void setScreenshotInvert(bool v) { assign(_settings.screenshotInvert, v); }
+    // Display hardware tuning (persisted only via the manual "Speichern" action).
+    void setDisplayRotate(bool v) { assign(_settings.displayRotate, v); }
+    void setPreChargeIdx(uint8_t idx) { assign(_settings.preChargeIdx, idx); }
+    void setRefreshIdx(uint8_t idx) { assign(_settings.refreshIdx, idx); }
 
     /** Bind an action to a Home-screen key; no-op (and no dirty) for a bad index. */
     void setKeyAction(HomeKeyIndex key, HomeKeyAction action)

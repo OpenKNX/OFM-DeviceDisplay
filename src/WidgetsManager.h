@@ -220,8 +220,8 @@ class WidgetsManager // Manages the widget queue and state machine
     bool moveGrabbedDown();
     void dropWidget();
 
-    // Derive PowerSaveConfig from persisted DisplaySettings (screensaver/sleep timeout indices,
-    // normal brightness). autoDim == false disables the DIMMED stage (dimTimeout = 0 -> "never").
+    // Derive PowerSaveConfig from persisted DisplaySettings. dim/screenSaver/sleepMin are direct
+    // minutes; 0 disables that stage (timeout = 0 -> "never").
     void applyDisplaySettings(const DisplaySettings& settings);
 
   private:

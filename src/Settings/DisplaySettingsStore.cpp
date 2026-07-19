@@ -73,24 +73,26 @@ namespace
 void DisplaySettingsStore::loadDefaults()
 {
     // DisplaySettings: values taken from the mock. "Anzeige" submenu:
-    _settings.brightnessIdx = 3;         // ['25%','50%','75%','100%'] -> 100 %
-    _settings.autoDim = true;            // Auto-Dimmen check
-    _settings.invert = false;            // Invertieren check (fx:'inv')
-    _settings.fontSizeIdx = 1;           // ['Normal','Groß','Größer'] -> Groß
-    _settings.autoPaging = true;         // Seiten auto-blättern (fx:'autopage')
-    _settings.screenSaverType = 0;       // idx 0..10 (Clock/Cube3D/Doom/.../Aus) -> 0 = Clock
-    _settings.screenSaverTimeoutIdx = 2; // ['1 min','2 min','5 min','10 min'] -> 5 min
-    _settings.sleepTimeoutIdx = 1;       // ['5 min','10 min','30 min','nie'] -> 10 min
+    _settings.brightnessIdx = 9;   // idx 0..9 -> (idx+1)*10 = 100 %
+    _settings.dimMin = 15;         // Auto-Dim nach 15 min (0 = aus)
+    _settings.dimLevelIdx = 3;     // Dim-Level 30 % (0 = nie)
+    _settings.invert = false;      // Invertieren check (fx:'inv')
+    _settings.autoPaging = true;   // Seiten auto-blättern (fx:'autopage')
+    _settings.screenSaverType = 0; // idx 0..10 (Clock/Cube3D/Doom/.../Aus) -> 0 = Clock
+    _settings.screenSaverMin = 30; // Screensaver nach 30 min (0 = aus)
+    _settings.sleepMin = 60;       // Display aus nach 60 min (0 = nie)
+    _settings.displayRotate = false; // 180deg rotation off
+    _settings.preChargeIdx = 5;    // pre-charge preset -> 0xF1 (Adafruit default)
+    _settings.refreshIdx = 3;      // clock/refresh preset -> 0x80 (Adafruit default)
 
     // "Home-Tasten" submenu: Oben=Pause, Unten=Reboot, Links=Display aus (#17), Rechts=—.
     _settings.keyMap[HOME_KEY_UP] = HomeKeyAction::Pause;
     _settings.keyMap[HOME_KEY_DOWN] = HomeKeyAction::Reboot;
     _settings.keyMap[HOME_KEY_LEFT] = HomeKeyAction::DisplayOff;
-    _settings.keyMap[HOME_KEY_RIGHT] = HomeKeyAction::None;
+    _settings.keyMap[HOME_KEY_RIGHT] = HomeKeyAction::Screenshot;
 
-    _settings.iconMenu = false; // root menu shows a text list by default (toggle in Anzeige)
-    _settings.screenSaverCustomMin = 7;
-    _settings.sleepCustomMin = 20;
+    _settings.iconMenu = false;         // root menu shows a text list by default (toggle in Anzeige)
+    _settings.screenshotInvert = false; // OLED look by default (lit pixels white)
 
     // Widget defaults from the mock "Widgets" submenu; array order = default rotation order.
     struct WidgetDefault
@@ -171,18 +173,19 @@ size_t DisplaySettingsStore::serialize(uint8_t *buf) const
 
     // DisplaySettings scalars.
     putU8(p, _settings.brightnessIdx);
-    putU8(p, _settings.autoDim ? 1 : 0);
+    putU16(p, _settings.dimMin);
+    putU8(p, _settings.dimLevelIdx);
     putU8(p, _settings.invert ? 1 : 0);
-    putU8(p, _settings.fontSizeIdx);
     putU8(p, _settings.autoPaging ? 1 : 0);
     putU8(p, _settings.screenSaverType);
-    putU8(p, _settings.screenSaverTimeoutIdx);
-    putU8(p, _settings.sleepTimeoutIdx);
+    putU16(p, _settings.screenSaverMin);
+    putU16(p, _settings.sleepMin);
     for (size_t i = 0; i < HOME_KEY_COUNT; ++i)
         putU8(p, static_cast<uint8_t>(_settings.keyMap[i]));
     putU8(p, _settings.iconMenu ? 1 : 0);
-    putU16(p, _settings.screenSaverCustomMin);
-    putU16(p, _settings.sleepCustomMin);
+    putU8(p, _settings.displayRotate ? 1 : 0);
+    putU8(p, _settings.preChargeIdx);
+    putU8(p, _settings.refreshIdx);
 
     // Widget section: count then all WIDGET_SETTINGS_MAX records (fixed size).
     putU8(p, _widgetCount);
@@ -194,6 +197,9 @@ size_t DisplaySettingsStore::serialize(uint8_t *buf) const
         putU8(p, w.enabled ? 1 : 0);
         putU16(p, w.durationDs);
     }
+
+    // Appended after the widget records (format v3).
+    putU8(p, _settings.screenshotInvert ? 1 : 0);
 
     return static_cast<size_t>(p - buf); // == SERIALIZED_SIZE
 }
@@ -209,25 +215,31 @@ bool DisplaySettingsStore::deserialize(const uint8_t *buf, size_t size)
 
     const uint8_t *p = buf;
 
+    // Timeout minutes are clamped to the editor domain (0..999) so a stale/corrupt blob can never
+    // surface an out-of-range value; applyToRuntime math is overflow-safe either way.
+    auto clampMin = [](uint16_t v) -> uint16_t { return v > 999 ? 999 : v; };
+
     _settings.brightnessIdx = getU8(p);
-    _settings.autoDim = getU8(p) != 0;
+    _settings.dimMin = clampMin(getU16(p));
+    _settings.dimLevelIdx = getU8(p);
     _settings.invert = getU8(p) != 0;
-    _settings.fontSizeIdx = getU8(p);
     _settings.autoPaging = getU8(p) != 0;
     _settings.screenSaverType = getU8(p);
-    _settings.screenSaverTimeoutIdx = getU8(p);
-    _settings.sleepTimeoutIdx = getU8(p);
+    _settings.screenSaverMin = clampMin(getU16(p));
+    _settings.sleepMin = clampMin(getU16(p));
     for (size_t i = 0; i < HOME_KEY_COUNT; ++i)
     {
-        // clamp an unknown/future action byte to None (stale/downgraded blob safety)
+        // clamp an unknown/future action byte to None (stale/downgraded blob safety).
+        // Screenshot=5 is the highest valid action -> must be inside the accepted range.
         const uint8_t a = getU8(p);
-        _settings.keyMap[i] = (a <= static_cast<uint8_t>(HomeKeyAction::DisplayOff))
+        _settings.keyMap[i] = (a <= static_cast<uint8_t>(HomeKeyAction::Screenshot))
                                   ? static_cast<HomeKeyAction>(a)
                                   : HomeKeyAction::None;
     }
     _settings.iconMenu = getU8(p) != 0;
-    _settings.screenSaverCustomMin = getU16(p);
-    _settings.sleepCustomMin = getU16(p);
+    _settings.displayRotate = getU8(p) != 0;
+    _settings.preChargeIdx = getU8(p);
+    _settings.refreshIdx = getU8(p);
 
     uint8_t count = getU8(p);
     for (size_t i = 0; i < WIDGET_SETTINGS_MAX; ++i)
@@ -238,6 +250,9 @@ bool DisplaySettingsStore::deserialize(const uint8_t *buf, size_t size)
         w.enabled = getU8(p) != 0;
         w.durationDs = getU16(p);
     }
+
+    // Appended after the widget records (format v3); the version guard in readFlash gates the layout.
+    _settings.screenshotInvert = getU8(p) != 0;
 
     // Clamp the persisted count to capacity to stay consistent with the array.
     _widgetCount = (count > WIDGET_SETTINGS_MAX)
@@ -299,11 +314,10 @@ void DisplaySettingsStore::applyToRuntime(WidgetsManager *wm, i2cDisplay *disp)
     if (wm != nullptr)
         wm->applyDisplaySettings(_settings);
 
-    // Invert + font size go straight to the display hardware.
+    // Invert goes straight to the display hardware.
     if (disp != nullptr)
     {
         disp->setInvert(_settings.invert);
-        disp->setFontSize(_settings.fontSizeIdx);
     }
 #else
     (void)wm;

@@ -21,11 +21,12 @@
  */
 enum class HomeKeyAction : uint8_t
 {
-    None = 0,      // '—'          : no action
-    Pause = 1,     // 'Pause'      : pause/resume home rotation
-    Reboot = 2,    // 'Reboot'     : reboot the device
-    Prog = 3,      // 'Prog-Mode'  : toggle KNX programming mode
-    DisplayOff = 4 // 'Display aus': turn the display off (#17). Value MUST match GestureAction::DisplayOff
+    None = 0,       // '—'          : no action
+    Pause = 1,      // 'Pause'      : pause/resume home rotation
+    Reboot = 2,     // 'Reboot'     : reboot the device
+    Prog = 3,       // 'Prog-Mode'  : toggle KNX programming mode
+    DisplayOff = 4, // 'Display aus': turn the display off (#17)
+    Screenshot = 5  // 'Screenshot' : capture the framebuffer to SD. Values MUST match GestureAction.
 };
 
 /**
@@ -46,17 +47,17 @@ enum HomeKeyIndex : uint8_t
  */
 struct DisplaySettings
 {
-    // "Helligkeit"  options ['25%','50%','75%','100%'] -> idx 0..3, default 3 (100%)
-    uint8_t brightnessIdx = 3;
+    // "Helligkeit" idx 0..9 -> (idx+1)*10 = 10..100 %. Default 9 (100%). Granular 10% slider.
+    uint8_t brightnessIdx = 9;
 
-    // "Auto-Dimmen" check -> default true
-    bool autoDim = true;
+    // "Auto-Dim nach": minutes until the display dims; 0 = aus (no dim stage). Was a yes/no toggle.
+    uint16_t dimMin = 15;
+
+    // "Dim-Level" idx: 0 = nie (no dim), 1..9 -> 10..90 %. Effective dim = min(level, brightness).
+    uint8_t dimLevelIdx = 3; // 30%
 
     // "Invertieren" check (fx:'inv') -> default false
     bool invert = false;
-
-    // "Schriftgröße" options ['Normal','Groß','Größer'] -> idx 0..2, default 1 (Groß)
-    uint8_t fontSizeIdx = 1;
 
     // "Seiten auto-blättern" check (fx:'autopage') -> default true
     bool autoPaging = true;
@@ -65,28 +66,33 @@ struct DisplaySettings
     // -> default 0 = Clock. (Menu list in DefaultMenus.h must stay in this exact order = ScreenSaverType enum.)
     uint8_t screenSaverType = 0;
 
-    // "Screensaver nach" options ['1 min','2 min','5 min','10 min'] -> idx 0..3, default 2 (5 min)
-    uint8_t screenSaverTimeoutIdx = 2;
+    // "Screensaver nach": minutes until the screensaver starts; 0 = aus. Edited via the number editor.
+    uint16_t screenSaverMin = 30;
 
-    // "Schlafen nach" options ['5 min','10 min','30 min','nie'] -> idx 0..3, default 1 (10 min)
-    uint8_t sleepTimeoutIdx = 1;
+    // "Display aus nach": minutes until the display sleeps (off); 0 = nie. Edited via the number editor.
+    uint16_t sleepMin = 60;
+
+    // --- "Display" hardware tuning (Anzeige -> Display). Live-previewed, saved ONLY on manual confirm
+    //     (so a bad value never auto-persists). "Zuruecksetzen" and the KONAMI code DO restore these to
+    //     their safe defaults (below) - that is a recovery path, not a risk. ---
+    bool displayRotate = false; // 180deg rotation (segment remap + COM scan) for upside-down mounting
+    uint8_t preChargeIdx = 5;   // pre-charge preset idx (0..5); default = 0xF1 (bright, Adafruit init)
+    uint8_t refreshIdx = 3;     // clock/refresh preset idx (0..5); default = 0x80 (Adafruit init)
 
     // "Home-Tasten" per-direction actions, indexed by HomeKeyIndex {UP,DOWN,LEFT,RIGHT}.
-    // Defaults: UP=Pause, DOWN=Reboot, LEFT=Display off (#17), RIGHT=None.
+    // Defaults: UP=Pause, DOWN=Reboot, LEFT=Display off (#17), RIGHT=Screenshot.
     HomeKeyAction keyMap[HOME_KEY_COUNT] = {
         HomeKeyAction::Pause,      // UP
         HomeKeyAction::Reboot,     // DOWN
         HomeKeyAction::DisplayOff, // LEFT (#17: Left-hold -> display off)
-        HomeKeyAction::None        // RIGHT
+        HomeKeyAction::Screenshot  // RIGHT (Right-hold -> screenshot to SD)
     };
 
     // "Icon-Menü": render the root menu as an icon grid instead of a text list -> default false.
     bool iconMenu = false;
 
-    // Custom timeout minutes, used when the matching dropdown is set to "Eigene…" (index past the
-    // presets). Edited via the on-screen number editor. sleepCustomMin == 0 means "nie" (never).
-    uint16_t screenSaverCustomMin = 7;
-    uint16_t sleepCustomMin = 20;
+    // "Screenshot" -> "Invertieren": false = lit pixels white (OLED look, default), true = paper look.
+    bool screenshotInvert = false;
 };
 
 /**
