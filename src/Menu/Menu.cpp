@@ -84,6 +84,28 @@ void MenuWidget::loop()
         // The button checks continue, but the menu will only become active when the manager activates it.
     }
 
+    // Are we the active button widget (front), or parked behind another ManagedExternally widget
+    // (e.g. the SD file browser)? Only meaningful while we want to be shown (DisplayEnabled). While
+    // parked we must NOT auto-close — that frees the tree and drops to the home screen when the
+    // other widget hands back. On regaining focus, repaint + reset the idle timer so we neither
+    // stay blank nor instantly auto-close on the stale timestamp.
+    bool isFront = false;
+    if (getAction() & WidgetFlags::DisplayEnabled)
+    {
+        isFront = true; // shown -> front unless the manager reports another widget owns button input
+        if (WidgetsManager* wm = openknxDisplayModule.getWidgetManager())
+            isFront = (wm->getActiveButtonWidget() == static_cast<Widget*>(this));
+        if (isFront && !_wasFront)
+        {
+            _needsRedraw = true;
+            _activationRedrawUntil = currentTime + ACTIVATION_REDRAW_MS;
+            _lastButtonPressTime = currentTime;
+        }
+        _wasFront = isFront;
+    }
+    else
+        _wasFront = false;
+
     // Close overlay automatically after max timeout
     if (_infoOverlayActive &&
         (currentTime - _lastButtonPressTime) > _infoOverlayMaxTimeout)
@@ -103,10 +125,11 @@ void MenuWidget::loop()
             resume(); // Will set _needsRedraw = true;
         }
     }
-    // Automatic background setting on inactivity
+    // Automatic background setting on inactivity — only when we actually own the screen. Parked
+    // behind another widget (browser) we hold position instead of freeing the tree.
     else if ((currentTime - _lastButtonPressTime) >= _displayTime && !_infoOverlayActive)
     {
-        if (_state == WidgetState::RUNNING)
+        if (_state == WidgetState::RUNNING && isFront)
         {
             closeMenu(); // 10 s inactivity closes AND frees the built tree
             return;
@@ -345,21 +368,7 @@ void MenuWidget::addDefaultOnValueChanged()
             logDebugP("Helligkeit geändert auf: %s%% (%d)", opt.dropdownOptions[val.getSizeT()].c_str(), contrast);
         }
     });
-    registerOnValueChanged("auto_dimming", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
-        if (val.isBool())
-        {
-            if (val.getBool())
-            {
-                _display->SetDim(true); // locked Wire1 wrapper (raw display->dim() would bypass the bus mutex)
-                logDebugP("Auto Dimming enabled");
-            }
-            else
-            {
-                _display->SetDim(false);
-                logDebugP("Auto Dimming disabled");
-            }
-        }
-    });
+    // Dimming is driven by the PowerSave state machine (dimMin -> dimTimeout); no manual toggle.
 
     assignOnValueChangedHandlers(_currentMenu);
 }
@@ -687,6 +696,24 @@ bool MenuWidget::handleButtonEvent(const ButtonEvent& event)
         if (_state == WidgetState::BACKGROUND) resume();
         return handleSliderButton(event);
     }
+    if (_mode == MenuMode::TextEdit)
+    {
+        _lastButtonPressTime = event.timestamp;
+        if (_state == WidgetState::BACKGROUND) resume();
+        return handleTextEditButton(event);
+    }
+    if (_mode == MenuMode::ConfirmDialog)
+    {
+        _lastButtonPressTime = event.timestamp;
+        if (_state == WidgetState::BACKGROUND) resume();
+        return handleConfirmButton(event);
+    }
+    if (_mode == MenuMode::NumberEdit)
+    {
+        _lastButtonPressTime = event.timestamp;
+        if (_state == WidgetState::BACKGROUND) resume();
+        return handleNumberEditButton(event);
+    }
 
     // The menu is "open" only while displayed (DisplayEnabled). While CLOSED only a deliberate
     // OK opens it; every other button is left to the home rotation / screensaver wake.
@@ -799,6 +826,7 @@ void MenuWidget::closeMenu()
         if (wm && wm->isGrabbing()) wm->dropWidget();
     }
     _mode = MenuMode::Normal;
+    _confirmOnYes = nullptr; // drop any ConfirmDialog callback if the menu closes while it is open
     // swap-with-empty actually returns the capacity to the heap (clear() alone keeps it).
     std::vector<MenuConfig::MenuOption>().swap(_currentMenu);
     std::vector<std::vector<MenuConfig::MenuOption>>().swap(_menuStack);
@@ -870,6 +898,21 @@ std::string MenuWidget::itemValueText(const MenuConfig::MenuOption& item) const
             const size_t idx = item.radioIndexProvider ? item.radioIndexProvider() : item.defaultValue.getSizeT();
             if (idx < item.dropdownOptions.size()) return item.dropdownOptions[idx];
             return std::string();
+        }
+
+        case MenuConfig::MenuElementType::TextInput:
+            if (item.valueProvider) return item.valueProvider();
+            return item.defaultValue.isString() ? item.defaultValue.getString() : std::string();
+
+        case MenuConfig::MenuElementType::NumberEdit:
+        {
+            // Minutes value; 0 shows the item's zero-label (dropdownOptions[0], e.g. "nie"/"aus").
+            const size_t m = item.defaultValue.isSizeT() ? item.defaultValue.getSizeT() : 0;
+            if (m == 0)
+                return item.dropdownOptions.empty() ? std::string("aus") : item.dropdownOptions[0];
+            char buf[12];
+            snprintf(buf, sizeof(buf), "%u min", static_cast<unsigned>(m));
+            return std::string(buf);
         }
 
         case MenuConfig::MenuElementType::IpEdit:
@@ -1028,8 +1071,16 @@ void MenuWidget::selectItem()
         case MenuConfig::MenuElementType::Action:
             if (item.action)
             {
-                item.action();
-                logDebugP("Action (%s) executed for item: %s", item.key.c_str(), item.label.c_str());
+                if (!item.confirmText.empty()) // destructive -> Nein/Ja guard first
+                {
+                    auto act = item.action;
+                    enterConfirmDialog(item.label, item.confirmText, [act]() { if (act) act(); });
+                }
+                else
+                {
+                    item.action();
+                    logDebugP("Action (%s) executed for item: %s", item.key.c_str(), item.label.c_str());
+                }
             }
             else
                 logErrorP("No action assigned to this item: %s", item.label.c_str());
@@ -1146,8 +1197,13 @@ void MenuWidget::selectItem()
             break;
         }
         case MenuConfig::MenuElementType::TextInput:
-            // Not implemented in this example
-            logDebugP("TextInput not implemented");
+            logDebugP("Text editor selected: %s", item.label.c_str());
+            enterTextEdit(_selectedIndex);
+            break;
+
+        case MenuConfig::MenuElementType::NumberEdit:
+            logDebugP("Number editor selected: %s", item.label.c_str());
+            enterNumberEdit(_selectedIndex);
             break;
 
         // Read-only rows are non-interactive (value shown via valueProvider()).
@@ -1180,21 +1236,29 @@ void MenuWidget::selectItem()
             break;
 
         // Show the item's toast message as a transient overlay, then run its optional action.
+        // A non-empty confirmText gates the whole thing behind a Nein/Ja guard first.
         case MenuConfig::MenuElementType::Toast:
-            if (!item.toast.empty())
-            {
-                const std::string message = item.toast;
-                showOverlay([this, message]() {
-                    _display->display->clearDisplay();
-                    _display->display->setTextSize(1);
-                    _display->display->setTextColor(WHITE);
-                    _display->display->setCursor(0, 0);
-                    _display->display->print(message.c_str());
-                    _display->displayBuff();
-                });
-            }
-            if (item.action) item.action();
+        {
+            const std::string message = item.toast;
+            auto act = item.action;
+            auto perform = [this, message, act]() {
+                if (!message.empty())
+                    showOverlay([this, message]() {
+                        _display->display->clearDisplay();
+                        _display->display->setTextSize(1);
+                        _display->display->setTextColor(WHITE);
+                        _display->display->setCursor(0, 0);
+                        _display->display->print(message.c_str());
+                        _display->displayBuff();
+                    });
+                if (act) act();
+            };
+            if (!item.confirmText.empty())
+                enterConfirmDialog(item.label, item.confirmText, perform);
+            else
+                perform();
             break;
+        }
 
         // 4-octet IP editor (IpEdit / IpAddress). Rows are always visible; DHCP-on
         // rows are locked and select is a no-op, DHCP-off enters the built-in IpEdit sub-mode.
@@ -1232,6 +1296,7 @@ void MenuWidget::selectItem()
 void MenuWidget::leaveEditor()
 {
     _mode = MenuMode::Normal;
+    _confirmOnYes = nullptr; // release any ConfirmDialog callback (captures) on exit
     _needsRedraw = true;
     _editBlinkOn = true;
     _editBlinkLast = millis();
@@ -1425,6 +1490,423 @@ void MenuWidget::drawIpEditor()
     _display->display->setTextColor(WHITE, BLACK);
     _display->display->setCursor(2, static_cast<int16_t>(_screenHeight - 9));
     _display->display->print("OK=ok  <=zurueck");
+
+    _display->displayBuff();
+}
+
+// ---------------- text editor (char-scroll) ----------------
+
+// Enter the text editor for _currentMenu[itemIndex]. Copies the item's string value into a working
+// buffer so a cancel leaves the original untouched.
+void MenuWidget::enterTextEdit(size_t itemIndex)
+{
+    if (itemIndex >= _currentMenu.size()) return;
+    const auto& item = _currentMenu[itemIndex];
+
+    _textEditIndex = itemIndex;
+    // valueProvider (live, e.g. the SD volume label) wins over the static defaultValue.
+    _textEdit = item.valueProvider ? item.valueProvider()
+                                   : (item.defaultValue.isString() ? item.defaultValue.getString() : std::string());
+    if (_textEdit.empty()) _textEdit = " ";                                    // seed one editable cell
+    if (_textEdit.size() > TEXT_EDIT_MAX) _textEdit.resize(TEXT_EDIT_MAX);
+    _textCursor = 0;
+    _mode = MenuMode::TextEdit;
+    _editBlinkOn = true;
+    _editBlinkLast = millis();
+    _needsRedraw = true;
+    logDebugP("Enter text editor: %s (\"%s\")", item.label.c_str(), _textEdit.c_str());
+}
+
+// Commit the working text back into the item (trailing spaces trimmed) and fire onValueChanged.
+void MenuWidget::commitTextEdit()
+{
+    if (_textEditIndex < _currentMenu.size())
+    {
+        auto& item = _currentMenu[_textEditIndex];
+        const size_t end = _textEdit.find_last_not_of(' ');
+        const std::string result = (end == std::string::npos) ? std::string() : _textEdit.substr(0, end + 1);
+        item.defaultValue = MenuValue(result);
+        logDebugP("Commit text editor: %s (\"%s\")", item.label.c_str(), result.c_str());
+        if (item.onValueChanged) item.onValueChanged(item, MenuValue(result));
+    }
+    leaveEditor();
+}
+
+// Discard the working text (item untouched) and leave to Normal.
+void MenuWidget::cancelTextEdit()
+{
+    logDebugP("Cancel text editor (no save)");
+    leaveEditor();
+}
+
+// PRESS handling for the text editor.
+//   UP/DOWN : cycle the char at the cursor through CHARSET
+//   LEFT    : cursor-- , EXCEPT LEFT at cursor 0 cancels (back)
+//   RIGHT   : cursor++ , or grow by one char (space) past the end (up to TEXT_EDIT_MAX)
+//   OK      : commit + leave
+bool MenuWidget::handleTextEditButton(const ButtonEvent& event)
+{
+    static const std::string CHARSET =
+        " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-";
+    const size_t N = CHARSET.size();
+
+    switch (event.type)
+    {
+        case ButtonType::UP:
+        case ButtonType::DOWN:
+        {
+            if (_textCursor >= _textEdit.size()) break;
+            size_t idx = CHARSET.find(_textEdit[_textCursor]);
+            if (idx == std::string::npos) idx = 0;
+            idx = (event.type == ButtonType::UP) ? (idx + 1) % N : (idx + N - 1) % N;
+            _textEdit[_textCursor] = CHARSET[idx];
+            break;
+        }
+
+        case ButtonType::LEFT:
+            if (_textCursor == 0)
+            {
+                cancelTextEdit();
+                return true;
+            }
+            _textCursor--;
+            break;
+
+        case ButtonType::RIGHT:
+            if (static_cast<size_t>(_textCursor) + 1 < _textEdit.size())
+                _textCursor++;
+            else if (_textEdit.size() < TEXT_EDIT_MAX)
+            {
+                _textEdit.push_back(' ');
+                _textCursor = static_cast<uint8_t>(_textEdit.size() - 1);
+            }
+            break;
+
+        case ButtonType::SELECT:
+            commitTextEdit();
+            return true;
+
+        default:
+            return true; // consume anything else while editing
+    }
+
+    _editBlinkOn = true;
+    _editBlinkLast = millis();
+    _needsRedraw = true;
+    return true;
+}
+
+// Render the text editor: label on top, the string large + windowed (cursor stays visible); the
+// active character blinks (hidden on the "off" phase of the ~500ms toggle).
+void MenuWidget::drawTextEditor()
+{
+    if (!_display || !_display->display) return;
+    auto* d = _display->display;
+
+    d->clearDisplay();
+    d->setTextWrap(false);
+
+    // Title / label row (size 1).
+    d->setTextSize(1);
+    d->setTextColor(WHITE, BLACK);
+    d->setCursor(2, 0);
+    const char* label = (_textEditIndex < _currentMenu.size()) ? _currentMenu[_textEditIndex].label.c_str() : "Text";
+    d->print(label);
+
+    // Characters at size 2, windowed so the cursor is always visible (~10 chars fit at 128px).
+    d->setTextSize(2);
+    const int16_t cellW = 12;
+    const int16_t cellH = 16;
+    const uint8_t visible = static_cast<uint8_t>((_screenWidth - 4) / cellW);
+    uint8_t start = 0;
+    if (visible > 0 && _textCursor >= visible) start = static_cast<uint8_t>(_textCursor - visible + 1);
+    const int16_t y = static_cast<int16_t>((_screenHeight - cellH) / 2);
+
+    int16_t cx = 2;
+    for (uint8_t i = start; i < _textEdit.size() && i < start + visible; ++i)
+    {
+        const bool active = (i == _textCursor);
+        const char c = _textEdit[i];
+        if (active)
+        {
+            if (_editBlinkOn)
+            {
+                d->fillRect(cx - 1, y - 1, cellW + 1, cellH + 1, WHITE);
+                d->setTextColor(BLACK, WHITE);
+                d->setCursor(cx, y);
+                d->write(static_cast<uint8_t>(c));
+                d->setTextColor(WHITE, BLACK);
+            }
+            // "off" phase: leave the active cell blank (blink).
+        }
+        else
+        {
+            d->setTextColor(WHITE, BLACK);
+            d->setCursor(cx, y);
+            d->write(static_cast<uint8_t>(c));
+        }
+        cx = static_cast<int16_t>(cx + cellW);
+    }
+
+    // Footer hint (size 1).
+    d->setTextSize(1);
+    d->setTextColor(WHITE, BLACK);
+    d->setCursor(2, static_cast<int16_t>(_screenHeight - 9));
+    d->print("OK=ok  <=zurueck");
+
+    _display->displayBuff();
+}
+
+// ---------------- confirm dialog ----------------
+
+// Enter the modal Nein/Ja guard. Selection defaults to Nein (safe); onYes runs only on commit-Ja.
+void MenuWidget::enterConfirmDialog(const std::string& title, const std::string& message, std::function<void()> onYes)
+{
+    _confirmTitle = title;
+    _confirmMessage = message;
+    _confirmOnYes = std::move(onYes);
+    _confirmSel = 0; // Nein
+    _mode = MenuMode::ConfirmDialog;
+    _needsRedraw = true;
+    logDebugP("Confirm dialog: %s", title.c_str());
+}
+
+// Horizontal [Nein][Ja] layout: LEFT selects Nein, RIGHT selects Ja (LEFT does NOT exit — cancel is
+// "Nein + OK"). UP/DOWN toggle. OK commits the selection (Ja runs the captured action).
+bool MenuWidget::handleConfirmButton(const ButtonEvent& event)
+{
+    switch (event.type)
+    {
+        case ButtonType::LEFT:
+            _confirmSel = 0; // Nein (left button)
+            _needsRedraw = true;
+            return true;
+
+        case ButtonType::RIGHT:
+            _confirmSel = 1; // Ja (right button)
+            _needsRedraw = true;
+            return true;
+
+        case ButtonType::UP:
+        case ButtonType::DOWN:
+            _confirmSel = _confirmSel ? 0 : 1; // toggle
+            _needsRedraw = true;
+            return true;
+
+        case ButtonType::SELECT:
+        {
+            const bool yes = (_confirmSel == 1);
+            auto cb = _confirmOnYes;
+            leaveEditor(); // back to Normal BEFORE running (onYes may showOverlay / block)
+            if (yes && cb) cb();
+            return true;
+        }
+
+        default:
+            return true; // consume anything else while modal
+    }
+}
+
+// Render: title + wrapped message + [Nein] [Ja] (selected filled).
+void MenuWidget::drawConfirmDialog()
+{
+    if (!_display || !_display->display) return;
+    auto* d = _display->display;
+
+    d->clearDisplay();
+    d->setTextWrap(false);
+    d->setTextSize(1);
+    d->setTextColor(WHITE, BLACK);
+
+    d->setCursor(2, 0);
+    d->print(_confirmTitle.c_str());
+    d->drawLine(0, 10, _screenWidth, 10, WHITE);
+
+    // Message word-wrapped to full-width lines (6px font), up to 3 lines at y=14/23/32. Break at the
+    // last space that fits so words are not split mid-letter; fall back to a hard cut for a word that
+    // is longer than one line.
+    const size_t perLine = (_screenWidth > 12) ? (size_t)((_screenWidth - 4) / 6) : 20;
+    size_t pos = 0;
+    for (int16_t my = 14; pos < _confirmMessage.size() && my <= 32; my = (int16_t)(my + 9))
+    {
+        size_t len = _confirmMessage.size() - pos;
+        if (len > perLine)
+        {
+            len = perLine; // hard cut fallback
+            const size_t sp = _confirmMessage.rfind(' ', pos + perLine);
+            if (sp != std::string::npos && sp > pos)
+                len = sp - pos; // break at the last space within the line
+        }
+        const std::string ln = _confirmMessage.substr(pos, len);
+        d->setCursor(2, my);
+        d->print(ln.c_str());
+        pos += len;
+        while (pos < _confirmMessage.size() && _confirmMessage[pos] == ' ')
+            pos++; // swallow the break space(s)
+    }
+
+    // Buttons [Nein] [Ja]; the selected one is filled, the other outlined.
+    static const char* const OPTS[2] = {"Nein", "Ja"};
+    const int16_t by = 46, bh = 14, bw = 50;
+    for (uint8_t i = 0; i < 2; i++)
+    {
+        const int16_t bx = (i == 0) ? 8 : (int16_t)(_screenWidth - bw - 8);
+        if (i == _confirmSel)
+        {
+            d->fillRect(bx, by, bw, bh, WHITE);
+            d->setTextColor(BLACK);
+        }
+        else
+        {
+            d->drawRect(bx, by, bw, bh, WHITE);
+            d->setTextColor(WHITE);
+        }
+        const std::string s = OPTS[i];
+        const int16_t tw = (int16_t)(s.size() * 6);
+        d->setCursor((int16_t)(bx + (bw - tw) / 2), (int16_t)(by + 4));
+        d->print(s.c_str());
+        d->setTextColor(WHITE, BLACK);
+    }
+
+    _display->displayBuff();
+}
+
+// ---------------- number editor ----------------
+
+// Enter the 3-digit number editor for _currentMenu[itemIndex] (minutes 0..999). Reads the current
+// value from defaultValue (SizeT); the zero-label comes from dropdownOptions[0] ("nie"/"aus").
+void MenuWidget::enterNumberEdit(size_t itemIndex)
+{
+    if (itemIndex >= _currentMenu.size()) return;
+    const auto& item = _currentMenu[itemIndex];
+
+    _numberEditIndex = itemIndex;
+    const size_t v = item.defaultValue.isSizeT() ? item.defaultValue.getSizeT() : 0;
+    _numberEdit = (v > NUMBER_EDIT_MAX) ? NUMBER_EDIT_MAX : static_cast<uint16_t>(v);
+    _numberZeroLabel = item.dropdownOptions.empty() ? std::string("aus") : item.dropdownOptions[0];
+    _numberCursor = 0; // start on the hundreds digit
+    _mode = MenuMode::NumberEdit;
+    _editBlinkOn = true;
+    _editBlinkLast = millis();
+    _needsRedraw = true;
+    logDebugP("Enter number editor: %s (%u)", item.label.c_str(), (unsigned)_numberEdit);
+}
+
+// Write the value back (as SizeT minutes) + fire onValueChanged.
+void MenuWidget::commitNumberEdit()
+{
+    if (_numberEditIndex < _currentMenu.size())
+    {
+        auto& item = _currentMenu[_numberEditIndex];
+        item.defaultValue = MenuValue(static_cast<size_t>(_numberEdit));
+        logDebugP("Commit number editor: %s (%u)", item.label.c_str(), (unsigned)_numberEdit);
+        if (item.onValueChanged) item.onValueChanged(item, MenuValue(static_cast<size_t>(_numberEdit)));
+    }
+    leaveEditor();
+}
+
+void MenuWidget::cancelNumberEdit()
+{
+    logDebugP("Cancel number editor (no save)");
+    leaveEditor();
+}
+
+// PRESS handling: UP/DOWN cycle the active digit (0..9), LEFT/RIGHT move the cursor (LEFT at the
+// leftmost digit cancels), OK commits.
+bool MenuWidget::handleNumberEditButton(const ButtonEvent& event)
+{
+    uint16_t h = _numberEdit / 100, t = (_numberEdit / 10) % 10, o = _numberEdit % 10;
+    switch (event.type)
+    {
+        case ButtonType::UP:
+        case ButtonType::DOWN:
+        {
+            const uint16_t delta = (event.type == ButtonType::UP) ? 1u : 9u; // +1 / -1 (mod 10)
+            if (_numberCursor == 0)      h = (h + delta) % 10;
+            else if (_numberCursor == 1) t = (t + delta) % 10;
+            else                         o = (o + delta) % 10;
+            _numberEdit = static_cast<uint16_t>(h * 100 + t * 10 + o);
+            break;
+        }
+        case ButtonType::LEFT:
+            if (_numberCursor == 0) { cancelNumberEdit(); return true; }
+            _numberCursor--;
+            break;
+        case ButtonType::RIGHT:
+            if (_numberCursor < 2) _numberCursor++;
+            break;
+        case ButtonType::SELECT:
+            commitNumberEdit();
+            return true;
+        default:
+            return true;
+    }
+    _editBlinkOn = true;
+    _editBlinkLast = millis();
+    _needsRedraw = true;
+    return true;
+}
+
+// Render: label on top, 3 big digits (active blinks) + "min", plus the zero-label hint when 0.
+void MenuWidget::drawNumberEditor()
+{
+    if (!_display || !_display->display) return;
+    auto* d = _display->display;
+
+    d->clearDisplay();
+    d->setTextWrap(false);
+
+    d->setTextSize(1);
+    d->setTextColor(WHITE, BLACK);
+    d->setCursor(2, 0);
+    const char* label = (_numberEditIndex < _currentMenu.size()) ? _currentMenu[_numberEditIndex].label.c_str() : "Wert";
+    d->print(label);
+
+    // 3 digits at size 2, the active one blinks; "min" at size 1 after them.
+    const int16_t cellW = 12, cellH = 16;
+    const int16_t y = static_cast<int16_t>((_screenHeight - cellH) / 2);
+    const uint16_t dig[3] = {static_cast<uint16_t>(_numberEdit / 100),
+                             static_cast<uint16_t>((_numberEdit / 10) % 10),
+                             static_cast<uint16_t>(_numberEdit % 10)};
+    int16_t cx = 30;
+    d->setTextSize(2);
+    for (uint8_t i = 0; i < 3; ++i, cx = static_cast<int16_t>(cx + cellW))
+    {
+        const bool active = (i == _numberCursor);
+        const char c = static_cast<char>('0' + dig[i]);
+        if (active)
+        {
+            if (_editBlinkOn)
+            {
+                d->fillRect(cx - 1, y - 1, cellW + 1, cellH + 1, WHITE);
+                d->setTextColor(BLACK, WHITE);
+                d->setCursor(cx, y);
+                d->write(static_cast<uint8_t>(c));
+                d->setTextColor(WHITE, BLACK);
+            }
+            // blink-off: leave the active digit blank
+        }
+        else
+        {
+            d->setTextColor(WHITE, BLACK);
+            d->setCursor(cx, y);
+            d->write(static_cast<uint8_t>(c));
+        }
+    }
+    d->setTextSize(1);
+    d->setTextColor(WHITE, BLACK);
+    d->setCursor(static_cast<int16_t>(cx + 3), static_cast<int16_t>(y + 4));
+    d->print("min");
+
+    // Zero-label hint + control hint (footer).
+    if (_numberEdit == 0)
+    {
+        const std::string z = std::string("0 = ") + _numberZeroLabel;
+        d->setCursor(2, static_cast<int16_t>(_screenHeight - 18));
+        d->print(z.c_str());
+    }
+    d->setCursor(2, static_cast<int16_t>(_screenHeight - 9));
+    d->print("OK=ok  <=zurueck");
 
     _display->displayBuff();
 }
@@ -2202,6 +2684,21 @@ void MenuWidget::drawMenu()
     if (_mode == MenuMode::Slider)
     {
         drawSlider();
+        return;
+    }
+    if (_mode == MenuMode::TextEdit)
+    {
+        drawTextEditor();
+        return;
+    }
+    if (_mode == MenuMode::ConfirmDialog)
+    {
+        drawConfirmDialog();
+        return;
+    }
+    if (_mode == MenuMode::NumberEdit)
+    {
+        drawNumberEditor();
         return;
     }
 

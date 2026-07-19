@@ -58,6 +58,11 @@ class MenuWidget : public Widget
     // Seeds each keyed option's live defaultValue from the persisted store at build time.
     void setValueSeeder(std::function<void(MenuConfig::MenuOption&)> seeder) { _valueSeeder = std::move(seeder); }
 
+    // Rebuild the whole tree from the registry + re-seed every value from the store, resetting
+    // navigation to root. Call after a settings reset so the UI reflects the fresh state everywhere
+    // (not just the current view - eager submenus in _menuStack would otherwise stay stale).
+    void rebuild() { buildMenuFromRegistry(); }
+
     // Root renders as an icon grid (true) or text list (false); toggled live from the Anzeige menu.
     void setIconMenu(bool on)
     {
@@ -103,10 +108,13 @@ class MenuWidget : public Widget
     enum class MenuMode : uint8_t
     {
         Normal,
-        IpEdit,      // 4-octet IP editor
-        Reorder,     // widget rotation reorder editor
-        RadioSelect, // full-screen single-select picker (e.g. screensaver family)
-        Slider       // horizontal slider over a stepped dropdown (e.g. brightness)
+        IpEdit,       // 4-octet IP editor
+        Reorder,      // widget rotation reorder editor
+        RadioSelect,  // full-screen single-select picker (e.g. screensaver family)
+        Slider,       // horizontal slider over a stepped dropdown (e.g. brightness)
+        TextEdit,      // char-scroll text editor (TextInput items)
+        ConfirmDialog, // Nein/Ja guard before a destructive Action/Toast (MenuOption::confirmText)
+        NumberEdit     // 3-digit number editor (minutes 0..999) for NumberEdit items
     };
     MenuMode _mode = MenuMode::Normal;
 
@@ -133,6 +141,41 @@ class MenuWidget : public Widget
     void cancelIpEdit();                // discard, leave
     bool handleIpEditButton(const ButtonEvent& event);
     void drawIpEditor();
+
+    // Char-scroll text editor state + sub-mode (TextInput items). UP/DOWN cycles the char at the
+    // cursor, LEFT/RIGHT moves it (LEFT at 0 = back), RIGHT past the end grows up to TEXT_EDIT_MAX.
+    std::string _textEdit;                       // working copy of the string being edited
+    uint8_t _textCursor = 0;                     // active character index
+    size_t _textEditIndex = 0;                   // index into _currentMenu of the item
+    static constexpr uint8_t TEXT_EDIT_MAX = 15; // max editable length
+    void enterTextEdit(size_t itemIndex);        // copy item text -> _textEdit, _mode = TextEdit
+    void commitTextEdit();                       // write back (trailing spaces trimmed) + onValueChanged
+    void cancelTextEdit();                       // discard, leave
+    bool handleTextEditButton(const ButtonEvent& event);
+    void drawTextEditor();
+
+    // Confirm-dialog sub-mode: a modal Nein/Ja guard shown before a destructive Action/Toast whose
+    // MenuOption carries a non-empty confirmText. LEFT/Nein cancel; OK on Ja runs the captured action.
+    std::string _confirmTitle;
+    std::string _confirmMessage;
+    std::function<void()> _confirmOnYes;
+    uint8_t _confirmSel = 0; // 0 = Nein (default), 1 = Ja
+    void enterConfirmDialog(const std::string& title, const std::string& message, std::function<void()> onYes);
+    bool handleConfirmButton(const ButtonEvent& event);
+    void drawConfirmDialog();
+
+    // Number editor sub-mode: a 3-digit value (minutes 0..999). UP/DOWN cycle the digit at the cursor,
+    // LEFT/RIGHT move it (LEFT at digit 0 = cancel), OK commits. Value 0 shows the item's zero-label.
+    uint16_t _numberEdit = 0;
+    uint8_t _numberCursor = 0;    // active digit: 0=hundreds, 1=tens, 2=ones
+    size_t _numberEditIndex = 0;  // index into _currentMenu of the item being edited
+    std::string _numberZeroLabel; // label shown when the value is 0 (e.g. "nie" / "aus")
+    static constexpr uint16_t NUMBER_EDIT_MAX = 999;
+    void enterNumberEdit(size_t itemIndex);
+    void commitNumberEdit();
+    void cancelNumberEdit();
+    bool handleNumberEditButton(const ButtonEvent& event);
+    void drawNumberEditor();
 
     // Reorder editor sub-mode entry/handling/render.
     void enterReorder(); // _mode = Reorder (drops any prior grab)
@@ -251,6 +294,10 @@ class MenuWidget : public Widget
     bool _needsRedraw = false;
     bool _isPaused = false;
     bool _FrontPlateEnabled = false;
+    // True while the menu is the active button widget (front). While parked behind another
+    // ManagedExternally widget (e.g. the SD file browser) we must NOT auto-close; on regaining
+    // focus we repaint and reset the idle timer. See loop().
+    bool _wasFront = false;
     bool _devMode = true; // developer/device-only items visible by default
 
     // Screen/gesture hooks (see setters above). Empty until wired.

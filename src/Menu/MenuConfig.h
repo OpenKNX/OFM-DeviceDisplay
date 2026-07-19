@@ -73,6 +73,7 @@ class MenuConfig
         Reboot,     // trigger a device reboot
         Files,      // open the SD-card file browser
         About,      // open the "About" screen
+        NumberEdit, // 3-digit number editor (minutes 0..999); dropdownOptions[0] = label shown for value 0
         Unknown
     };
 
@@ -94,6 +95,7 @@ class MenuConfig
         std::function<void(const MenuOption&, const MenuValue&)> onValueChanged;
 
         std::string toast;                          // message shown when a Toast item is selected
+        std::string confirmText;                    // non-empty: Action/Toast runs only after a Nein/Ja guard
         std::function<std::string()> valueProvider; // right-aligned live value for Readonly items
         uint8_t ip[4] = {0, 0, 0, 0};               // octet carrier for IpEdit items
         bool devOnly = false;                       // item only visible when developer mode is active
@@ -146,3 +148,34 @@ class MenuConfig
         return nullptr;
     }
 };
+
+// --- Menu construction helpers ------------------------------------------------
+//
+// Build rows directly in their final vector storage — never as stack locals.
+//
+// A MenuOption is ~312 bytes (4x std::string, 4x std::function, 2x std::vector, an
+// optional<pair<string, MenuValue>>). A builder holding a dozen of them as locals, and copying
+// them a second time through an initializer list (`sub = {a, b, c}` puts a full copy of every row
+// on the stack), does not fit anywhere: Core0 on RP2040/RP2350 has 8 KiB of stack in total
+// (0x2004_0000/0x2008_0000 .. +0x2000) with the heap directly below it, and the ESP32 Arduino
+// loopTask has 8192 bytes (CONFIG_ARDUINO_LOOP_STACK_SIZE) carved out of the heap. Measured: one
+// such builder compiled to a single 9024-byte frame and ran 2188 bytes past the limit.
+namespace MenuBuild
+{
+    // Append one row to `dst` and configure it in place: no stack temporary, no copy.
+    // `configure` must not touch `dst` itself — that would invalidate the reference it is handed.
+    template <typename Fn>
+    inline void addRow(std::vector<MenuConfig::MenuOption>& dst, Fn&& configure)
+    {
+        dst.emplace_back();
+        configure(dst.back());
+    }
+} // namespace MenuBuild
+
+// Section builders must each keep their own stack frame. Inlined into one another their locals
+// coalesce back into a single frame and the overflow returns.
+#if defined(__GNUC__)
+    #define MENU_NOINLINE __attribute__((noinline))
+#else
+    #define MENU_NOINLINE
+#endif
