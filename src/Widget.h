@@ -35,10 +35,11 @@ enum class WidgetState
 
 enum class WidgetPriority : uint8_t
 {
-    WIDGET_PRIO_LOW = 0,     // Default widgets, animations (not used for StatusWidgets)
-    WIDGET_PRIO_NORMAL = 1,  // Menu activation
-    WIDGET_PRIO_HIGH = 2,    // Warnings (UseCase specific warnings - e.g., no Screensaver configured)
-    WIDGET_PRIO_CRITICAL = 3 // Critical errors (ProgMode, System failure, etc.)
+    WIDGET_PRIO_LOW = 0,      // Default widgets, animations (not used for StatusWidgets)
+    WIDGET_PRIO_NORMAL = 1,   // Menu activation
+    WIDGET_PRIO_HIGH = 2,     // Warnings (UseCase specific warnings - e.g., no Screensaver configured)
+    WIDGET_PRIO_CRITICAL = 3, // ProgMode; also full-screen overlays parked here (Gesture, About)
+    WIDGET_PRIO_SYSTEM = 4    // System takeover, overrides everything: OTA update, fatal errors
 };
 
 class Widget
