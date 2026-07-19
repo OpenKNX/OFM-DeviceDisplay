@@ -1,6 +1,6 @@
 {
   "name": "OFM-DeviceDisplay",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "dependencies": {
     "Adafruit_SSD1306": "https://github.com/adafruit/Adafruit_SSD1306",
     "Adafruit-GFX-Library": "https://github.com/adafruit/Adafruit-GFX-Library",

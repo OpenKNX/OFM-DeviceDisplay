@@ -7,14 +7,17 @@
 ## TL;DR
 
 **What is this?**
-A powerful widget-based display manager for OpenKNX devices with state machine, priority system, and power management.
+A widget-based OLED display manager for OpenKNX devices: a priority/state-machine widget engine with power-save, a 5-way button system with **hold-to-confirm gestures**, a **runtime menu** (registry-driven, in-place editors, on-device network config), and **flash-persisted settings**.
 
-**Key Features:**
-- **Widget System**: Sysinfo, Menu, ProgMode, Screensavers, OAM/OFM custom widgets
-- **Priority Levels**: CRITICAL > HIGH > NORMAL > LOW (automatic override)
-- **Power Save**: Screensaver, Display OFF, configurable timeouts
-- **Button Input**: 5-way navigation (UP/DOWN/LEFT/RIGHT/OK), long-press support
-- **State Machine**: STARTUP -> DEFAULT -> PRIORITY -> BACKGROUND -> POWER_SAVE
+**What it can do:**
+- **Widgets**: boot logo, clock, time, sysinfo, QR, about, screensavers (Matrix/Doom/Rain/Life/…) + your own
+- **Priority engine**: CRITICAL > HIGH > NORMAL > LOW — a status/error widget overrides anything and auto-removes
+- **Power-save**: Active → Dimmed → Screensaver → Sleep → Off (all timeouts configurable & flash-persisted)
+- **Gestures**: hold a Home key to Reboot / ProgMode / Display-off / Pause with a countdown overlay (release = abort)
+- **Menu v2**: registry-driven tree, toggle / dropdown / slider / IP / reorder editors, live on-device network (IP) config
+- **Settings**: brightness, screensaver, timeouts, Home-key map, per-widget rotation — persisted on-device (no ETS round-trip)
+
+**Flow:** `button → DeviceDisplay (gesture router) → GestureEngine (hold-to-confirm) or WidgetsManager (state machine + power-save) → active widget / menu → settings → flash`
 
 **Quick Example:**
 ```cpp
@@ -65,10 +68,23 @@ errorWidget->addAction(DisplayEnabled); // → Shown immediately!
 * [ ] Internal Widget to display informatios as a fallback (i.e. no Screensaver set etc.)
 
 ### Planned Features (Phase 2)
-- [ ] **Button Combinations**: UP/DOWN/LEFT/RIGHT simultaneously for special actions
-- [ ] **Long-Press Actions**: OK 5s -> ProgMode toggle, configurable shortcuts
-- [ ] **Global Button Patterns**: Konami-code style sequences (LEFT, LEFT, UP, DOWN, OK)
-- [ ] **ETS Application**: Configuration via KNX parameters
+- [x] **Hold-to-Confirm Gestures**: hold a Home key to fire Reboot / ProgMode / Display-off / Pause with a countdown bar + overlay (replaces the old "Long-Press Actions"; OK-hold → ProgMode, per-direction actions configurable & persisted) — see [Gesture System](#gesture-system-hold-to-confirm)
+- [x] **On-Device Settings Menu**: brightness, screensaver, timeouts, Home-key mapping, widget rotation — persisted in module flash — see [On-Device Settings](#on-device-settings-persistence)
+- [x] **Menu System v2**: registry-driven tree, in-place value editors (toggle / dropdown / IP / number), action + `onValueChanged` registries
+- [x] **On-Device Network Config**: set DHCP/static IP from the menu with live re-init (DeviceDisplay builds only)
+
+### Planned Features (Phase 3)
+- [ ] **Config strategy — decision needed**: keep display config **on-device only** (menu + flash, as today) or **also expose it as ETS parameters**. Trade-off: ETS = central, reproducible, part of the backed-up project — but adds parameter bloat + an ETS↔flash sync/precedence path; local-only = simpler, no ETS round-trip, but the config isn't captured in the ETS project. → decide before adding more config surface.
+- [ ] **Global system notifications (auto-toast)**: surface system events — IP up/down, SD card in/out, BCU connect/lost, … — **automatically from anywhere** (screensaver, widget rotation or menu) as a high-priority overlay, using the existing `StatusWidget` priority + `AutoRemove` path (the architecture already supports this). Configurable dwell: **auto-dismiss (default)** vs. must-acknowledge. Default is auto, so there is never a backlog of un-clicked messages to buffer/hold back. Wires Network/SD/BCU status-change hooks to a notification widget (reuses the menu's Toast / info-overlay style).
+- [ ] **Screenshot Gesture**: RIGHT-hold → dump the 128×64 framebuffer as a 1-bit BMP to the SD-card root (reusable `dumpFramebufferBmp(Print&)` encoder)
+- [ ] **Web Virtual Display**: mirror/stream the OLED framebuffer to a web UI and drive the buttons virtually (the diff-flush buffer already exists)
+- [ ] **Widget Taxonomy**: structured widget categories + a cleaner selection/rotation UX (see `doc/widget-taxonomy-concept.md`)
+- [ ] **Widget Layer System**: BACKGROUND / OVERLAY / POPUP layers so a status bar can coexist with the menu (supersedes the single-BACKGROUND-widget limitation)
+- [ ] **Auto / Idle Gestures**: menu-triggered auto-countdown actions + idle gesture hints (GEST-05 / GEST-09)
+
+### Nice-to-have (optional · unscheduled)
+- [x] **Sequence pattern shortcut**: KONAMI recovery (↑ ↑ ↓ ↓ ← → ← → OK OK) restores + saves display defaults, blind. See *Display tuning & KONAMI recovery*.
+- [ ] **Multi-button / chorded shortcuts**: chorded keys (e.g. UP+DOWN) for further hidden/special actions — low priority, may never ship.
   
 
 ### **Info:**
@@ -122,6 +138,8 @@ This library features a sophisticated widget management system, centralized butt
     - [Button Event System](#button-event-system)
     - [Widget Button Handling](#widget-button-handling)
     - [Button Priority System](#button-priority-system)
+  - [Gesture System (Hold-to-Confirm)](#gesture-system-hold-to-confirm)
+  - [On-Device Settings (Persistence)](#on-device-settings-persistence)
   - [Installation](#installation)
   - [Dependencies](#dependencies)
   - [Example Code](#example-code)
@@ -187,10 +205,15 @@ STARTUP -> IDLE -> {PRIORITY, BACKGROUND, DEFAULT}
 
 **Priority Order:**
 1. STARTUP (AutoRemove widgets, boot animations)
-2. PRIORITY (StatusWidget + DisplayEnabled, e.g., ProgMode)
+2. PRIORITY (StatusWidget: ProgMode, **WidgetGestureOverlay**, About)
 3. BACKGROUND (Background + DisplayEnabled, e.g., Menu)
-4. DEFAULT (DefaultWidget rotation, e.g., Clock, Starfield)
+4. DEFAULT (DefaultWidget rotation: Clock, Time, screensavers…)
 5. IDLE (no widgets active)
+
+> The **gesture layer** rides on top: while a hold-to-confirm gesture runs, the CRITICAL
+> `WidgetGestureOverlay` is toggled `DisplayEnabled` and interrupts whatever is shown (the
+> ProgMode widget is suppressed meanwhile). PowerSave timeouts + brightness are **derived from
+> the flash-persisted `DisplaySettings`** via `DisplaySettingsStore::applyToRuntime()`.
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -252,14 +275,73 @@ STARTUP -> IDLE -> {PRIORITY, BACKGROUND, DEFAULT}
    - Display interface with `clearDisplay()`, `draw*()`, `displayBuff()`
 
 2. **Modular Components**:
-   - **DeviceDisplay**: Hardware-specific (GPIO, i2c init, main loop)
+   - **DeviceDisplay**: Hardware-specific (GPIO, i2c init, main loop); also owns the gesture engine + the settings store and wires them into the manager/widgets
    - **WidgetsManager**: Core orchestration (state machine, power-save, widget lifecycle)
-   - **i2cDisplay**: Hardware facade (SSD1306 driver wrapper)
-   - **Widgets**: Self-contained display logic (Menu, Clock, QR, animations)
+   - **GestureEngine**: Non-blocking hold-to-confirm state machine (see [Gesture System](#gesture-system-hold-to-confirm))
+   - **DisplaySettings / DisplaySettingsStore**: Flash-persisted on-device settings (see [On-Device Settings](#on-device-settings-persistence))
+   - **i2cDisplay**: Hardware facade (SSD1306/SSD1315 wrapper) with a non-blocking partial diff-flush
+   - **Widgets**: Self-contained display logic (Menu, Clock, QR, animations, GestureOverlay)
+
+5. **Gesture Layer**: Home-screen keys don't fire destructive actions directly — a **hold-to-confirm** gesture (countdown bar) sits between the button event and the action, so Reboot/ProgMode/Display-off need a deliberate hold, not a stray press.
 
 3. **Event-Driven**: Button events flow from hardware -> manager -> active widget
 
 4. **Extensible**: Add new display types by implementing display interface
+
+5. **Gesture layer**: Home-screen keys don't fire destructive actions directly — a hold-to-confirm gesture sits between the button event and the action.
+
+---
+
+### v2 Architecture (Gesture · Menu Registry · Settings)
+
+`DeviceDisplay` is the **sole entry point**: it creates and owns every component below, runs `setup()`/`loop()`, and registers itself as the **gesture router** for the buttons.
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ DeviceDisplay   (OpenKNX::Module)                                        │
+├──────────────────────────────────────────────────────────────────────────┤
+│ sole entry point — creates & owns everything below                       │
+│ gesture router for the buttons · flash read/write (settings)             │
+└──────────────────────────────────────────────────────────────────────────┘
+  │  creates / owns
+  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Input & Hardware                                                         │
+├──────────────────────────────────────────────────────────────────────────┤
+│ ButtonManager   5-way keys -> route raw events to DeviceDisplay          │
+│ GestureEngine   hold-to-confirm FSM (one active gesture)                 │
+│ i2cDisplay      SSD1306/15 · non-blocking diff-flush                     │
+└──────────────────────────────────────────────────────────────────────────┘
+  │  ButtonEvent · fireAction() callbacks · draw
+  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ WidgetsManager   (state machine · power-save · widget queue)             │
+├──────────────────────────────────────────────────────────────────────────┤
+│ State       Startup -> Idle -> { Priority · Background · Default }       │
+│ PowerSave   Active -> Dimmed -> Screensaver -> Sleep -> Off              │
+│ queue  PRIORITY    ProgMode · GestureOverlay · About                     │
+│        BACKGROUND  Menu                                                  │
+│        DEFAULT     Clock · Time · ...                                    │
+│        SCREENSAVER Matrix · Doom · Rain · Life · ...                     │
+└──────────────────────────────────────────────────────────────────────────┘
+  │  borrows ▼          settings applyToRuntime() ▲
+┌──────────────────────────────────────────────────────────────────────────┐
+│ MenuRegistry  ->  MenuWidget                                             │
+├──────────────────────────────────────────────────────────────────────────┤
+│ module menu contributions · dedup · sortOrder · About pinned last        │
+│ editors:  Normal / Slider / RadioSelect / IpEdit / Reorder               │
+└──────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ DisplaySettingsStore                                                     │
+├──────────────────────────────────────────────────────────────────────────┤
+│ RAM settings + dirty tracking + throttled save -> module flash           │
+│ applyToRuntime() -> WidgetsManager (power) + i2cDisplay (invert/font)    │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+**Gesture layer (decouples buttons from actions):** a Home-key `PRESS` arms the `GestureEngine` (`resolveAction` → `startHold`); `loop()` `tick()`s it; the CRITICAL `WidgetGestureOverlay` shows the countdown; on `Counting→Firing` **exactly one** callback runs — `ProgMode` (`knx.toggleProgMode()`), `Reboot` (`openknx.common.restart()`), `Pause` (`WidgetsManager::toggleRotationPause()`) or `DisplayOff` (`WidgetsManager::forceDisplayOff()`). Releasing before the bar completes aborts.
+
+**Settings persistence:** a menu `onValueChanged` → `DisplaySettingsStore::setXxx()` → marks dirty → throttled `requestSave()` → `tickSave()` (2 s settle) → `DeviceDisplay::writeFlash()`. On boot `readFlash()` restores the blob; `applyToRuntime()` pushes brightness/screensaver/timeouts to `WidgetsManager` and invert/font to `i2cDisplay`.
 
 ---
 
@@ -379,6 +461,36 @@ STARTUP -> IDLE -> {PRIORITY, BACKGROUND, DEFAULT}
         │ Widget stops        │ Timeout                │ No interaction   │
         │                     │                        │                  │
         └─────────────────────┴────────────────────────┴──────────────────┘
+```
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              Gesture & Input Flow (Home screen)                 │
+└─────────────────────────────────────────────────────────────────┘
+
+  Button PRESS
+       │  ButtonManager → DeviceDisplay::handleButtonEvent()  (gesture router)
+       ▼
+  resolveAction(button, isHomeScreen)
+       │   OK/SELECT           → ProgMode (always)
+       │   UP/DOWN/LEFT/RIGHT  → keyMap[...]  (only while Home screen shown)
+       ▼
+  action != None ?
+    ├── YES → GestureEngine.startHold(action)     ┌─ loop(): tick(now) ──┐
+    │         (overlay shows countdown bar)        │ PreRoll→Counting→Fire │
+    │                                              └──────────┬───────────┘
+    │                                                         ▼ on Firing
+    │                                              fireAction() → ONE of:
+    │                                                ProgMode · Reboot ·
+    │                                                Pause · DisplayOff
+    └── NO  → forward PRESS to active widget (menu / rotation)
+                 │ consumed? → done
+                 └ else on Home: LEFT/RIGHT = prev/next widget, UP/DOWN = page
+
+  Button RELEASE
+       │  GestureEngine.endHold()   (released before Firing → Aborted, no action)
+       ▼  a completed/aborted gesture release is swallowed
+          (so e.g. Display-off is not immediately undone by its own release)
 ```
 
 ---
@@ -737,6 +849,101 @@ public:
 
 ---
 
+## Gesture System (Hold-to-Confirm)
+
+On top of the raw button system, the DeviceDisplay adds a **hold-to-confirm gesture layer**. A bare press of a Home-screen key must never fire a destructive action (reboot, prog mode, display off); instead the user **holds** the key, a countdown bar runs, and the action fires only when the bar completes. Releasing early aborts. This makes the physical keys safe while keeping single-hand operation.
+
+### Components
+- **`GestureEngine`** (`src/Gesture/GestureEngine.h`) — a non-blocking hold-to-confirm state machine. Tracks exactly **one** active gesture at a time; driven by `tick(now)`.
+- **`WidgetGestureOverlay`** (`src/Widgets/GestureOverlay.h`) — a **CRITICAL** status widget that renders the confirm overlay (per-action title/label, horizontal countdown bar, remaining seconds) on top of whatever is on screen, reading phase/fraction/seconds/action from the engine.
+- **`GestureKeyMap` / `HomeKeyAction`** — the Home-screen button→action mapping, configurable in the DD menu ("Home-Tasten") and persisted in the display-settings flash blob.
+
+### State machine
+```
+Idle ─startHold()→ PreRoll ─(HOLD_PHASE1_MS)→ Counting ─(bar empty)→ Firing → Done → Idle
+                      │                            │
+                      └──────── endHold() ─────────┴──→ Aborted (no action)
+```
+- **PreRoll** — button held; wait `HOLD_PHASE1_MS` (1000 ms) before the confirm bar starts.
+- **Counting** — the confirm bar runs down over `GESTURE_BAR_MS` (3000 ms); fraction is a linear 1.0 → 0.0 ramp.
+- **Firing** — bar reached 0 → the matching action callback is invoked **exactly once** (non-blocking).
+- **Done** — Prog/Pause dwell for `GESTURE_DONE_MS` (1300 ms) before returning to Idle. Reboot does not dwell (the device restarts).
+- **Aborted** — button released before Firing → no action.
+
+### Actions (`GestureAction`) and default key map
+| Action | Effect | Default key |
+|--------|--------|-------------|
+| `Pause` | Pause / resume the widget rotation | UP |
+| `Reboot` | Reboot the device | DOWN |
+| `DisplayOff` | Turn the display off immediately (#17; any button wakes it) | LEFT |
+| `ProgMode` | Toggle KNX programming mode | OK/SELECT (hard-wired) |
+| `None` | Unmapped | RIGHT |
+
+`resolveAction(button, isHomeScreen)`: **OK/SELECT always → ProgMode**; the four directional keys resolve via the `GestureKeyMap` **only while the Home screen is shown** (elsewhere they navigate the menu).
+
+### Execution is decoupled from the engine
+The engine performs no side effects itself — DeviceDisplay binds callbacks, each fired at most once per gesture:
+`setOnProgToggle` (→ `knx.toggleProgMode()`), `setOnReboot` (→ `openknx.common.restart()`), `setOnPauseToggle` (rotation pause), `setOnDisplayOff` (→ display off).
+
+### Overlay modes
+- **Hold** — button-held confirm; subtext *"weiter halten · loslassen = Abbruch · N s"*.
+- **Auto** — menu-triggered auto-countdown; subtext *"◀ Abbrechen · N s"*.
+
+The confirm label reflects current state: ProgMode → *AKTIVIEREN* / *DEAKTIVIEREN*, Pause → *PAUSIEREN* / *FORTSETZEN* (set via `setProgActive()` / `setPauseActive()` when the overlay is shown).
+
+---
+
+## On-Device Settings (Persistence)
+
+Display settings are edited in the on-screen menu and **persisted in the DeviceDisplay module flash** — they survive a reboot with no ETS round-trip. The model is a fixed-size **POD** (`src/Settings/DisplaySettings.h`): no dynamic containers, trivially copyable, and (de)serialized as a plain byte buffer.
+
+### `DisplaySettings` (global)
+| Field | Meaning | Default |
+|-------|---------|---------|
+| `brightnessIdx` | idx 0..9 → 10..100 % (10 % slider) | 9 (100 %) |
+| `dimMin` | auto-dim after N min; 0 = aus | 15 |
+| `dimLevelIdx` | dim level: 0 = nie, 1..9 → 10..90 % (effective dim = min(level, brightness)) | 3 (30 %) |
+| `invert` | invert display | false |
+| `autoPaging` | auto-page the widget rotation | true |
+| `screenSaverType` | 0..10 (Clock … Aus) — order **must** match the menu + `ScreenSaverType` enum | 0 (Clock) |
+| `screenSaverMin` | screensaver after N min; 0 = aus | 30 |
+| `sleepMin` | **display off** after N min; 0 = nie | 60 |
+| `keyMap[4]` | Home-key actions {UP, DOWN, LEFT, RIGHT} | Pause / Reboot / DisplayOff / Screenshot |
+| `iconMenu` | render the root menu as an icon grid | false |
+| `screenshotInvert` | screenshot paper look (swap BMP palette) | false |
+| `displayRotate` | 180° rotation (Anzeige → Display; **manual save**) | false |
+| `preChargeIdx` | pre-charge preset 0..5 (Anzeige → Display; **manual save**) | 5 |
+| `refreshIdx` | clock/refresh preset 0..5 (Anzeige → Display; **manual save**) | 3 |
+
+> `HomeKeyAction` **must** stay value-compatible with `GestureAction` (e.g. `DisplayOff = 4`) so the persisted key map feeds the gesture engine directly.
+
+### Display tuning & KONAMI recovery
+The **Anzeige → Display** submenu exposes hardware tuning — 180° rotation, pre-charge, refresh — with **live preview but manual save**: a bad value is applied to the panel so you can judge it, but is persisted only via the submenu's **Speichern** (Nein/Ja) action. Not saving + a reboot reverts it, so a mis-tuned panel can never brick across restarts. **Zurücksetzen** and the KONAMI code *do* restore these three to their safe defaults (that is a recovery, not a risk).
+
+**KONAMI recovery** — press **↑ ↑ ↓ ↓ ← → ← → OK OK** on the buttons. It is matched before any wake/routing, so it works **blind** (display off or mis-configured): it restores ALL display defaults, applies + **saves** them, wakes the panel and redraws. This is the escape hatch when a *saved* config left the screen unreadable.
+
+### `ddc` console commands
+| Command | Effect |
+|---------|--------|
+| `ddc config` | print every setting as `id \| value` |
+| `ddc config reset` | restore all display defaults (apply + save) |
+| `ddc config set <id> <value>` | set one setting by id (ids match `ddc config`) |
+| `ddc i` | widget manager + menu settings + memory |
+| `ddc l` | list all widgets |
+
+The whole `ddc` console is compiled in **by default**. Build with **`-D DDC_CONSOLE_DISABLE`** to strip it and save flash — the menu, settings persistence and the KONAMI recovery all keep working without it.
+
+### Per-widget settings (`WidgetSetting[WIDGET_SETTINGS_MAX = 16]`)
+Each widget's rotation config is stored by a stable **FNV-1a name hash** (fixed-size record), so records survive reboots/builds regardless of widget registration order:
+- `nameHash` — FNV-1a(32) of the widget name (`hashWidgetName`)
+- `orderIndex` — position in the rotation ("Reihenfolge")
+- `enabled` — "Anzeigen"
+- `durationDs` — display duration in **deciseconds** (100 ms units)
+
+Deserialization is defensive (loops the fixed `WIDGET_SETTINGS_MAX`, clamps the stored count), so a short/stale/corrupt flash blob can never overrun the array.
+
+---
+
 ## Installation
 
 1. Clone the `OFM-DeviceDisplay` library from GitHub
@@ -1081,6 +1288,10 @@ void setupMenu(MenuWidget* menu)
 | **WidgetCube3D** | Screensaver | 3D rotating cube |
 | **WidgetPong** | Screensaver | Pong game animation |
 | **WidgetLife** | Screensaver | Conway's Game of Life |
+| **WidgetDoom** | Screensaver | Doom-style fire effect |
+| **WidgetTime** | Default | Time / date / uptime |
+| **WidgetAbout** | Default | Device / firmware info |
+| **WidgetGestureOverlay** | Priority (CRITICAL) | Hold-to-confirm gesture overlay (see [Gesture System](#gesture-system-hold-to-confirm)) |
 
 ---
 
@@ -1196,6 +1407,26 @@ public:
 ### MenuWidget Architecture
 
 The **MenuWidget** is a sophisticated, highly flexible background widget that provides an interactive navigation system with full **runtime extensibility**. Menus can be built dynamically during runtime, modified on-the-fly, and controlled via buttons, KNX, MQTT, or external APIs.
+
+> **v2 (registry-driven).** The menu is assembled from a central **`MenuRegistry`**: OAM/OFM
+> modules contribute root items + named actions / `onValueChanged` callbacks; the registry
+> deduplicates by key, stable-sorts by `sortOrder`, and pins **About** last. On open,
+> `MenuWidget` merges the display-owned tree (`DefaultMenus.h`: **Anzeige** / **System** /
+> **Home-Tasten** + the dynamic **Netzwerk** and **Widgets** submenus) with the module roots
+> into a live `MenuConfig` tree. Editing is in-place via **MenuModes** — `Normal`, `Slider`
+> (brightness), `RadioSelect` (screensaver + dropdowns), `IpEdit` (4-octet IP), `Reorder`
+> (widget order). Values live in a `MenuConfig` key→`MenuValue` store; a mutation fires the
+> registered `onValueChanged` (e.g. brightness→`i2cDisplay`, `net_apply`→live network re-init).
+>
+> ```
+> MenuRegistry ──build()──▶ MenuWidget ───────▶ MenuConfig
+>  · root items             · live _currentMenu   · key→MenuValue store
+>  · actions                  + _menuStack         · MenuOption tree:
+>  · onValueChanged           + MenuMode:            label/type/key/
+>  · dedup, sortOrder,          Normal/Slider/        dropdown/visibleIf/
+>    About pinned last          RadioSelect/          submenu[Builder]/
+>                               IpEdit/Reorder        action/onValueChanged
+> ```
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
