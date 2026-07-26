@@ -734,6 +734,16 @@ void DeviceDisplay::loop(bool configured)
     handleOTA();
 
     // Update display (only when CPU time available). A screenshot toast briefly holds the screen.
+#ifdef DDISP_HAS_NETWORK_MODULE
+    #ifdef DDISP_HAS_NETWORK_MODULE
+    if (openknxNetwork.otaActive())
+    {
+        for (uint8_t i = 0; i < 16; i++) _widgetManager->loop();
+        // Only flush the display, skip the incremental page flush in _widgetManager->loop() to avoid flicker
+        // during OTA. The OTA widget is SYSTEM priority and will draw over everything else.
+    }
+    else
+#endif
     if (openknx.freeLoopTime())
     {
         if (_toastUntil != 0 && millis() < _toastUntil)
