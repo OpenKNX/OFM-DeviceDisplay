@@ -735,7 +735,6 @@ void DeviceDisplay::loop(bool configured)
 
     // Update display (only when CPU time available). A screenshot toast briefly holds the screen.
 #ifdef DDISP_HAS_NETWORK_MODULE
-    #ifdef DDISP_HAS_NETWORK_MODULE
     if (openknxNetwork.otaActive())
     {
         for (uint8_t i = 0; i < 16; i++) _widgetManager->loop();
