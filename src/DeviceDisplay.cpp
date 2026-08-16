@@ -6,6 +6,7 @@
     #include "WidgetsManager.h"
     #include "Menu/MenuRegistry.h"
     #include "Settings/DisplaySettingsStore.h"
+    #include "Webserver/DisplayPage.h" // optional /display page, compiles away without OFM-Network
     #include "Menu/Menu.h"
     #include "Widgets/About.h"
     #include "Widgets/BootLogo.h"
@@ -282,6 +283,17 @@ void DeviceDisplay::triggerKonamiRestore()
     showToast("Werkseinstellung wiederhergestellt");
 }
 
+// Web hook: push the mutated store live, persist via the debounced saver. NOT consoleApplyAndSave() -- its
+// synchronous flash write would stall the loop and burn flash on a per-slider-step web change.
+void DeviceDisplay::webApplyAndSave()
+{
+    applyAllSettingsToRuntime();
+    _settingsStore.requestSave(); // settles in tickSave(), from the loop
+
+    // NO _menuWidget->rebuild(): it re-allocates the whole ~17 KiB tree and resets the menu stack. The
+    // menu re-seeds from the store on its next root build, so a web change is picked up there anyway.
+}
+
 // Console hook: push the (already-mutated) store live, persist, refresh the menu.
 void DeviceDisplay::consoleApplyAndSave()
 {
@@ -334,6 +346,11 @@ void DeviceDisplay::setup(bool configured)
         #ifdef WIDGET_CONSOLE
     _ddcConsole->setConsoleWidget(_consoleWidget);
         #endif
+    #endif
+
+    #ifdef DDC_HAS_WEBPAGE
+    // registers routes/assets/menu entry now; the route+asset lists are independent of the webserver start.
+    OpenKNX::DisplayPage::setup();
     #endif
 }
 
@@ -691,6 +708,11 @@ void DeviceDisplay::loop(bool configured)
     // Commit any settled settings change here, at a shallow loop-level stack point - NOT
     // from the button callback, where a flash write reboots the RP2040.
     _settingsStore.tickSave();
+
+    #ifdef DDC_HAS_WEBPAGE
+    // apply web-queued settings in loop context (the ESP32 httpd task must not touch the display/store).
+    OpenKNX::DisplayPage::loop();
+    #endif
 
     // Drive the non-blocking screenshot writer (SD), chunked across ticks (same shallow context).
     screenshotTick();
@@ -1269,6 +1291,10 @@ void DeviceDisplay::setScreenSaverType(ScreenSaverType type)
 {
     if (!_widgetManager) return;
 
+    // already installed -> no-op: applyAllSettingsToRuntime() runs on every change, so without this each
+    // one would free + re-allocate the screensaver (the manager only detaches, so keeping it is safe).
+    if (static_cast<uint8_t>(type) == _screenSaverTypeInstalled) return;
+
     // Every screensaver is AutoRemove so it is transient (shown while idle, torn down on wake).
     Widget* newWidget = nullptr;
     switch (type)
@@ -1314,6 +1340,7 @@ void DeviceDisplay::setScreenSaverType(ScreenSaverType type)
     // screensaver is detached, so only update the remembered pointer.
     Widget* previous = _screenSaverOwned;
     _screenSaverOwned = newWidget;
+    _screenSaverTypeInstalled = static_cast<uint8_t>(type);
 
     if (_progExclusiveActive)
     {

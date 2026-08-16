@@ -153,6 +153,8 @@ class DeviceDisplay : public OpenKNX::Module
     // The screensaver instance owned by DeviceDisplay (the WidgetsManager only borrows it),
     // so we delete the old one ourselves when switching the screensaver type.
     Widget* _screenSaverOwned = nullptr;
+    // screensaver family installed by setScreenSaverType() (0xFF = none); makes a repeated apply a no-op.
+    uint8_t _screenSaverTypeInstalled = 0xFF;
 
     // --- Screenshot (RIGHT-hold gesture / "ddc screenshot") -------------------------------------
     // The gesture callback and console command only REQUEST; the SD write runs from loop() (a
@@ -266,6 +268,9 @@ class DeviceDisplay : public OpenKNX::Module
     // persist + refresh the menu; or restore all defaults the same way (also the KONAMI action).
     void consoleApplyAndSave();
     void consoleResetToDefaults();
+
+    // web hook: like consoleApplyAndSave() but without the forced flash write (web fires per slider step).
+    void webApplyAndSave();
 
     // Read-only access to the RAM settings store (e.g. for the "ddc i" info dump).
     // Non-mutating callers should prefer this const overload so they cannot dirty the store.

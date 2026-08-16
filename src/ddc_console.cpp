@@ -7,6 +7,7 @@
     #include "OpenKNX/I2C/Wire1Lock.h"    // OPENKNX_WIRE1_LOCK for the raw scroll ssd1306_command block (no-op on RP2040)
     #include "Settings/DisplaySettings.h" // DisplaySettings / WidgetSetting / HomeKey* enums
     #include "Settings/DisplaySettingsStore.h"
+    #include "Settings/SettingsIds.h" // id table shared with the web settings page
     #include "WidgetsManager.h"
     #include "devices/i2cDisplay.h"
     #include <cstdlib> // strtol for "ddc config set"
@@ -220,26 +221,9 @@ bool DdcConsole::processConfigSet(const std::string& args)
     }
     const std::string id = args.substr(0, sp);
     const long v = strtol(args.c_str() + sp + 1, nullptr, 0);
-    auto clamp = [](long x, long lo, long hi) -> long { return x < lo ? lo : (x > hi ? hi : x); };
-    DisplaySettingsStore& store = openknxDisplayModule.getSettingsStore();
 
-    bool ok = true;
-    if (id == "brightness") store.setBrightnessIdx(static_cast<uint8_t>(clamp(v, 0, 9)));
-    else if (id == "dim_after") store.setDimMin(static_cast<uint16_t>(clamp(v, 0, 999)));
-    else if (id == "dim_level") store.setDimLevelIdx(static_cast<uint8_t>(clamp(v, 0, 9)));
-    else if (id == "invert") store.setInvert(v != 0);
-    else if (id == "auto_paging") store.setAutoPaging(v != 0);
-    else if (id == "icon_menu") store.setIconMenu(v != 0);
-    else if (id == "screensaver_type") store.setScreenSaverType(static_cast<uint8_t>(clamp(v, 0, 10)));
-    else if (id == "screensaver_after") store.setScreenSaverMin(static_cast<uint16_t>(clamp(v, 0, 999)));
-    else if (id == "sleep_after") store.setSleepMin(static_cast<uint16_t>(clamp(v, 0, 999)));
-    else if (id == "rotate") store.setDisplayRotate(v != 0);
-    else if (id == "precharge") store.setPreChargeIdx(static_cast<uint8_t>(clamp(v, 0, 5)));
-    else if (id == "refresh") store.setRefreshIdx(static_cast<uint8_t>(clamp(v, 0, 5)));
-    else if (id == "screenshot_invert") store.setScreenshotInvert(v != 0);
-    else ok = false;
-
-    if (!ok)
+    // ids/ranges/clamping live in Settings/SettingsIds.cpp, shared with the web page so they can't drift.
+    if (!applyDisplaySetting(id.c_str(), v))
     {
         logErrorP("unknown config id '%s' (see 'ddc config')", id.c_str());
         return true;
@@ -282,14 +266,11 @@ void DdcConsole::logConfig()
 
 namespace
 {
-    // Label for the persisted screensaver type. Order MUST match the enum / DefaultMenus dropdown.
+    // Label for the persisted screensaver type; the list itself lives in SettingsIds.cpp.
     const char* screenSaverTypeLabel(uint8_t type)
     {
-        static const char* const kLabels[] = {
-            "Clock", "Cube3D", "Doom", "FireWorks", "Life", "Matrix",
-            "MatrixCl.", "Pong", "Rain", "Starfield", "Aus"};
-        if (type < (sizeof(kLabels) / sizeof(kLabels[0]))) return kLabels[type];
-        return "?";
+        const char* label = displayChoiceLabel("screensaver_type", type);
+        return label != nullptr ? label : "?";
     }
 
     // Label for a Home-key action (HomeKeyAction enum).
