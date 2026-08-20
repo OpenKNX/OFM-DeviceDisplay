@@ -37,6 +37,16 @@ struct DisplaySettingDef
     DisplaySettingKind kind;
     long min;
     long max;
+    // group 0 = normal, 1 = expert (panel timing / screenshot detail), 2 = home-key hold action.
+    // Only a presentation hint: every id is edited through the same apply/read path.
+    uint8_t group;
+};
+
+enum : uint8_t
+{
+    DSG_NORMAL = 0,
+    DSG_EXPERT = 1,
+    DSG_HOMEKEY = 2
 };
 
 extern const DisplaySettingDef DISPLAY_SETTING_DEFS[];

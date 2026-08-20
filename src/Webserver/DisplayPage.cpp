@@ -150,9 +150,9 @@ namespace OpenKNX
                 char entry[224] = {};
                 snprintf(entry, sizeof(entry),
                          "%s{\"id\":\"%s\",\"label\":\"%s\",\"hint\":\"%s\",\"kind\":%u,"
-                         "\"min\":%ld,\"max\":%ld,\"value\":%ld",
+                         "\"g\":%u,\"min\":%ld,\"max\":%ld,\"value\":%ld",
                          i == 0 ? "" : ",", def.id, def.label, def.hint,
-                         (unsigned)def.kind, def.min, def.max, value);
+                         (unsigned)def.kind, (unsigned)def.group, def.min, def.max, value);
                 json += entry;
 
                 if (def.kind == DisplaySettingKind::Choice)
@@ -181,6 +181,8 @@ namespace OpenKNX
             "<h1>Display <span id='dsp-status' class='dsp-status'>Lade&hellip;</span></h1>"
             "<div class='dsp-stage'>"
             "<canvas id='dsp-canvas' width='128' height='64'></canvas>"
+            "<div id='dsp-off' class='dsp-off' hidden>Display ist aus"
+            "<span>Taste drücken zum Wecken</span></div>"
             "</div>"
             "<div class='dsp-bar'>"
             "<label>Aktualisierung "
@@ -201,6 +203,7 @@ namespace OpenKNX
             "<a class='dsp-tab' data-t='st'>Einstellungen</a>"
             "</div>"
             "<div id='t-op'>"
+            "<div class='dsp-oprow'>"
             "<div class='dsp-pad'>"
             "<button class='u' data-k='0'>&#9650;</button>"
             "<button class='l' data-k='2'>&#9664;</button>"
@@ -208,10 +211,18 @@ namespace OpenKNX
             "<button class='r' data-k='3'>&#9654;</button>"
             "<button class='d' data-k='1'>&#9660;</button>"
             "</div>"
-            "<p class='meta'>Halten wirkt wie am Gerät &ndash; kurz tippen navigiert, gedrückt halten löst die Halte-Aktion aus.</p>"
+            "<div id='dsp-keys' class='dsp-keys'></div>"
+            "</div>"
+            "<p class='meta'>Halten wirkt wie am Gerät &ndash; kurz tippen navigiert, gedrückt halten löst die "
+            "Halte-Aktion aus (1 s bis der Bestätigungsbalken startet, dann 3 s).<br>"
+            "&#9432; <b>OK</b> ist fest auf <b>Prog-Modus</b> und nicht umbelegbar &ndash; und wirkt auf jedem "
+            "Bildschirm. Die vier Richtungstasten lösen ihre Halte-Aktion nur auf dem Home-Screen aus; "
+            "im Menü navigieren sie nur.</p>"
             "</div>"
             "<div id='t-wg' hidden>"
             "<div id='dsp-widgets'>Lade&hellip;</div>"
+            "<p class='meta'>&#9432; Reihenfolge, Sichtbarkeit und Anzeigedauer der Rotation. "
+            "Jede Änderung wirkt sofort am Gerät und wird gespeichert.</p>"
             "</div>"
             "<div id='t-st' hidden>"
             "<div id='dsp-settings'>Lade&hellip;</div>"
@@ -235,6 +246,11 @@ namespace OpenKNX
             snprintf(dim, sizeof(dim), "%ux%u", (unsigned)w, (unsigned)h);
             res.setContentType("application/octet-stream");
             res.setHeader("X-Display-Size", dim);
+
+            // The framebuffer keeps its last content while the panel is off, so the raw bytes alone
+            // would show a stale image as if it were live. Report the panel state with it.
+            i2cDisplay* disp = openknxDisplayModule.getDisplayModule();
+            res.setHeader("X-Display-On", (disp != nullptr && disp->isDisplayOn()) ? "1" : "0");
             res.send(fb, (int)bytes);
         }
 

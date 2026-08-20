@@ -9,6 +9,7 @@
     const status = $('dsp-status');
     const rate = $('dsp-rate');
     const settings = $('dsp-settings');
+    const offNote = $('dsp-off');
     const widgets = $('dsp-widgets');
 
     // Lit pixel = the OpenKNX green (#449841, same value as logo.svg/favicon.svg/base.css);
@@ -59,7 +60,15 @@
                 const bytes = new Uint8Array(await res.arrayBuffer());
                 if (bytes.length < (w / 8) * h) throw 0;
                 render(bytes, w, h);
-                setStatus('live', 'ok');
+                // The buffer keeps stale content while the panel sleeps -> blank the canvas to the unlit
+                // colour and put the notice on top as DOM text (canvas text turns to mush when scaled up).
+                const isOff = res.headers.get('X-Display-On') === '0';
+                if (isOff) {
+                    ctx.fillStyle = 'rgb(' + OFF[0] + ',' + OFF[1] + ',' + OFF[2] + ')';
+                    ctx.fillRect(0, 0, w, h);
+                }
+                offNote.hidden = !isOff;
+                setStatus(isOff ? 'Standby' : 'live', isOff ? 'err' : 'ok');
             } catch (e) {
                 setStatus('kein Bild', 'err');
             } finally { busy = false; }
@@ -222,13 +231,9 @@
         return el;
     }
 
-    function renderSettings(list) {
-        settings.textContent = '';
-        const table = document.createElement('table');
-        table.className = 'attribute-table';
-        const body = table.createTBody();
-
-        list.forEach(function (def) {
+    // Builds one row per definition into the given tbody.
+    function settingRow(def, body) {
+        {
             const el = control(def);
             el.id = 'set-' + def.id;
             el.addEventListener('change', function () {
@@ -245,9 +250,42 @@
             const hint = row.insertCell();
             hint.className = 'gray';
             hint.textContent = def.kind === 1 ? (def.hint || '') + ' (' + def.value + ')' : (def.hint || '');
-        });
+        }
+    }
 
-        settings.appendChild(table);
+    function sectionTable(list, group) {
+        const t = document.createElement('table');
+        t.className = 'attribute-table';
+        const body = t.createTBody();
+        list.filter(function (d) { return (d.g || 0) === group; })
+            .forEach(function (d) { settingRow(d, body); });
+        return t;
+    }
+
+    function renderSettings(list) {
+        settings.textContent = '';
+        settings.appendChild(sectionTable(list, 0));
+
+        const h = document.createElement('h2');
+        h.textContent = 'Experten';
+        settings.appendChild(h);
+        const note = document.createElement('p');
+        note.className = 'meta';
+        note.textContent = 'Panel-Timing und Screenshot-Details. Nur ändern, wenn du weißt warum - '
+            + 'ein schlechter Wert zeigt sich nur am Gerät.';
+        settings.appendChild(note);
+        settings.appendChild(sectionTable(list, 1));
+
+        // The hold actions live in the Bedienung tab, right next to the keys they belong to.
+        const keys = $('dsp-keys');
+        if (keys) {
+            keys.textContent = '';
+            const cap = document.createElement('div');
+            cap.className = 'gray';
+            cap.textContent = 'Halte-Aktionen';
+            keys.appendChild(cap);
+            keys.appendChild(sectionTable(list, 2));
+        }
     }
 
     function loadSettings() {
@@ -276,6 +314,9 @@
     $('dsp-now').addEventListener('click', refresh);
     $('dsp-inv').addEventListener('change', function () {
         invert = this.checked ? 1 : 0;
+        // Also flip the panel itself: SSD1306 invert is a display command, it does not change the
+        // framebuffer - so the preview has to invert locally AND the device setting has to follow.
+        queueSave('invert', invert);
         refresh();
     });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });

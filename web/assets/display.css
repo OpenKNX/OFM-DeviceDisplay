@@ -50,3 +50,29 @@
 .dsp-mv { padding: 2px 8px; cursor: pointer }
 
 #dsp-widgets table, #dsp-settings table { max-width: 46em }
+
+/* Bedienung: pad on the left, its hold actions right next to the keys they belong to */
+.dsp-oprow { display: flex; align-items: flex-start; gap: 2em; flex-wrap: wrap }
+.dsp-keys { min-width: 20em }
+.dsp-keys table { margin-top: .3em }
+
+/* Standby notice: real DOM text above the canvas. Drawing it INTO the 128x64 bitmap and scaling it up
+   with image-rendering:pixelated made it unreadable. z-index puts it over the scanline layer. */
+.dsp-off {
+    position: absolute;
+    inset: 14px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .3em;
+    background: rgba(4, 8, 4, .82);
+    color: #449841;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+}
+
+.dsp-off[hidden] { display: none }
+.dsp-off span { font-size: .8em; font-weight: 400; color: #6fbf6b }
