@@ -1362,7 +1362,9 @@ void DeviceDisplay::setScreenSaverType(ScreenSaverType type)
  **********************************************************************/
 void DeviceDisplay::showHelp()
 {
+    #ifndef DDC_CONSOLE_DISABLE
     openknx.console.printHelpLine("ddc", "Device Display Control. Use 'ddc ?' for help.");
+    #endif
 }
 bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 {
