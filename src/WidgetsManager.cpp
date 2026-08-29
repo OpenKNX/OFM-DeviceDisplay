@@ -127,9 +127,9 @@ void WidgetsManager::loop()
             break;
     }
 
-    // Shared PAUSE overlay for all widgets: drawn on top of the current widget's buffer
-    // before the incremental flush below pushes the changed columns to the OLED.
-    drawPauseOverlay();
+    // Manager-owned corner (x >= w-12) plus the dwell marker, drawn on top of the current
+    // widget's buffer before the incremental flush pushes the changed columns to the OLED.
+    drawManagerOverlay();
 
     // 9. Always update display
     if (_displayModule) _displayModule->loop();
@@ -141,19 +141,45 @@ void WidgetsManager::loop()
  *        (not the menu, prog-exclusive or screensaver views). Draws directly into the
  *        Adafruit buffer; the caller flushes right after.
  */
-void WidgetsManager::drawPauseOverlay()
+void WidgetsManager::drawManagerOverlay()
 {
-    if (!_rotationPaused || !_displayModule || _displayModule->display == nullptr) return;
+    if (!_displayModule || _displayModule->display == nullptr) return;
     if (!_currentWidget || !(_currentWidget->getAction() & DefaultWidget)) return;
 
     Adafruit_SSD1306* d = _displayModule->display;
     const int16_t w = static_cast<int16_t>(_displayModule->GetDisplayWidth());
 
-    // Cleared box so the two bars stay legible over the widget content underneath.
-    const int16_t bx = w - 10;
-    d->fillRect(bx, 0, 10, 9, BLACK);
-    d->fillRect(bx + 2, 1, 2, 7, WHITE);
-    d->fillRect(bx + 6, 1, 2, 7, WHITE);
+    // The manager owns x >= w-12: busmon badge, else the rotation state. Widgets keep clear of it.
+    const int16_t bx = w - 12;
+    const bool bm = _busMonActive && ((millis() / 500) & 1);
+    // one fill, colour depends on the state -- BM is inverse, everything else clears the box
+    d->fillRect(bx, 0, 12, 9, bm ? WHITE : BLACK);
+
+    if (bm)
+    {
+        // Blinking inverse "BM". The blink is also burn-in relief on an OLED, and in the off phase
+        // the widget's own page dots stay visible underneath.
+        d->setTextSize(1);
+        d->setTextColor(BLACK);
+        d->setCursor(bx + 1, 1);
+        d->print("BM");
+        d->setTextColor(WHITE);
+    }
+    else if (_autoPagingEnabled)
+    {
+        if (_rotationPaused)
+        {
+            d->fillRect(bx + 2, 1, 2, 7, WHITE);
+            d->fillRect(bx + 6, 1, 2, 7, WHITE);
+        }
+        else
+        {
+            // Play triangle -- the counterpart the pause glyph never had: with rotation running the
+            // corner used to be empty, so "rotating" and "stuck" looked the same.
+            for (int16_t c = 0; c < 4; c++)
+                d->drawFastVLine(bx + 3 + c, 1 + c, 7 - 2 * c, WHITE);
+        }
+    }
 
     // The progressive column flush (_displayModule->loop()) does not reliably push this tiny
     // top-right region, so flush here. displayBuff() is incremental, so once the glyph is on
@@ -169,7 +195,14 @@ void WidgetsManager::drawPauseOverlay()
  */
 void WidgetsManager::addWidget(Widget* widget)
 {
-    if (widget == nullptr || _displayModule == nullptr) return;
+    if (widget == nullptr) return;
+    if (_displayModule == nullptr)
+    {
+        // Was a silent drop: a widget registered before DeviceDisplay::init() set the display was
+        // discarded here while tryAddWidget() still reported success to the caller.
+        logErrorP("addWidget too early (no display yet) - dropped: %s", widget->getName().c_str());
+        return;
+    }
 
     if (!_widgetQueue.empty() && getWidgetFromQueue(widget) != nullptr)
     {
