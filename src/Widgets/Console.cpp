@@ -183,7 +183,7 @@ void WidgetConsole::fetchTime(uint16_t& days, uint16_t& hours, uint16_t& minutes
 {
     if (openknx.time.isValid())
     {
-        auto time = openknx.time.getUtcTime();
+        auto time = openknx.time.getLocalTime(); // local, not UTC -- this is shown to the user
         hours = time.hour;
         minutes = time.minute;
         seconds = time.second;

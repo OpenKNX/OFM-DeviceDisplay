@@ -111,9 +111,12 @@ void WidgetSysInfoLite::drawSysInfo()
     // Retrieve the current time or fallback to uptime
     char currentDisplayText[50];
     if (openknx.time.isValid())
+    {
+        // local, not UTC -- and read once instead of six times per frame
+        const auto now = openknx.time.getLocalTime();
         snprintf(currentDisplayText, sizeof(currentDisplayText), "Time: %04d-%02d-%02d %02d:%02d:%02d",
-                 openknx.time.getUtcTime().year, openknx.time.getUtcTime().month, openknx.time.getUtcTime().day,
-                 openknx.time.getUtcTime().hour, openknx.time.getUtcTime().minute, openknx.time.getUtcTime().second);
+                 now.year, now.month, now.day, now.hour, now.minute, now.second);
+    }
     else
         snprintf(currentDisplayText, sizeof(currentDisplayText), "Uptime: %s", openknx.logger.buildUptime().c_str());
 
