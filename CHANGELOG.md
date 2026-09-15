@@ -3,9 +3,10 @@
 Display module for OpenKNX devices: OLED output, widgets, menu, gestures and a web view.
 Entries are grouped by module version; every line traces to a commit in this repository.
 
-## upcoming
+## v0.1.0: 2026-09-15
 
-Not tagged yet. On `v1`, after the 0.1.0 bump.
+Tagged as `v0.1.0`, which is the version `library.json` carries -- the tag and the file state the same
+thing.
 
 **Widget manager**
 * Feature: the manager owns the top-right corner and blinks a "BM" badge while a hardware busmonitor runs, so the state is visible on whatever widget is on screen
