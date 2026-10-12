@@ -329,8 +329,8 @@ void DeviceDisplay::setup(bool configured)
 
     wireMenuCallbacks();
 
-    // Apply ALL persisted display settings to the runtime (readFlash() already ran). One canonical
-    // path so every switch is restored - previously autoPaging/brightness were not applied at boot.
+    // Apply the defaults of the store to the runtime. The stored settings follow in readFlash(),
+    // which the common module calls after the setup of all modules.
     applyAllSettingsToRuntime();
 
     // Setup button input
@@ -1421,7 +1421,7 @@ void DeviceDisplay::writeFlash()
 }
 
 /**
- * @brief Restore the DisplaySettingsStore from the module-flash blob. Robust against
+ * @brief Restore the DisplaySettingsStore from the module-flash blob and apply it. Robust against
  * first boot (size==0) and format changes (unknown version byte) -> loadDefaults() in both cases.
  */
 void DeviceDisplay::readFlash(const uint8_t* data, const uint16_t size)
@@ -1449,7 +1449,11 @@ void DeviceDisplay::readFlash(const uint8_t* data, const uint16_t size)
     {
         logInfoP("readFlash: settings payload rejected - using defaults");
         // deserialize() already applied defaults on the false path.
+        return;
     }
+
+    // setup() ran before this and applied the defaults; push the restored state to the runtime.
+    applyAllSettingsToRuntime();
 }
 
 /**
