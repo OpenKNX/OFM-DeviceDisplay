@@ -260,11 +260,26 @@ bool DisplaySettingsStore::deserialize(const uint8_t *buf, size_t size)
                        : count;
 
     // Freshly restored from storage -> clean baseline.
-    _dirty = false;
+    markSaved();
     return true;
 }
 
-// --- Debounced, rate-limit-aware save request ---------------------------------
+// --- Deferred save request -----------------------------------------------------
+
+__attribute__((noinline)) void DisplaySettingsStore::markSaved()
+{
+    serialize(_saved);
+    _hasSaved = true;
+    _dirty = false;
+}
+
+bool DisplaySettingsStore::differsFromSaved() const
+{
+    if (!_hasSaved) return true;
+    uint8_t now[SERIALIZED_SIZE];
+    serialize(now);
+    return memcmp(now, _saved, SERIALIZED_SIZE) != 0;
+}
 
 void DisplaySettingsStore::requestSave(bool force)
 {
@@ -278,7 +293,6 @@ void DisplaySettingsStore::requestSave(bool force)
     if (force && knx.configured())
     {
         openknx.flash.save(true);
-        _lastSaveRequestMs = millis();
         _lastChangeMs = 0; // nothing left pending
     }
 #else
@@ -293,15 +307,17 @@ void DisplaySettingsStore::requestSave(bool force)
 void DisplaySettingsStore::tickSave()
 {
 #ifdef DEVICE_DISPLAY_MODULE
-    if (!_dirty || _lastChangeMs == 0 || !knx.configured()) return;
+    if (_lastChangeMs == 0 || !knx.configured()) return;
+    if ((millis() - _lastChangeMs) < SETTLE_MS) return; // still settling; wait for input to stop
 
-    const uint32_t now = millis();
-    if ((now - _lastChangeMs) < SETTLE_MS) return; // still settling; wait for input to stop
-    if (_lastSaveRequestMs != 0 && (now - _lastSaveRequestMs) < FLASH_SAVE_THROTTLE_MS) return;
-
-    _lastSaveRequestMs = now;
     _lastChangeMs = 0;
-    openknx.flash.save(); // shallow loop context - same place the KNX stack does its own saves
+    if (!differsFromSaved())
+    {
+        _dirty = false; // edited back to what is stored: no write
+        return;
+    }
+    // Forced: the common store skips an unforced save within its own write limit.
+    openknx.flash.save(true);
 #endif
 }
 

@@ -9,6 +9,7 @@ Not tagged yet. On `v1`, after `v0.1.0`.
 
 **Settings**
 * Fix: the stored display settings take effect after a restart -- they were read from flash after the setup had applied the defaults, and nothing applied them afterwards
+* Change: a change is written to flash two seconds after the last edit instead of at most once in three minutes, and not at all when the state equals the stored one
 
 ## v0.1.0: 2026-09-15
 

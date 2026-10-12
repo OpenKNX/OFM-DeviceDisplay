@@ -61,30 +61,30 @@ class DisplaySettingsStore
         _dirty = true;
     }
 
-    /** Clear the dirty flag after the DeviceDisplay module has persisted the state. */
-    void markSaved()
-    {
-        _dirty = false;
-    }
+    /** Take the current state as the stored one (after a flash write or a restore) and clear dirty. */
+    void markSaved();
 
-    // --- Debounced, rate-limit-aware save request -----------------------------
+    /** @return true if the current state differs from the one last written to or read from flash. */
+    bool differsFromSaved() const;
+
+    // --- Deferred save request ------------------------------------------------
 
     /**
      * Request that the current state be persisted. Only marks dirty (no synchronous write) unless
-     * force==true; a forced save bypasses the throttle and is only safe from a top-level context.
-     * No-op while !knx.configured(). force==false saves at most once per FLASH_SAVE_THROTTLE_MS.
-     * @param force true to bypass the throttle and force an immediate save.
+     * force==true; a forced save writes at once and is only safe from a top-level context.
+     * No-op while !knx.configured().
+     * @param force true to write at once instead of after the settle window.
      */
     void requestSave(bool force = false);
 
     /**
-     * Deferred flash commit. Call every module loop (shallow stack); commits a pending change only
-     * after SETTLE_MS of no edits. Must NOT be called from a button/menu callback (reboots RP2040).
+     * Deferred flash commit. Call every module loop (shallow stack); writes SETTLE_MS after the last
+     * change, and only if the state differs from the stored one. Must NOT be called from a
+     * button/menu callback (reboots RP2040).
      */
     void tickSave();
 
-    static constexpr uint32_t FLASH_SAVE_THROTTLE_MS = 180000; // min spacing between throttled saves
-    static constexpr uint32_t SETTLE_MS = 2000;                // settle window before a deferred save
+    static constexpr uint32_t SETTLE_MS = 2000; // settle window before a deferred save
 
     // --- Apply the store to the live runtime ----------------------------------
 
@@ -220,6 +220,8 @@ class DisplaySettingsStore
     uint8_t _widgetCount = 0;                         // number of live records
     bool _dirty = false;                              // set by mutating setters
 
-    uint32_t _lastSaveRequestMs = 0; // millis() of last save; spaces non-forced saves apart
-    uint32_t _lastChangeMs = 0;      // millis() of last change (0 = none pending); settle timer for tickSave()
+    uint8_t _saved[SERIALIZED_SIZE];      // state as last written to or read from flash
+    bool _hasSaved = false;               // false until a first write or restore
+
+    uint32_t _lastChangeMs = 0; // millis() of last change (0 = none pending); settle timer for tickSave()
 };
