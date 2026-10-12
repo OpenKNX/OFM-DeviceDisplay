@@ -3,9 +3,10 @@
 Display module for OpenKNX devices: OLED output, widgets, menu, gestures and a web view.
 Entries are grouped by module version; every line traces to a commit in this repository.
 
-## upcoming
+## v0.1.1: 2026-10-13
 
-Not tagged yet. On `v1`, after `v0.1.0`.
+Tagged as `v0.1.1`, which is the version `library.json` carries -- the tag and the file state the same
+thing.
 
 **Settings**
 * Fix: the stored display settings take effect after a restart -- they were read from flash after the setup had applied the defaults, and nothing applied them afterwards
