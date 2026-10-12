@@ -110,6 +110,8 @@ void DeviceDisplay::init()
         return;
     }
 
+    _widgetManager->setWidgetAddedCallback([](Widget* widget) { openknxDisplayModule.onWidgetAdded(widget); });
+
     _displayModule->lcdSettings.i2cInst = &OKNXHW_DEVICE_DISPLAY_I2C_INST;
 
     _displayModule->lcdSettings.sda = OKNXHW_DEVICE_DISPLAY_I2C_SDA;
@@ -244,6 +246,135 @@ void DeviceDisplay::applyAllSettingsToRuntime()
     seedGestureKeyMapFromSettings();
 }
 
+/**
+ * @brief Note a newly registered rotation widget and give it its stored settings.
+ */
+void DeviceDisplay::onWidgetAdded(Widget* widget)
+{
+    if (widget == nullptr || _widgetManager == nullptr) return;
+    if (!(widget->getAction() & WidgetFlags::DefaultWidget)) return;
+
+    // An address may be reused after a widget was removed: the entry then describes the new one.
+    const uint8_t slot = registeredIndex(widget);
+    if (slot < WIDGET_SETTINGS_MAX)
+    {
+        _widgetDefaults[slot] = {widget, widget->getDisplayTime(), widget->isEnabled()};
+        if (slot == _widgetDefaultCount) ++_widgetDefaultCount;
+    }
+
+    restoreWidget(widget, false);
+    applyWidgetOrder();
+}
+
+__attribute__((noinline)) static uint32_t widgetNameHash(Widget* widget)
+{
+    return hashWidgetName(widget->getName().c_str());
+}
+
+__attribute__((noinline)) const WidgetSetting* DeviceDisplay::widgetRecord(Widget* widget) const
+{
+    return _settingsStore.findWidget(widgetNameHash(widget));
+}
+
+/** @return index of the widget in _widgetDefaults, or _widgetDefaultCount if it has no entry. */
+__attribute__((noinline)) uint8_t DeviceDisplay::registeredIndex(Widget* widget) const
+{
+    const WidgetDefault* entry = _widgetDefaults;
+    const WidgetDefault* const end = entry + _widgetDefaultCount;
+    while (entry != end && entry->widget != widget)
+        ++entry;
+    return static_cast<uint8_t>(entry - _widgetDefaults);
+}
+
+/**
+ * @brief Position of a widget in the rotation: the one of its record, else behind all records in
+ * registration order.
+ */
+size_t DeviceDisplay::widgetRank(Widget* widget) const
+{
+    if (const WidgetSetting* record = widgetRecord(widget)) return record->orderIndex;
+    return 256 + registeredIndex(widget);
+}
+
+/**
+ * @brief Give one widget its stored visibility and duration.
+ * @param registeredIfNone without a record: true restores the registered values, false leaves it.
+ */
+__attribute__((noinline)) void DeviceDisplay::restoreWidget(Widget* widget, bool registeredIfNone)
+{
+    if (const WidgetSetting* record = widgetRecord(widget))
+    {
+        widget->setEnabled(record->enabled);
+        if (record->durationDs != 0) widget->setDisplayTime(static_cast<uint32_t>(record->durationDs) * 100u);
+        return;
+    }
+    const uint8_t index = registeredIndex(widget);
+    if (!registeredIfNone || index >= _widgetDefaultCount) return;
+
+    widget->setEnabled(_widgetDefaults[index].enabled);
+    widget->setDisplayTime(_widgetDefaults[index].displayTimeMs);
+}
+
+void DeviceDisplay::applyWidgetOrder()
+{
+    if (_widgetManager == nullptr) return;
+    _widgetManager->sortDefaultOrder([](Widget* widget) { return openknxDisplayModule.widgetRank(widget); });
+}
+
+/**
+ * @brief Bring every rotation widget in line with the store (after a restore or a reset).
+ */
+void DeviceDisplay::applyWidgetSettings()
+{
+    if (_widgetManager == nullptr) return;
+
+    for (Widget* widget : _widgetManager->getReorderableWidgets())
+        restoreWidget(widget, true);
+    applyWidgetOrder();
+}
+
+/**
+ * @brief Take visibility, duration and position of the live rotation into the store.
+ */
+void DeviceDisplay::captureWidgetSettings()
+{
+    if (_widgetManager == nullptr) return;
+
+    WidgetSetting list[WIDGET_SETTINGS_MAX];
+    WidgetSetting* const end = list + WIDGET_SETTINGS_MAX;
+    WidgetSetting* next = list;
+    for (Widget* widget : _widgetManager->getReorderableWidgets())
+    {
+        if (next == end) break;
+        const uint32_t durationDs = widget->getDisplayTime() / 100u;
+        next->nameHash = widgetNameHash(widget);
+        next->orderIndex = static_cast<uint8_t>(next - list);
+        next->enabled = widget->isEnabled();
+        next->durationDs = static_cast<uint16_t>(durationDs > 0xFFFF ? 0xFFFF : durationDs);
+        ++next;
+    }
+
+    // A record of a widget that is not registered right now stays as long as there is room.
+    const WidgetSetting* const liveEnd = next;
+    for (size_t i = 0; next != end; ++i)
+    {
+        const WidgetSetting* record = _settingsStore.widgetAt(i);
+        if (record == nullptr) break;
+        const WidgetSetting* live = list;
+        while (live != liveEnd && live->nameHash != record->nameHash)
+            ++live;
+        if (live == liveEnd) *next++ = *record;
+    }
+
+    _settingsStore.replaceWidgets(list, static_cast<size_t>(next - list));
+}
+
+void DeviceDisplay::saveWidgetSettings()
+{
+    captureWidgetSettings();
+    _settingsStore.requestSave(); // settles in tickSave(), from the loop
+}
+
 // KONAMI unbrick sequence: UP UP DOWN DOWN LEFT RIGHT LEFT RIGHT SELECT SELECT (OK replaces B/A).
 bool DeviceDisplay::matchKonami(ButtonType t)
 {
@@ -277,6 +408,7 @@ void DeviceDisplay::triggerKonamiRestore()
     logInfoP("KONAMI: restoring display defaults");
     _settingsStore.loadDefaults();
     applyAllSettingsToRuntime();       // also re-seeds _pendDisp* from the fresh defaults
+    applyWidgetSettings();
     _settingsStore.requestSave(true);  // persist so the fix survives a reboot
     if (_widgetManager) _widgetManager->wakeUpDisplay();
     if (_menuWidget) _menuWidget->rebuild();
@@ -306,6 +438,7 @@ void DeviceDisplay::consoleApplyAndSave()
 void DeviceDisplay::consoleResetToDefaults()
 {
     _settingsStore.loadDefaults();
+    applyWidgetSettings();
     consoleApplyAndSave();
 }
 
@@ -529,6 +662,7 @@ void DeviceDisplay::wireMenuCallbacks()
     _menuWidget->registerAction("display_reset", [this]() {
         _settingsStore.loadDefaults();
         applyAllSettingsToRuntime();
+        applyWidgetSettings();
         _settingsStore.requestSave(true);
         if (_menuWidget) _menuWidget->rebuild();
         showToast("Anzeige zurueckgesetzt");
@@ -1392,9 +1526,10 @@ uint16_t DeviceDisplay::flashSize()
 
 namespace
 {
-    // Bumped when the serialized layout changes so an older/newer image is rejected (readFlash
-    // falls back to defaults). Stored as the first flash byte.
-    constexpr uint8_t DD_SETTINGS_FORMAT_VERSION = 3; // v3: appended screenshotInvert byte
+    // Layout generation, stored as the first flash byte. It changes only when the layout is rebuilt;
+    // a new setting is appended at the end of the blob and keeps it (see deserialize()).
+    constexpr uint8_t DD_SETTINGS_FORMAT_VERSION = 4; // v4: widget records hold the registered widgets
+    constexpr uint8_t DD_SETTINGS_FORMAT_PLACEHOLDERS = 3; // same layout, widget records were a fixed list
 
     // On-flash blob = 1 version byte + the store's serialized size; must not exceed flashSize().
     constexpr size_t DD_FLASH_BLOB_SIZE = 1u + DisplaySettingsStore::SERIALIZED_SIZE;
@@ -1422,7 +1557,7 @@ void DeviceDisplay::writeFlash()
 
 /**
  * @brief Restore the DisplaySettingsStore from the module-flash blob and apply it. Robust against
- * first boot (size==0) and format changes (unknown version byte) -> loadDefaults() in both cases.
+ * first boot (size==0) and an unknown layout generation -> loadDefaults() in both cases.
  */
 void DeviceDisplay::readFlash(const uint8_t* data, const uint16_t size)
 {
@@ -1434,7 +1569,7 @@ void DeviceDisplay::readFlash(const uint8_t* data, const uint16_t size)
     }
 
     const uint8_t version = data[0];
-    if (version != DD_SETTINGS_FORMAT_VERSION)
+    if (version != DD_SETTINGS_FORMAT_VERSION && version != DD_SETTINGS_FORMAT_PLACEHOLDERS)
     {
         logInfoP("readFlash: unknown settings version %u (expected %u) - using defaults",
                  static_cast<unsigned>(version),
@@ -1452,8 +1587,12 @@ void DeviceDisplay::readFlash(const uint8_t* data, const uint16_t size)
         return;
     }
 
+    // The settings of the older generation are kept, its widget records never described a widget.
+    if (version == DD_SETTINGS_FORMAT_PLACEHOLDERS) _settingsStore.clearWidgets();
+
     // setup() ran before this and applied the defaults; push the restored state to the runtime.
     applyAllSettingsToRuntime();
+    applyWidgetSettings();
 }
 
 /**

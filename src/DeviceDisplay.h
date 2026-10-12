@@ -105,6 +105,16 @@ class DeviceDisplay : public OpenKNX::Module
     // RAM-side persisted display + widget settings (no flash access here)
     DisplaySettingsStore _settingsStore;
 
+    // Rotation widgets in registration order with the values they were registered with.
+    struct WidgetDefault
+    {
+        Widget* widget;
+        uint32_t displayTimeMs;
+        bool enabled;
+    };
+    WidgetDefault _widgetDefaults[WIDGET_SETTINGS_MAX];
+    uint8_t _widgetDefaultCount = 0;
+
     // Widget references
     WidgetConsole* _consoleWidget = nullptr;
     MenuWidget* _menuWidget = nullptr;               // kept so setup() can hand it the registry
@@ -185,6 +195,16 @@ class DeviceDisplay : public OpenKNX::Module
     // autoPaging, screensaver type, icon-menu, home-key map). Single canonical path used at boot AND
     // after a settings reset, so the two never diverge and no switch is left unapplied.
     void applyAllSettingsToRuntime();
+    // Widget settings: a stored record sets enabled, duration and position of its widget; a widget
+    // without a record gets the values it was registered with and follows in registration order.
+    void onWidgetAdded(Widget* widget);
+    const WidgetSetting* widgetRecord(Widget* widget) const;
+    uint8_t registeredIndex(Widget* widget) const;
+    size_t widgetRank(Widget* widget) const;
+    void restoreWidget(Widget* widget, bool registeredIfNone);
+    void applyWidgetOrder();
+    void applyWidgetSettings();
+    void captureWidgetSettings();
     // KONAMI unbrick: advance the sequence matcher with one button PRESS; returns true (and restores +
     // saves defaults) when the full code is entered. Works blind (display off/misconfigured).
     bool matchKonami(ButtonType t);
@@ -271,6 +291,10 @@ class DeviceDisplay : public OpenKNX::Module
 
     // web hook: like consoleApplyAndSave() but without the forced flash write (web fires per slider step).
     void webApplyAndSave();
+
+    // After a change of a widget's visibility, duration or position: take the live rotation into the
+    // store and request the save.
+    void saveWidgetSettings();
 
     // Read-only access to the RAM settings store (e.g. for the "ddc i" info dump).
     // Non-mutating callers should prefer this const overload so they cannot dirty the store.

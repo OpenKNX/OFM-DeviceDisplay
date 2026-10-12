@@ -20,12 +20,6 @@
 
 namespace
 {
-    // "Anzeigedauer" choices in deciseconds (100 ms units) as persisted in WidgetSetting.
-    constexpr uint16_t DUR_5S = 50;
-    constexpr uint16_t DUR_8S = 80;
-    constexpr uint16_t DUR_10S = 100;
-    constexpr uint16_t DUR_15S = 150;
-
     // --- Little-endian scalar read/write helpers (buffer, no flash) -----------
 
     inline void putU8(uint8_t *&p, uint8_t v)
@@ -94,38 +88,10 @@ void DisplaySettingsStore::loadDefaults()
     _settings.iconMenu = false;         // root menu shows a text list by default (toggle in Anzeige)
     _settings.screenshotInvert = false; // OLED look by default (lit pixels white)
 
-    // Widget defaults from the mock "Widgets" submenu; array order = default rotation order.
-    struct WidgetDefault
-    {
-        const char *name;
-        bool enabled;
-        uint16_t durationDs;
-    };
-    static const WidgetDefault DEFAULTS[] = {
-        {"IP-Router", true, DUR_15S},
-        {"System-Info", true, DUR_10S},
-        {"KNX / BCU", true, DUR_8S},
-        {"Time", false, DUR_10S},
-        {"SD-Karte", true, DUR_8S},
-    };
-
-    _widgetCount = 0;
-    for (const WidgetDefault &d : DEFAULTS)
-    {
-        if (_widgetCount >= WIDGET_SETTINGS_MAX) break;
-        WidgetSetting &w = _widgets[_widgetCount];
-        w.nameHash = hashWidgetName(d.name);
-        w.orderIndex = _widgetCount;
-        w.enabled = d.enabled;
-        w.durationDs = d.durationDs;
-        ++_widgetCount;
-    }
-    // Zero the unused tail so the fixed-size serialized blob is deterministic.
-    for (size_t i = _widgetCount; i < WIDGET_SETTINGS_MAX; ++i)
-        _widgets[i] = WidgetSetting{};
+    // No widget records: every widget keeps the values it was registered with.
+    clearWidgets();
 
     // Defaults are a clean baseline; a factory reset marks dirty explicitly after.
-    (void)DUR_5S; // reserved for future default use
     _dirty = false;
 }
 
@@ -163,6 +129,18 @@ void DisplaySettingsStore::clearWidgets()
     for (size_t i = 0; i < WIDGET_SETTINGS_MAX; ++i)
         _widgets[i] = WidgetSetting{};
     _widgetCount = 0;
+}
+
+void DisplaySettingsStore::replaceWidgets(const WidgetSetting *list, size_t count)
+{
+    if (list == nullptr) count = 0;
+    if (count > WIDGET_SETTINGS_MAX) count = WIDGET_SETTINGS_MAX;
+
+    // The unused tail is reset so the fixed-size serialized blob is deterministic.
+    clearWidgets();
+    if (count != 0) memcpy(_widgets, list, count * sizeof(WidgetSetting));
+    _widgetCount = static_cast<uint8_t>(count);
+    _dirty = true;
 }
 
 size_t DisplaySettingsStore::serialize(uint8_t *buf) const

@@ -231,6 +231,8 @@ void WidgetsManager::addWidget(Widget* widget)
         _backgroundWidgets.push_back(widget);
         logDebugP("Background widget added to cache: %s", widget->getName().c_str());
     }
+
+    if (_widgetAddedCallback) _widgetAddedCallback(widget);
 }
 
 /**
@@ -1867,6 +1869,26 @@ void WidgetsManager::dropWidget()
     if (_grabIndex < 0) return;
     logDebugP("Dropped widget at index %d", _grabIndex);
     _grabIndex = -1;
+}
+
+/**
+ * @brief Sort the persistent DefaultWidget order by a rank function
+ * @details Insertion sort in place: ascending rank, widgets of equal rank keep their order.
+ * @param rank position wanted for a widget
+ */
+void WidgetsManager::sortDefaultOrder(size_t (*rank)(Widget*))
+{
+    syncDefaultOrder();
+    for (size_t i = 1; i < _defaultOrder.size(); ++i)
+    {
+        Widget* widget = _defaultOrder[i];
+        const size_t wanted = rank(widget);
+        size_t k = i;
+        for (; k > 0 && rank(_defaultOrder[k - 1]) > wanted; --k)
+            _defaultOrder[k] = _defaultOrder[k - 1];
+        _defaultOrder[k] = widget;
+        if (k != i) _grabIndex = -1;
+    }
 }
 
 /**

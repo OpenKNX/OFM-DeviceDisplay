@@ -1043,7 +1043,7 @@ bool MenuWidget::applyWidgetSetting(const MenuConfig::MenuOption& item)
     {
         Widget* w = wm->getWidgetFromQueue(item.toast);
         if (w) w->setEnabled(item.defaultValue.getBool());
-        openknxDisplayModule.getSettingsStore().requestSave();
+        openknxDisplayModule.saveWidgetSettings();
         logDebugP("Widget '%s' enabled=%d", item.toast.c_str(), item.defaultValue.getBool() ? 1 : 0);
         return true;
     }
@@ -1053,7 +1053,7 @@ bool MenuWidget::applyWidgetSetting(const MenuConfig::MenuOption& item)
         size_t idx = item.defaultValue.getSizeT();
         if (idx >= (sizeof(DUR_S) / sizeof(DUR_S[0]))) idx = 2; // default 10 s
         wm->setWidgetDisplayTime(item.toast, DUR_S[idx] * 1000);
-        openknxDisplayModule.getSettingsStore().requestSave();
+        openknxDisplayModule.saveWidgetSettings();
         logDebugP("Widget '%s' duration=%lus", item.toast.c_str(), (unsigned long)DUR_S[idx]);
         return true;
     }
@@ -1971,14 +1971,14 @@ bool MenuWidget::handleReorderButton(const ButtonEvent& event)
                 if (wm->moveGrabbedUp())
                 {
                     _reorderSel = static_cast<size_t>(wm->getGrabIndex());
-                    openknxDisplayModule.getSettingsStore().requestSave();
+                    openknxDisplayModule.saveWidgetSettings();
                 }
                 break;
             case ButtonType::DOWN:
                 if (wm->moveGrabbedDown())
                 {
                     _reorderSel = static_cast<size_t>(wm->getGrabIndex());
-                    openknxDisplayModule.getSettingsStore().requestSave();
+                    openknxDisplayModule.saveWidgetSettings();
                 }
                 break;
             case ButtonType::SELECT:

@@ -582,7 +582,7 @@ namespace OpenKNX
         if (settingsChanged)
             openknxDisplayModule.webApplyAndSave();
         else if (widgetsChanged)
-            openknxDisplayModule.getSettingsStore().requestSave();
+            openknxDisplayModule.saveWidgetSettings();
     }
 } // namespace OpenKNX
 

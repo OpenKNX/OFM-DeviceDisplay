@@ -44,7 +44,7 @@ class DisplaySettingsStore
 
     // --- Lifecycle -----------------------------------------------------------
 
-    /** Seed the entire RAM state with the mock defaults and clear the dirty flag (clean baseline). */
+    /** Seed the settings with their defaults, drop all widget records and clear the dirty flag. */
     void loadDefaults();
 
     // --- Dirty tracking ------------------------------------------------------
@@ -171,8 +171,8 @@ class DisplaySettingsStore
     /** Find a widget record by its name hash; nullptr if not present. */
     const WidgetSetting *findWidget(uint32_t nameHash) const
     {
-        for (uint8_t i = 0; i < _widgetCount; ++i)
-            if (_widgets[i].nameHash == nameHash) return &_widgets[i];
+        for (const WidgetSetting *w = _widgets, *end = _widgets + _widgetCount; w != end; ++w)
+            if (w->nameHash == nameHash) return w;
         return nullptr;
     }
 
@@ -185,6 +185,9 @@ class DisplaySettingsStore
     /** Remove all widget records. Marks dirty if any existed. */
     void clearWidgets();
 
+    /** Replace all widget records by @p list (at most WIDGET_SETTINGS_MAX are taken). Marks dirty. */
+    void replaceWidgets(const WidgetSetting *list, size_t count);
+
     // --- Serialization (byte buffer, no flash) --------------------------------
 
     /**
@@ -196,6 +199,8 @@ class DisplaySettingsStore
 
     /**
      * Restore the RAM state from a serialize() blob; falls back to loadDefaults() on a short buffer.
+     * A longer blob comes from a newer firmware: the known part is read, the rest ignored. A setting
+     * added later goes to the end of the blob and is read only if the blob holds it.
      * Clears the dirty flag on success (fresh-from-storage baseline).
      * @param buf  source buffer
      * @param size number of valid bytes in @p buf

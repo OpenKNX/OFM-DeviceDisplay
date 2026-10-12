@@ -135,6 +135,8 @@ class WidgetsManager // Manages the widget queue and state machine
     void setPowerSaveCallback(PowerSaveCallback callback) { _powerSaveCallback = callback; }
     void setPowerSaveConfig(const PowerSaveConfig& config) { _powerSaveConfig = config; }
     void setScreenSaverWidget(Widget* widget);
+    // Called at the end of addWidget(), once the widget is in the queue.
+    void setWidgetAddedCallback(void (*callback)(Widget*)) { _widgetAddedCallback = callback; }
 
     void addWidget(Widget* widget);
     void setup();
@@ -224,6 +226,9 @@ class WidgetsManager // Manages the widget queue and state machine
     bool moveGrabbedUp();
     bool moveGrabbedDown();
     void dropWidget();
+    // Sort the DefaultWidget order by rank(widget), ascending; equal ranks keep their order. A
+    // change ends a grab, the indices no longer match.
+    void sortDefaultOrder(size_t (*rank)(Widget*));
 
     // Derive PowerSaveConfig from persisted DisplaySettings. dim/screenSaver/sleepMin are direct
     // minutes; 0 disables that stage (timeout = 0 -> "never").
@@ -242,6 +247,7 @@ class WidgetsManager // Manages the widget queue and state machine
     WidgetManagerState _state = WidgetManagerState::Startup;
     WidgetManagerState _previousState = WidgetManagerState::Startup;
     StateTransitionCallback _stateTransitionCallback;
+    void (*_widgetAddedCallback)(Widget*) = nullptr;
     bool _startupComplete = false;
     bool _isInitialized = false; // Indicates if setup() has been called
 

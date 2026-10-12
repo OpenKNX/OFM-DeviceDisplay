@@ -9,7 +9,10 @@ Not tagged yet. On `v1`, after `v0.1.0`.
 
 **Settings**
 * Fix: the stored display settings take effect after a restart -- they were read from flash after the setup had applied the defaults, and nothing applied them afterwards
+* Feature: visibility, duration and order of the rotation widgets are stored and restored; a widget without a stored record keeps the values it was registered with
 * Change: a change is written to flash two seconds after the last edit instead of at most once in three minutes, and not at all when the state equals the stored one
+* Change: the stored format is version 4; the settings of version 3 are kept, its widget records -- a fixed placeholder list -- are dropped
+* Change: a setting added later is appended to the stored block and keeps the version, so an update keeps the settings
 
 ## v0.1.0: 2026-09-15
 
