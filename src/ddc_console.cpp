@@ -244,17 +244,17 @@ void DdcConsole::logConfig()
     openknx.logger.log("=======================================================");
     openknx.logger.color(0);
     openknx.logger.logWithValues(" brightness         : %u   (0..9 = 10..100)", store.brightnessIdx());
-    openknx.logger.logWithValues(" dim_after          : %u   min (0 = aus)", store.dimMin());
-    openknx.logger.logWithValues(" dim_level          : %u   (0 = nie, 1..9 = 10..90)", store.dimLevelIdx());
+    openknx.logger.logWithValues(" dim_after          : %u   min (0 = off)", store.dimMin());
+    openknx.logger.logWithValues(" dim_level          : %u   (0 = never, 1..9 = 10..90)", store.dimLevelIdx());
     openknx.logger.logWithValues(" invert             : %u", store.invert() ? 1 : 0);
     openknx.logger.logWithValues(" auto_paging        : %u", store.autoPaging() ? 1 : 0);
     openknx.logger.logWithValues(" icon_menu          : %u", store.iconMenu() ? 1 : 0);
     openknx.logger.logWithValues(" screensaver_type   : %u   (0..10)", store.screenSaverType());
-    openknx.logger.logWithValues(" screensaver_after  : %u   min (0 = aus)", store.screenSaverMin());
-    openknx.logger.logWithValues(" sleep_after        : %u   min (0 = nie)", store.sleepMin());
+    openknx.logger.logWithValues(" screensaver_after  : %u   min (0 = off)", store.screenSaverMin());
+    openknx.logger.logWithValues(" sleep_after        : %u   min (0 = never)", store.sleepMin());
     openknx.logger.logWithValues(" rotate             : %u   (180 deg)", store.displayRotate() ? 1 : 0);
-    openknx.logger.logWithValues(" precharge          : %u   (0..5, kurz->lang)", store.preChargeIdx());
-    openknx.logger.logWithValues(" refresh            : %u   (~%u Hz, 0..5 langsam->schnell)",
+    openknx.logger.logWithValues(" precharge          : %u   (0..5, short->long)", store.preChargeIdx());
+    openknx.logger.logWithValues(" refresh            : %u   (~%u Hz, 0..5 slow->fast)",
                                  store.refreshIdx(), ddcRefreshHz(store.refreshIdx()));
     openknx.logger.logWithValues(" screenshot_invert  : %u", store.screenshotInvert() ? 1 : 0);
     openknx.logger.color(CONSOLE_HEADLINE_COLOR);
@@ -282,7 +282,7 @@ namespace
             case HomeKeyAction::Pause: return "Pause";
             case HomeKeyAction::Reboot: return "Reboot";
             case HomeKeyAction::Prog: return "Prog-Mode";
-            case HomeKeyAction::DisplayOff: return "Display aus";
+            case HomeKeyAction::DisplayOff: return "Display off";
             case HomeKeyAction::Screenshot: return "Screenshot";
             default: return "?";
         }
@@ -397,7 +397,7 @@ void DdcConsole::logMenuSettings()
     openknx.logger.logWithValues(" Brightness idx       : %u (-> %u%%)", store.brightnessIdx(),
                                  (unsigned)((store.brightnessIdx() + 1) * 10));
     openknx.logger.logWithValues(" Dim after (min)      : %u", store.dimMin());
-    openknx.logger.logWithValues(" Dim level idx        : %u (0=nie)", store.dimLevelIdx());
+    openknx.logger.logWithValues(" Dim level idx        : %u (0=never)", store.dimLevelIdx());
     openknx.logger.logWithValues(" Invert               : %-3s", store.invert() ? "yes" : "no");
     openknx.logger.logWithValues(" Auto-Paging          : %-3s", store.autoPaging() ? "yes" : "no");
     openknx.logger.logWithValues(" Screensaver type     : %u (%s)", store.screenSaverType(),
@@ -406,8 +406,8 @@ void DdcConsole::logMenuSettings()
     openknx.logger.logWithValues(" Display off (min)    : %u", store.sleepMin());
     openknx.logger.logWithValues(" Icon menu            : %-3s", store.iconMenu() ? "yes" : "no");
     openknx.logger.logWithValues(" Display rotate 180   : %-3s", store.displayRotate() ? "yes" : "no");
-    openknx.logger.logWithValues(" Precharge idx        : %u (0..5, kurz->lang)", store.preChargeIdx());
-    openknx.logger.logWithValues(" Refresh idx          : %u (~%u Hz, langsam->schnell)",
+    openknx.logger.logWithValues(" Precharge idx        : %u (0..5, short->long)", store.preChargeIdx());
+    openknx.logger.logWithValues(" Refresh idx          : %u (~%u Hz, slow->fast)",
                                  store.refreshIdx(), ddcRefreshHz(store.refreshIdx()));
     openknx.logger.color(CONSOLE_HEADLINE_COLOR);
     openknx.logger.log("-------------------------------------------------------");

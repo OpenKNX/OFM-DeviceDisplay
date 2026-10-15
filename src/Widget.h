@@ -15,13 +15,13 @@
 
 typedef enum : uint8_t
 {
-    NoAction = 0,          // Keine Aktion - Widget bleibt in der Queue
+    NoAction = 0,          // No action - the widget stays in the queue
     StatusWidget = 1,      // Status-Widget (hat immer Vorrang)
-    AutoRemove = 2,        // Automatische Entfernung nach Anzeige
+    AutoRemove = 2,        // Removed automatically after it was shown
     ManagedExternally = 4, // Extern verwaltet, bleibt aktiv, bis deaktiviert
-    DisplayEnabled = 8,    // Intern aktiv, wird auf dem Display angezeigt
+    DisplayEnabled = 8,    // Active, shown on the display
     Background = 16,       // Widget läuft im Hintergrund
-    DefaultWidget = 32,    // Standard-Widget, wird angezeigt, wenn kein anderes Widget aktiv ist
+    DefaultWidget = 32,    // Default widget, shown when no other widget is active
     WantsButtonInput = 64  // Widget möchte Button-Eingaben erhalten
 } WidgetFlags;
 

@@ -2,10 +2,9 @@
     #include "WidgetTime.h"
     #include "OpenKNX.h"
 
-// German weekday names, indexed by DateOnly::dayOfWeek (0 = Sunday .. 6 = Saturday).
-// Matches the authoritative mock (reg2-menu-mockup.html: WD[]).
-static const char *const WT_WEEKDAYS_DE[7] = {
-    "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"};
+// Weekday names, indexed by DateOnly::dayOfWeek (0 = Sunday .. 6 = Saturday).
+static const char *const WT_WEEKDAYS[7] = {
+    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 // Constructor
 WidgetTime::WidgetTime(uint32_t displayTime, WidgetFlags action)
@@ -42,7 +41,7 @@ WidgetFlags WidgetTime::getAction() const
     return _action;
 }
 
-// True when no valid time source is available (used for the "keine Zeit" badge)
+// True when no valid time source is available (used for the "no time" badge)
 bool WidgetTime::isTimeMissing() const
 {
     return !openknx.time.isValid();
@@ -165,7 +164,7 @@ void WidgetTime::drawCenteredText(int16_t y, uint8_t textSize, const char *text)
 
 // Frame variant when a valid time is available:
 //   big  HH:MM   (+ smaller :SS appended, baseline aligned)
-//   Wochentag, DD.MM.YYYY
+//   Weekday, DD.MM.YYYY
 //   Uptime  <uptime>
 void WidgetTime::drawWithTime()
 {
@@ -205,8 +204,8 @@ void WidgetTime::drawWithTime()
     _display->display->setCursor(startX + hmWidth + GAP, bigY + BIG_H - (8 * SEC_SIZE));
     _display->display->print(ss);
 
-    // --- Date line: "Wochentag, DD.MM.YYYY" ---
-    const char *weekday = (now.dayOfWeek <= 6) ? WT_WEEKDAYS_DE[now.dayOfWeek] : "";
+    // --- Date line: "Weekday, DD.MM.YYYY" ---
+    const char *weekday = (now.dayOfWeek <= 6) ? WT_WEEKDAYS[now.dayOfWeek] : "";
     char dateStr[36];
     snprintf(dateStr, sizeof(dateStr), "%s, %02u.%02u.%04u",
              weekday, now.day, now.month, now.year);
@@ -224,7 +223,7 @@ void WidgetTime::drawWithTime()
     drawCenteredText(upY, 1, uptimeStr);
 }
 
-// Centered "keine Zeit" fallback: no left labels, no "Uhrzeit: —" row.
+// Centered "no time" fallback: no left labels, no "Time: —" row.
 // Shows a clock glyph, the two-line info text and the uptime.
 void WidgetTime::drawNoTime()
 {
@@ -239,10 +238,10 @@ void WidgetTime::drawNoTime()
     _display->display->drawLine(cx, glyphCy, cx, glyphCy - (r - 3), WHITE); // minute hand up
     _display->display->drawLine(cx, glyphCy, cx + (r - 4), glyphCy, WHITE); // hour hand right
 
-    // Two centered info lines (mock: "Kein Datum / Uhrzeit\ngesetzt").
+    // Two centered info lines (mock: "No date / time\nset").
     const int16_t line1Y = glyphCy + r + 6;
-    drawCenteredText(line1Y, 1, "Kein Datum / Uhrzeit");
-    drawCenteredText(line1Y + 11, 1, "gesetzt");
+    drawCenteredText(line1Y, 1, "No date / time");
+    drawCenteredText(line1Y + 11, 1, "set");
 
     // Uptime line near the bottom.
     char uptimeStr[40];

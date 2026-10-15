@@ -188,7 +188,7 @@ class WidgetsManager // Manages the widget queue and state machine
     void prevWidgetManual();
 
     // Page/rotation status text for the Home overlay: "n/N" (1-based) for a multi-page current
-    // widget, "manuell" when paused and single-page, otherwise empty.
+    // widget, "manual" when paused and single-page, otherwise empty.
     std::string getPageStatusText() const;
 
     // Per-widget display duration (ms), by widget name. Takes effect on the next switch to that

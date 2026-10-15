@@ -2,7 +2,7 @@
     #pragma once
     #include "../Widget.h"
 
-// WidgetAbout: the "Über" / About screen — a SciFi HUD that represents the developer. A live KNX
+// WidgetAbout: the About screen — a SciFi HUD that represents the developer. A live KNX
 // topology (coupler on a line bus with three devices) sits inside reticle corner brackets while
 // data PACKETS travel node -> bus -> node with a fading trail; the destination node pulses on
 // arrival. Below it the credits DECRYPT into place, cycling

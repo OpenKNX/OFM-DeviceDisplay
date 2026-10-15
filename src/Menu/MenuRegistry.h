@@ -68,7 +68,7 @@ class MenuRegistry
 
     // Guarantee the root ends with exactly one About entry, regardless of
     // registration order. Merges duplicate About items (last wins) and, if no
-    // module contributed one, appends a default "Über" entry. Mutates the stored
+    // module contributed one, appends a default "About" entry. Mutates the stored
     // root list in place; build() re-applies the pin defensively on its copy.
     void pinAboutLast();
 

@@ -3,7 +3,7 @@
     #include "DeviceDisplay.h"
     #include <cstring>
 
-// Ranges are the ones the console has always clamped to; the labels mirror the on-device menu.
+// Ranges are the ones the console has always clamped to; the labels are the (German) web page's, the device menu is English.
 const DisplaySettingDef DISPLAY_SETTING_DEFS[] = {
     {"brightness", "Helligkeit", "0..9 = 10..100 %", DisplaySettingKind::Number, 0, 9, DSG_NORMAL},
     {"dim_after", "Auto-Dim nach", "Minuten, 0 = aus", DisplaySettingKind::Number, 0, 999, DSG_NORMAL},

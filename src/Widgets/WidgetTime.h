@@ -11,8 +11,8 @@
  * running even while the widget is PAUSED (so the clock never freezes).
  *
  * If no valid time source is available it shows a centered
- * "Kein Datum / Uhrzeit gesetzt" fallback (without left labels) plus the
- * uptime and exposes a "keine Zeit" badge for the caller.
+ * "No date / time set" fallback (without left labels) plus the
+ * uptime and exposes a "no time" badge for the caller.
  *
  * There is intentionally NO mode switch (analog/digital) (decision 2026-07-07).
  * Time/date come from the available time source (OGM-Common DateTime /
@@ -51,13 +51,13 @@ class WidgetTime : public Widget
     i2cDisplay *getDisplayModule() const override;             // Retrieves the display module
 
     // True when no valid time source is available. Callers (badge/UI) can use
-    // this to show the "keine Zeit" badge as specified in the mock.
+    // this to show the "no time" badge as specified in the mock.
     bool isTimeMissing() const;
 
   private:
     void drawTime();                                        // Renders the current frame into the display buffer
     void drawWithTime();                                    // Frame variant when a valid time is available
-    void drawNoTime();                                      // Centered "keine Zeit" fallback (no left labels)
+    void drawNoTime();                                      // Centered "no time" fallback (no left labels)
     void drawCenteredText(int16_t y, uint8_t textSize, const char *text); // Horizontally centered single line
 
     // Returns the current visible "second key" used to gate the per-second

@@ -143,8 +143,8 @@ void WidgetClock::drawClock()
                                     CENTER_Y + CLOCK_RADIUS * sin(angleSecond), WHITE);
 
         /*
-        // 12, 3, 6 und 9 Markierungen zeichnen
-        int markLength = 3; // Länge der Markierungslinien
+        // draw the 12, 3, 6 and 9 marks
+        int markLength = 3; // length of the mark lines
 
         // 12 Uhr (oben)
         _display->display->drawLine(CENTER_X, CENTER_Y - CLOCK_RADIUS,
@@ -196,10 +196,10 @@ void WidgetClock::drawClock()
         // Draw the KNX address with configuration status (vorletzte Zeile)
         const char *knxAddress = openknx.info.humanIndividualAddress().c_str();
         const char *knxStatus = knx.configured() ? "" : " [!]";
-        char knxString[30]; // Buffer für die KNX-Adresse + Status
+        char knxString[30]; // buffer for the KNX address + status
         snprintf(knxString, sizeof(knxString), "Addr.: %s%s", knxAddress, knxStatus);
 
-        // Berechnung der tatsächlichen Pixelbreite für genauere Zentrierung
+        // real pixel width, for exact centring
         startX = (SCREEN_WIDTH - (strlen(knxString)) * FONT_WIDTH) / 2;
         startY = SCREEN_HEIGHT - 18; // Vorletzte Zeile
 

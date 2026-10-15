@@ -29,7 +29,7 @@
 /**
  * @brief Overlay display mode.
  * @note  Hold - hold-to-confirm (button held; releasing before the end aborts).
- *        Auto - menu-triggered auto countdown (LEFT aborts); subtext "◀ Abbrechen".
+ *        Auto - menu-triggered auto countdown (LEFT aborts); subtext "◀ Cancel".
  */
 enum class GestureOverlayMode : uint8_t
 {
@@ -86,13 +86,13 @@ class WidgetGestureOverlay : public Widget
     /**
      * @brief Tell the overlay whether KNX prog mode is CURRENTLY active, so the ProgMode
      *        confirm label reads "DEAKTIVIEREN" (holding will turn it off) instead of the
-     *        default "AKTIVIEREN". Set by DeviceDisplay when the overlay is shown.
+     *        default "ACTIVATE". Set by DeviceDisplay when the overlay is shown.
      */
     inline void setProgActive(bool active) { _progActive = active; }
 
     /**
      * @brief Tell the overlay whether the rotation is CURRENTLY paused, so the Pause confirm
-     *        label reads "FORTSETZEN" (holding will resume) instead of "PAUSIEREN".
+     *        label reads "RESUME" (holding will resume) instead of "PAUSE".
      */
     inline void setPauseActive(bool active) { _pauseActive = active; }
 

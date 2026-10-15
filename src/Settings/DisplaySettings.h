@@ -16,7 +16,7 @@
 #include <cstdint>
 
 /**
- * Action bound to a Home-screen direction key ("Home-Tasten" submenu).
+ * Action bound to a Home-screen direction key ("Home keys" submenu).
  * Enum value equals the mock option index.
  */
 enum class HomeKeyAction : uint8_t
@@ -25,7 +25,7 @@ enum class HomeKeyAction : uint8_t
     Pause = 1,      // 'Pause'      : pause/resume home rotation
     Reboot = 2,     // 'Reboot'     : reboot the device
     Prog = 3,       // 'Prog-Mode'  : toggle KNX programming mode
-    DisplayOff = 4, // 'Display aus': turn the display off (#17)
+    DisplayOff = 4, // 'Display off': turn the display off (#17)
     Screenshot = 5  // 'Screenshot' : capture the framebuffer to SD. Values MUST match GestureAction.
 };
 
@@ -47,39 +47,39 @@ enum HomeKeyIndex : uint8_t
  */
 struct DisplaySettings
 {
-    // "Helligkeit" idx 0..9 -> (idx+1)*10 = 10..100 %. Default 9 (100%). Granular 10% slider.
+    // "Brightness" idx 0..9 -> (idx+1)*10 = 10..100 %. Default 9 (100%). Granular 10% slider.
     uint8_t brightnessIdx = 9;
 
-    // "Auto-Dim nach": minutes until the display dims; 0 = aus (no dim stage). Was a yes/no toggle.
+    // "Dim after": minutes until the display dims; 0 = off (no dim stage). Was a yes/no toggle.
     uint16_t dimMin = 15;
 
-    // "Dim-Level" idx: 0 = nie (no dim), 1..9 -> 10..90 %. Effective dim = min(level, brightness).
+    // "Dim level" idx: 0 = never (no dim), 1..9 -> 10..90 %. Effective dim = min(level, brightness).
     uint8_t dimLevelIdx = 3; // 30%
 
-    // "Invertieren" check (fx:'inv') -> default false
+    // "Invert" check (fx:'inv') -> default false
     bool invert = false;
 
-    // "Seiten auto-blättern" check (fx:'autopage') -> default true
+    // "Auto paging" check (fx:'autopage') -> default true
     bool autoPaging = true;
 
-    // "Bildschirmschoner" idx 0..10 (Clock/Cube3D/Doom/FireWorks/Life/Matrix/MatrixCl./Pong/Rain/Starfield/Aus)
+    // "Screensaver" idx 0..10 (Clock/Cube3D/Doom/FireWorks/Life/Matrix/MatrixCl./Pong/Rain/Starfield/Aus)
     // -> default 0 = Clock. (Menu list in DefaultMenus.h must stay in this exact order = ScreenSaverType enum.)
     uint8_t screenSaverType = 0;
 
-    // "Screensaver nach": minutes until the screensaver starts; 0 = aus. Edited via the number editor.
+    // "Saver after": minutes until the screensaver starts; 0 = off. Edited via the number editor.
     uint16_t screenSaverMin = 30;
 
-    // "Display aus nach": minutes until the display sleeps (off); 0 = nie. Edited via the number editor.
+    // "Sleep after": minutes until the display sleeps (off); 0 = never. Edited via the number editor.
     uint16_t sleepMin = 60;
 
-    // --- "Display" hardware tuning (Anzeige -> Display). Live-previewed, saved ONLY on manual confirm
+    // --- "Panel" hardware tuning (Display -> Panel). Live-previewed, saved ONLY on manual confirm
     //     (so a bad value never auto-persists). "Zuruecksetzen" and the KONAMI code DO restore these to
     //     their safe defaults (below) - that is a recovery path, not a risk. ---
     bool displayRotate = false; // 180deg rotation (segment remap + COM scan) for upside-down mounting
     uint8_t preChargeIdx = 5;   // pre-charge preset idx (0..5); default = 0xF1 (bright, Adafruit init)
     uint8_t refreshIdx = 3;     // clock/refresh preset idx (0..5); default = 0x80 (Adafruit init)
 
-    // "Home-Tasten" per-direction actions, indexed by HomeKeyIndex {UP,DOWN,LEFT,RIGHT}.
+    // "Home keys" per-direction actions, indexed by HomeKeyIndex {UP,DOWN,LEFT,RIGHT}.
     // Defaults: UP=Pause, DOWN=Reboot, LEFT=Display off (#17), RIGHT=Screenshot.
     HomeKeyAction keyMap[HOME_KEY_COUNT] = {
         HomeKeyAction::Pause,      // UP
@@ -88,10 +88,10 @@ struct DisplaySettings
         HomeKeyAction::Screenshot  // RIGHT (Right-hold -> screenshot to SD)
     };
 
-    // "Icon-Menü": render the root menu as an icon grid instead of a text list -> default false.
+    // "Icon menu": render the root menu as an icon grid instead of a text list -> default false.
     bool iconMenu = false;
 
-    // "Screenshot" -> "Invertieren": false = lit pixels white (OLED look, default), true = paper look.
+    // "Screenshot" -> "Invert": false = lit pixels white (OLED look, default), true = paper look.
     bool screenshotInvert = false;
 };
 
@@ -102,9 +102,9 @@ struct DisplaySettings
 struct WidgetSetting
 {
     uint32_t nameHash = 0;   // FNV-1a hash of the widget name (see hashWidgetName)
-    uint8_t orderIndex = 0;  // Position in the rotation order ("Reihenfolge")
-    bool enabled = true;     // "Anzeigen" check
-    uint16_t durationDs = 0; // "Anzeigedauer" in deciseconds (100 ms units)
+    uint8_t orderIndex = 0;  // Position in the rotation order ("Order")
+    bool enabled = true;     // "Show" check
+    uint16_t durationDs = 0; // "Duration" in deciseconds (100 ms units)
 };
 
 /**

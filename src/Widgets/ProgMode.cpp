@@ -120,21 +120,20 @@ void WidgetProgMode::draw()
             _display->display->print(openknx.info.humanIndividualAddress().c_str());
             break;
         case 5:
-            // ETS hint (mock renderProgActive: ".pasub" line "ETS: Geraet programmieren").
+            // Programming hint (mock renderProgActive: ".pasub" line).
             _display->display->setTextColor(SSD1306_WHITE);
             _display->display->setTextWrap(false);
             _display->display->setTextSize(1);
             _display->display->setCursor(0, 46);
-            _display->display->print(" ETS: Geraet programmieren");
+            _display->display->print(" Ready to program");
             break;
         case 6:
-            // Footer hint. "gedrueckthalten" (ASCII; the SSD1306 CP437 font has no umlaut).
-            // TODO(polish): marquee-scroll this line — it is wider than 128 px at size 1.
+            // Footer hint (ASCII; the SSD1306 CP437 font has no umlaut).
             _display->display->setTextColor(SSD1306_WHITE);
             _display->display->setTextWrap(false);
             _display->display->setTextSize(1);
             _display->display->setCursor(0, 52);
-            _display->display->print(" OK gedrueckthalten = beenden");
+            _display->display->print(" Hold OK = exit");
             break;
         case 7:
             // Update the display

@@ -105,11 +105,11 @@ void MenuRegistry::pinAboutLast()
     if (lastAboutIdx < 0)
     {
         MenuOption about;
-        about.label = "Ueber";
+        about.label = "About";
         about.type = MenuConfig::MenuElementType::About;
         _rootItems.push_back(std::move(about));
         _dirty = true;
-        logDebugP("pinAboutLast: no About entry, appended default 'Über'");
+        logDebugP("pinAboutLast: no About entry, appended default 'About'");
         return;
     }
 
@@ -161,7 +161,7 @@ std::vector<MenuRegistry::MenuOption> MenuRegistry::buildWith(const std::vector<
     if (lastAboutIdx < 0)
     {
         MenuOption about;
-        about.label = "Ueber";
+        about.label = "About";
         about.type = MenuConfig::MenuElementType::About;
         result.push_back(std::move(about));
     }

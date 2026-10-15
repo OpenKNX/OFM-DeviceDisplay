@@ -124,12 +124,12 @@ void WidgetGestureOverlay::loop()
 
 const char *WidgetGestureOverlay::titleForAction(GestureAction action) const
 {
-    // Mirrors the mockup gTitle(): pause -> "Auto-Wechsel", reboot -> "System",
+    // Mirrors the mockup gTitle(): pause -> "Auto paging", reboot -> "System",
     // prog -> "Prog-Mode".
     switch (action)
     {
         case GestureAction::Pause:
-            return "Auto-Wechsel";
+            return "Auto paging";
         case GestureAction::Reboot:
             return "System";
         case GestureAction::ProgMode:
@@ -139,7 +139,7 @@ const char *WidgetGestureOverlay::titleForAction(GestureAction action) const
         case GestureAction::Screenshot:
             return "Screenshot";
         default:
-            return "Aktion";
+            return "Action";
     }
 }
 
@@ -152,17 +152,17 @@ const char *WidgetGestureOverlay::labelForAction(GestureAction action) const
     {
         case GestureAction::Pause:
             // Reflect the current pause state — holding while paused RESUMES the rotation.
-            return _pauseActive ? "FORTSETZEN" : "PAUSIEREN";
+            return _pauseActive ? "RESUME" : "PAUSE";
         case GestureAction::Reboot:
-            return "NEUSTART";
+            return "RESTART";
         case GestureAction::ProgMode:
             // Holding while active ENDS prog mode.
-            // ("DEAKTIVIEREN" is too wide for the big font on 128px, so "BEENDEN".)
-            return _progActive ? "BEENDEN" : "AKTIVIEREN";
+            // Prog mode active -> "EXIT" (leave it), inactive -> "ACTIVATE".
+            return _progActive ? "EXIT" : "ACTIVATE";
         case GestureAction::DisplayOff:
-            return "AUS";
+            return "OFF";
         case GestureAction::Screenshot:
-            return "AUFNEHMEN";
+            return "CAPTURE";
         default:
             return "";
     }
@@ -211,22 +211,21 @@ void WidgetGestureOverlay::draw()
             break;
         case 5:
         {
-            // Subtext with remaining seconds. Hold -> "weiter halten · loslassen = Abbruch",
-            // Auto -> "◀ Abbrechen" (the arrow is drawn as "<" for the SSD1306 font).
+            // Subtext with remaining seconds (21 characters fit). Hold -> "release = cancel",
+            // Auto -> "◀ Cancel" (the arrow is drawn as "<" for the SSD1306 font).
             _display->display->setTextColor(SSD1306_WHITE);
             _display->display->setTextWrap(false);
             _display->display->setTextSize(1);
             _display->display->setCursor(0, 54);
             if (_mode == GestureOverlayMode::Hold)
             {
-                // Mock renderProg(hold): "weiter halten . loslassen = Abbruch . <N> s"
-                // (middot rendered as ASCII "-" separator; SSD1306 font has no middot).
-                _display->display->print("weiter halten - loslassen = Abbruch - ");
+                // Mock renderProg(hold) shortened so the seconds stay on the 128 px line.
+                _display->display->print("release = cancel "); // + "N s": 20 characters (N is 1..3)
             }
             else
             {
-                // Auto branch: "< Abbrechen - <N> s" (leading "<" stands in for the mock arrow).
-                _display->display->print("< Abbrechen - ");
+                // Auto branch: "< Cancel - <N> s" (leading "<" stands in for the mock arrow).
+                _display->display->print("< Cancel - ");
             }
             _display->display->print(static_cast<int>(_lastSeconds));
             _display->display->print(" s");

@@ -9,8 +9,8 @@ WidgetPong::WidgetPong(uint32_t displayTime, WidgetFlags action)
 void WidgetPong::setDisplayModule(i2cDisplay *displayModule)
 {
     _display = displayModule;
-    // logDebugP("WidgetPong: Display-Modul gesetzt.");
-    // logInfoP("Display-Modul gesetzt.");
+    // logDebugP("WidgetPong: display module set.");
+    // logInfoP("Display module set.");
 }
 i2cDisplay *WidgetPong::getDisplayModule() const { return _display; }
 
@@ -26,7 +26,7 @@ void WidgetPong::initSettings() // Initialize the screensaver default settings
     ballY = SCREEN_HEIGHT / 2;
     ballSpeedX = -1; // Horizontal movement
     ballSpeedY = 1;  // Vertical movement
-    logInfoP("Screensaver initialisiert.");
+    logInfoP("Screensaver initialised.");
 }
 
 void WidgetPong::setup()

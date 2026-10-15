@@ -72,7 +72,7 @@ class i2cDisplay
     void SetDisplayOffset(uint8_t offset);       // Set the display offset
     void SetDisplayClockDiv(uint8_t clockdiv);   // Set the display clock division
     void SetDisplayPreCharge(uint8_t precharge); // Set the display precharge
-    void displayBuff();                          // Funktion, die den Puffer mit dem aktuellen Zustand vergleicht und nur geänderte Bereiche sendet
+    void displayBuff();                          // compares the buffer with the panel state and sends only the changed areas
 
     inline void __setLoopColumnMethod(bool loopColumnMethod) { __loopColumnMethod = loopColumnMethod; } // Set the loop column method
 

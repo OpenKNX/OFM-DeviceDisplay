@@ -66,26 +66,26 @@ namespace
 
 void DisplaySettingsStore::loadDefaults()
 {
-    // DisplaySettings: values taken from the mock. "Anzeige" submenu:
+    // DisplaySettings: values taken from the mock. "Display" submenu:
     _settings.brightnessIdx = 9;   // idx 0..9 -> (idx+1)*10 = 100 %
-    _settings.dimMin = 15;         // Auto-Dim nach 15 min (0 = aus)
-    _settings.dimLevelIdx = 3;     // Dim-Level 30 % (0 = nie)
-    _settings.invert = false;      // Invertieren check (fx:'inv')
-    _settings.autoPaging = true;   // Seiten auto-blättern (fx:'autopage')
-    _settings.screenSaverType = 0; // idx 0..10 (Clock/Cube3D/Doom/.../Aus) -> 0 = Clock
-    _settings.screenSaverMin = 30; // Screensaver nach 30 min (0 = aus)
-    _settings.sleepMin = 60;       // Display aus nach 60 min (0 = nie)
+    _settings.dimMin = 15;         // Dim after 15 min (0 = off)
+    _settings.dimLevelIdx = 3;     // Dim level 30 % (0 = never)
+    _settings.invert = false;      // Invert check (fx:'inv')
+    _settings.autoPaging = true;   // Auto paging (fx:'autopage')
+    _settings.screenSaverType = 0; // idx 0..10 (Clock/Cube3D/Doom/.../off) -> 0 = Clock
+    _settings.screenSaverMin = 30; // Saver after 30 min (0 = off)
+    _settings.sleepMin = 60;       // Sleep after 60 min (0 = never)
     _settings.displayRotate = false; // 180deg rotation off
     _settings.preChargeIdx = 5;    // pre-charge preset -> 0xF1 (Adafruit default)
     _settings.refreshIdx = 3;      // clock/refresh preset -> 0x80 (Adafruit default)
 
-    // "Home-Tasten" submenu: Oben=Pause, Unten=Reboot, Links=Display aus (#17), Rechts=—.
+    // "Home keys" submenu: Up=Pause, Down=Reboot, Left=Display off (#17), Right=—.
     _settings.keyMap[HOME_KEY_UP] = HomeKeyAction::Pause;
     _settings.keyMap[HOME_KEY_DOWN] = HomeKeyAction::Reboot;
     _settings.keyMap[HOME_KEY_LEFT] = HomeKeyAction::DisplayOff;
     _settings.keyMap[HOME_KEY_RIGHT] = HomeKeyAction::Screenshot;
 
-    _settings.iconMenu = false;         // root menu shows a text list by default (toggle in Anzeige)
+    _settings.iconMenu = false;         // root menu shows a text list by default (toggle in Display)
     _settings.screenshotInvert = false; // OLED look by default (lit pixels white)
 
     // No widget records: every widget keeps the values it was registered with.

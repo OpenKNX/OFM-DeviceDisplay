@@ -412,7 +412,7 @@ void DeviceDisplay::triggerKonamiRestore()
     _settingsStore.requestSave(true);  // persist so the fix survives a reboot
     if (_widgetManager) _widgetManager->wakeUpDisplay();
     if (_menuWidget) _menuWidget->rebuild();
-    showToast("Werkseinstellung wiederhergestellt");
+    showToast("Display defaults");
 }
 
 // Web hook: push the mutated store live, persist via the debounced saver. NOT consoleApplyAndSave() -- its
@@ -491,7 +491,7 @@ void DeviceDisplay::setup(bool configured)
  * @brief Register the display-submenu onValueChanged callbacks and wire the MenuWidget
  *        screen/gesture hooks. No-op without a MenuWidget.
  *
- * Each "Anzeige" entry pushes its new value onto the live runtime AND into _settingsStore, then
+ * Each "Display" entry pushes its new value onto the live runtime AND into _settingsStore, then
  * requests a debounced save. Keys mirror DefaultMenus.h; registerOnValueChanged() overwrites by
  * key, replacing the demo defaults from MenuWidget::addDefaultOnValueChanged().
  */
@@ -526,7 +526,7 @@ void DeviceDisplay::wireMenuCallbacks()
         else if (o.key == "disp_refresh") o.defaultValue = MenuValue(static_cast<size_t>(_pendDispRefreshIdx));
     });
 
-    // Helligkeit: slider idx 0..9; brightnessIdx maps to (idx+1)*10 % (10..100). Dim re-applies too
+    // Brightness: slider idx 0..9; brightnessIdx maps to (idx+1)*10 % (10..100). Dim re-applies too
     // (min(dim,normal) rule lives in applyDisplaySettings).
     _menuWidget->registerOnValueChanged("brightness_level", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         const size_t idx = std::min(val.getSizeT(), static_cast<size_t>(9));
@@ -538,7 +538,7 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("brightness -> idx %u", static_cast<unsigned>(idx));
     });
 
-    // Dim-Level: slider idx 0..9 (0 = nie). applyToRuntime owns the min(dim,normal) + dim-off logic.
+    // Dim level: slider idx 0..9 (0 = never). applyToRuntime owns the min(dim,normal) + dim-off logic.
     _menuWidget->registerOnValueChanged("dim_level", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         const size_t idx = std::min(val.getSizeT(), static_cast<size_t>(9));
         _settingsStore.setDimLevelIdx(static_cast<uint8_t>(idx));
@@ -547,7 +547,7 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("dimLevel -> idx %u", static_cast<unsigned>(idx));
     });
 
-    // Auto-Dim nach: NumberEdit minutes (0 = aus). applyToRuntime() owns the dim behaviour.
+    // Dim after: NumberEdit minutes (0 = off). applyToRuntime() owns the dim behaviour.
     _menuWidget->registerOnValueChanged("dim_after", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         _settingsStore.setDimMin(static_cast<uint16_t>(val.getSizeT()));
         _settingsStore.applyToRuntime(_widgetManager, _displayModule);
@@ -555,7 +555,7 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("dimMin -> %u", static_cast<unsigned>(val.getSizeT()));
     });
 
-    // Invertieren: Checkbox -> i2cDisplay::SetInvertDisplay + persist.
+    // Invert: Checkbox -> i2cDisplay::SetInvertDisplay + persist.
     _menuWidget->registerOnValueChanged("display_invert", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         _settingsStore.setInvert(val.getBool());
         if (_displayModule)
@@ -564,14 +564,14 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("invert -> %u", val.getBool() ? 1u : 0u);
     });
 
-    // Screenshot -> Invertieren: Checkbox, persisted; the BMP encoder reads it at write time.
+    // Screenshot -> Invert: Checkbox, persisted; the BMP encoder reads it at write time.
     _menuWidget->registerOnValueChanged("screenshot_invert", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         _settingsStore.setScreenshotInvert(val.getBool());
         _settingsStore.requestSave();
         logDebugP("screenshotInvert -> %u", val.getBool() ? 1u : 0u);
     });
 
-    // Home-Tasten: dropdown 0..5 (HomeKeyAction) per direction -> persist + re-seed the gesture engine.
+    // Home keys: dropdown 0..5 (HomeKeyAction) per direction -> persist + re-seed the gesture engine.
     const auto homeKeyFromIdx = [](size_t idx) -> HomeKeyAction {
         // clamp out-of-range/future index to None (Screenshot=5 is the highest valid action)
         return (idx <= static_cast<size_t>(HomeKeyAction::Screenshot))
@@ -603,7 +603,7 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("homekey right -> %u", static_cast<unsigned>(val.getSizeT()));
     });
 
-    // Seiten auto-blaettern: Checkbox -> WidgetsManager::setAutoPaging + persist.
+    // Auto paging: Checkbox -> WidgetsManager::setAutoPaging + persist.
     _menuWidget->registerOnValueChanged("auto_paging", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         _settingsStore.setAutoPaging(val.getBool());
         if (_widgetManager)
@@ -620,7 +620,7 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("iconMenu -> %u", val.getBool() ? 1u : 0u);
     });
 
-    // Bildschirmschoner: Dropdown index -> setScreenSaverType; store the raw index.
+    // Screensaver: Dropdown index -> setScreenSaverType; store the raw index.
     _menuWidget->registerOnValueChanged("screensaver_type", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         const size_t idx = std::min(val.getSizeT(), static_cast<size_t>(SCREENSAVER_TYPE_COUNT - 1));
         _settingsStore.setScreenSaverType(static_cast<uint8_t>(idx));
@@ -640,7 +640,7 @@ void DeviceDisplay::wireMenuCallbacks()
         return static_cast<size_t>(_settingsStore.brightnessIdx());
     });
 
-    // Screensaver nach: NumberEdit minutes (0 = aus) -> store + re-apply, persist.
+    // Saver after: NumberEdit minutes (0 = off) -> store + re-apply, persist.
     _menuWidget->registerOnValueChanged("screensaver_after", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         _settingsStore.setScreenSaverMin(static_cast<uint16_t>(val.getSizeT()));
         _settingsStore.applyToRuntime(_widgetManager, _displayModule);
@@ -648,7 +648,7 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("screenSaverMin -> %u", static_cast<unsigned>(val.getSizeT()));
     });
 
-    // Schlafen nach: NumberEdit minutes (0 = nie) -> store + re-apply, persist.
+    // Sleep after: NumberEdit minutes (0 = never) -> store + re-apply, persist.
     _menuWidget->registerOnValueChanged("sleep_after", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
         _settingsStore.setSleepMin(static_cast<uint16_t>(val.getSizeT()));
         _settingsStore.applyToRuntime(_widgetManager, _displayModule);
@@ -656,8 +656,8 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("sleepMin -> %u", static_cast<unsigned>(val.getSizeT()));
     });
 
-    // Zuruecksetzen: restore ALL display settings to defaults, apply them live via the SAME canonical
-    // path as boot, persist, then rebuild the menu so every shown value refreshes. Nein/Ja guard is
+    // Reset: restore ALL display settings to defaults, apply them live via the SAME canonical
+    // path as boot, persist, then rebuild the menu so every shown value refreshes. No/Yes guard is
     // handled by the Action's confirmText.
     _menuWidget->registerAction("display_reset", [this]() {
         _settingsStore.loadDefaults();
@@ -665,7 +665,7 @@ void DeviceDisplay::wireMenuCallbacks()
         applyWidgetSettings();
         _settingsStore.requestSave(true);
         if (_menuWidget) _menuWidget->rebuild();
-        showToast("Anzeige zurueckgesetzt");
+        showToast("Display reset");
         logInfoP("Display settings reset to defaults");
     });
 
@@ -688,13 +688,13 @@ void DeviceDisplay::wireMenuCallbacks()
         logDebugP("disp_refresh(live) -> idx %u", _pendDispRefreshIdx);
     });
 
-    // Speichern: commit the live "Display" tuning into store + flash (Nein/Ja guard via confirmText).
+    // Save: commit the live "Panel" tuning into store + flash (No/Yes guard via confirmText).
     _menuWidget->registerAction("disp_save", [this]() {
         _settingsStore.setDisplayRotate(_pendDispRotate);
         _settingsStore.setPreChargeIdx(_pendDispPrechargeIdx);
         _settingsStore.setRefreshIdx(_pendDispRefreshIdx);
         _settingsStore.requestSave(true);
-        showToast("Display gespeichert");
+        showToast("Panel saved");
         logInfoP("Display tuning saved: rotate=%u pre=%u refresh=%u",
                  _pendDispRotate ? 1u : 0u, _pendDispPrechargeIdx, _pendDispRefreshIdx);
     });
@@ -796,7 +796,7 @@ void DeviceDisplay::initializeWidgets()
     _gestureOverlay->setPriority(WidgetPriority::WIDGET_PRIO_CRITICAL);
     _widgetManager->addWidget(_gestureOverlay);
 
-    // About: "Über" HUD shown on demand from the menu; any button or an auto-timeout dismisses it.
+    // About: "About" HUD shown on demand from the menu; any button or an auto-timeout dismisses it.
     // CRITICAL StatusWidget so it draws over the menu/rotation.
     _aboutWidget = new WidgetAbout(0, WidgetFlags::ManagedExternally);
     _aboutWidget->setAction(WidgetFlags::ManagedExternally | WidgetFlags::StatusWidget | WidgetFlags::WantsButtonInput);
@@ -1211,7 +1211,7 @@ void DeviceDisplay::screenshotTick()
         {
             _shotPending = false;
             if (!_shotFrozen || _shotW == 0 || _shotH == 0) { _shotState = ShotState::Failed; break; }
-            if (!sdCardModule.isMounted()) { showToast("Keine SD-Karte"); _shotFrozen = false; break; }
+            if (!sdCardModule.isMounted()) { showToast("No SD card"); _shotFrozen = false; break; }
 
             char path[28];
             bool found = false;
@@ -1249,7 +1249,7 @@ void DeviceDisplay::screenshotTick()
         case ShotState::Failed:
         default:
             if (s_screenshotFile) s_screenshotFile.close();
-            showToast("Screenshot fehlgeschlagen");
+            showToast("Screenshot failed");
             logErrorP("Screenshot failed (no SD / open / write)");
             _shotFrozen = false;
             _shotState = ShotState::Idle;
@@ -1259,7 +1259,7 @@ void DeviceDisplay::screenshotTick()
     // No SD module in this build: nowhere to write. Consume the request with a toast.
     _shotPending = false;
     _shotFrozen = false;
-    showToast("Kein SD-Modul");
+    showToast("No SD module");
 #endif
 }
 
@@ -1284,7 +1284,7 @@ void DeviceDisplay::drawToast()
 }
 
 /**
- * @brief Show the About HUD (menu "Über"). CRITICAL StatusWidget drawn over the menu/rotation; the
+ * @brief Show the About HUD (menu "About"). CRITICAL StatusWidget drawn over the menu/rotation; the
  * ProgMode widget is suppressed while shown (restored on hide). Dismissed on any button / timeout.
  */
 void DeviceDisplay::showAbout()
@@ -1465,7 +1465,7 @@ void DeviceDisplay::setScreenSaverType(ScreenSaverType type)
             break;
         case ScreenSaverType::Off:
         default:
-            newWidget = nullptr; // "Aus" -> no screensaver, manager goes straight to SLEEP
+            newWidget = nullptr; // "off" -> no screensaver, manager goes straight to SLEEP
             break;
     }
 

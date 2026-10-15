@@ -11,12 +11,12 @@ namespace DefaultMenus
     using MenuOption = MenuConfig::MenuOption;
     using MenuBuild::addRow;
 
-    // Shared "Zurueck" row: built once, copied in where a submenu needs it.
+    // Shared "Back" row: built once, copied in where a submenu needs it.
     inline const MenuOption& backRow()
     {
         static const MenuOption back = [] {
             MenuOption b;
-            b.label = "Zurueck";
+            b.label = "Back";
             b.type = MenuConfig::MenuElementType::Back;
             return b;
         }();
@@ -33,17 +33,17 @@ namespace DefaultMenus
         return opts;
     }
 
-    // idx 0 = "nie" (no dim), 1..9 -> 10..90 %.
+    // idx 0 = "never" (no dim), 1..9 -> 10..90 %.
     inline const std::vector<std::string>& dimLevelOptions()
     {
-        static const std::vector<std::string> opts = {"nie", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%"};
+        static const std::vector<std::string> opts = {"never", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%"};
         return opts;
     }
 
     // Order MUST match ScreenSaverType (value == index).
     inline const std::vector<std::string>& screensaverOptions()
     {
-        static const std::vector<std::string> opts = {"Clock", "Cube 3D", "Doom", "FireWorks", "Life", "Matrix", "Matrix Cl.", "Pong", "Rain", "Starfield", "Aus"};
+        static const std::vector<std::string> opts = {"Clock", "Cube 3D", "Doom", "FireWorks", "Life", "Matrix", "Matrix Cl.", "Pong", "Rain", "Starfield", "off"};
         return opts;
     }
 
@@ -64,27 +64,27 @@ namespace DefaultMenus
     }
     inline const std::vector<std::string>& prechargeOptions()
     {
-        static const std::vector<std::string> opts = {"1 kurz", "2", "3", "4", "5", "6 lang"};
+        static const std::vector<std::string> opts = {"1 short", "2", "3", "4", "5", "6 long"};
         return opts;
     }
 
     // NumberEdit label for the 0 case.
     inline const std::vector<std::string>& offLabel()
     {
-        static const std::vector<std::string> opts = {"aus"};
+        static const std::vector<std::string> opts = {"off"};
         return opts;
     }
 
     inline const std::vector<std::string>& neverLabel()
     {
-        static const std::vector<std::string> opts = {"nie"};
+        static const std::vector<std::string> opts = {"never"};
         return opts;
     }
 
     // Index MUST match HomeKeyAction: 0=None 1=Pause 2=Reboot 3=Prog 4=DisplayOff 5=Screenshot.
     inline const std::vector<std::string>& homeKeyActions()
     {
-        static const std::vector<std::string> opts = {"-", "Pause", "Reboot", "Prog-Mode", "Display aus", "Screenshot"};
+        static const std::vector<std::string> opts = {"-", "Pause", "Reboot", "Prog-Mode", "Display off", "Screenshot"};
         return opts;
     }
 
@@ -94,7 +94,7 @@ namespace DefaultMenus
         return opts;
     }
 
-    // Canonical duration option set for Anzeigedauer.
+    // Canonical duration option set for Duration.
     inline const std::vector<std::string>& widgetDurationOptions()
     {
         static const std::vector<std::string> opts = {"5 s", "8 s", "10 s", "15 s", "20 s", "30 s"};
@@ -242,9 +242,9 @@ namespace DefaultMenus
                     o.dropdownOptions = {"25%", "50%", "75%", "100%"};
                     o.defaultValue = MenuValue(static_cast<size_t>(2));
                 });
-                // Minute value (0 = aus); dropdownOptions[0] labels the 0 case.
+                // Minute value (0 = off); dropdownOptions[0] labels the 0 case.
                 addRow(disp, [](MenuOption& o) {
-                    o.label = "Auto-Dim nach";
+                    o.label = "Dim after";
                     o.type = MenuConfig::MenuElementType::NumberEdit;
                     o.key = "dim_after";
                     o.dropdownOptions = offLabel();
@@ -308,7 +308,7 @@ namespace DefaultMenus
 
             // Each read-only row pulls its live value via valueProvider.
             addRow(sub, [](MenuOption& o) {
-                o.label = "Geraet";
+                o.label = "Device";
                 o.type = MenuConfig::MenuElementType::Readonly;
                 o.valueProvider = []() -> std::string { return std::string(openknx.info.firmwareName()); };
             });
@@ -318,12 +318,12 @@ namespace DefaultMenus
                 o.valueProvider = []() -> std::string { return std::string(openknx.info.humanFirmwareVersion()); };
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Seriennummer";
+                o.label = "Serial number";
                 o.type = MenuConfig::MenuElementType::Readonly;
                 o.valueProvider = []() -> std::string { return std::string(openknx.info.humanSerialNumber()); };
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "KNX-Typ";
+                o.label = "KNX type";
                 o.type = MenuConfig::MenuElementType::Readonly;
                 o.valueProvider = []() -> std::string {
                     switch (MASK_VERSION)
@@ -346,7 +346,7 @@ namespace DefaultMenus
                 o.valueProvider = []() -> std::string { return knx.configured() ? std::string("OK") : std::string("-"); };
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Freier Speicher";
+                o.label = "Free memory";
                 o.type = MenuConfig::MenuElementType::Readonly;
                 o.valueProvider = []() -> std::string {
                     char b[16];
@@ -358,28 +358,28 @@ namespace DefaultMenus
         });
     }
 
-    // Selectable "Beenden" exit near the bottom of the root menu; About stays pinned last.
+    // Selectable "Exit" entry near the bottom of the root menu; About stays pinned last.
     MENU_NOINLINE inline void addExitRoot(std::vector<MenuOption>& roots)
     {
         addRow(roots, [](MenuOption& o) {
-            o.label = "< Beenden";
+            o.label = "< Exit";
             o.type = MenuConfig::MenuElementType::Back;
             o.sortOrder = 900;
         });
     }
 
-    // Display (hardware tuning) submenu: LIVE preview, saved ONLY via "Speichern". A bad value
+    // Display (hardware tuning) submenu: LIVE preview, saved ONLY via "Save". A bad value
     // never auto-persists (would brick the panel); the KONAMI code restores defaults.
     MENU_NOINLINE inline void addDisplayTuningRow(std::vector<MenuOption>& dst)
     {
         addRow(dst, [](MenuOption& displaySub) {
-            displaySub.label = "Display";
+            displaySub.label = "Panel";
             displaySub.type = MenuConfig::MenuElementType::Submenu;
 
             auto& sub = displaySub.submenu;
             sub.reserve(5);
             addRow(sub, [](MenuOption& o) {
-                o.label = "180 Grad drehen";
+                o.label = "Rotate 180";
                 o.type = MenuConfig::MenuElementType::Checkbox;
                 o.key = "disp_rotate";
                 o.defaultValue = MenuValue(false);
@@ -401,21 +401,21 @@ namespace DefaultMenus
                 o.slider = true;
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Speichern";
+                o.label = "Save";
                 o.type = MenuConfig::MenuElementType::Action;
                 o.key = "disp_save";
-                o.confirmText = "Anzeige OK? Speichern?";
+                o.confirmText = "Panel OK? Save?";
             });
             sub.push_back(backRow());
         });
     }
 
-    // --- Anzeige (display settings) -------------------------------------------
+    // --- Display settings -------------------------------------------
     // Keys must match the onValueChanged registrations in DeviceDisplay or the wiring no-ops.
     MENU_NOINLINE inline void addAnzeigeRoot(std::vector<MenuOption>& roots)
     {
         addRow(roots, [](MenuOption& anzeige) {
-            anzeige.label = "Anzeige";
+            anzeige.label = "Display";
             anzeige.type = MenuConfig::MenuElementType::Submenu;
             anzeige.sortOrder = 30; // visible for all (reset + KONAMI + manual-save protect the tunings)
 
@@ -423,24 +423,24 @@ namespace DefaultMenus
             sub.reserve(12);
 
             addRow(sub, [](MenuOption& o) {
-                o.label = "Helligkeit";
+                o.label = "Brightness";
                 o.type = MenuConfig::MenuElementType::Dropdown;
                 o.key = "brightness_level";
                 o.dropdownOptions = brightnessOptions();
                 o.defaultValue = MenuValue(static_cast<size_t>(9)); // 100%
                 o.slider = true;                                    // adjust via a horizontal slider (live)
             });
-            // Timeouts are 3-digit minute values (0 = aus/nie); dropdownOptions[0] is the label for 0.
+            // Timeouts are 3-digit minute values (0 = off/never); dropdownOptions[0] is the label for 0.
             addRow(sub, [](MenuOption& o) {
-                o.label = "Auto-Dim nach";
+                o.label = "Dim after";
                 o.type = MenuConfig::MenuElementType::NumberEdit;
                 o.key = "dim_after";
                 o.dropdownOptions = offLabel();
                 o.defaultValue = MenuValue(static_cast<size_t>(15));
             });
-            // Effective dim = min(level, Helligkeit).
+            // Effective dim = min(level, brightness).
             addRow(sub, [](MenuOption& o) {
-                o.label = "Dim-Level";
+                o.label = "Dim level";
                 o.type = MenuConfig::MenuElementType::Dropdown;
                 o.key = "dim_level";
                 o.dropdownOptions = dimLevelOptions();
@@ -448,25 +448,25 @@ namespace DefaultMenus
                 o.slider = true;
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Invertieren";
+                o.label = "Invert";
                 o.type = MenuConfig::MenuElementType::Checkbox;
                 o.key = "display_invert";
                 o.defaultValue = MenuValue(false);
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Seiten auto-blaettern";
+                o.label = "Auto paging";
                 o.type = MenuConfig::MenuElementType::Checkbox;
                 o.key = "auto_paging";
                 o.defaultValue = MenuValue(true);
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Icon-Menue";
+                o.label = "Icon menu";
                 o.type = MenuConfig::MenuElementType::Checkbox;
                 o.key = "icon_menu"; // root icon grid vs text list
                 o.defaultValue = MenuValue(false);
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Bildschirmschoner";
+                o.label = "Screensaver";
                 o.type = MenuConfig::MenuElementType::Dropdown;
                 o.key = "screensaver_type";
                 o.dropdownOptions = screensaverOptions();
@@ -474,14 +474,14 @@ namespace DefaultMenus
                 o.radioList = true;                                 // open as a full-screen single-select picker
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Screensaver nach";
+                o.label = "Saver after";
                 o.type = MenuConfig::MenuElementType::NumberEdit;
                 o.key = "screensaver_after";
                 o.dropdownOptions = offLabel();
                 o.defaultValue = MenuValue(static_cast<size_t>(30));
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Display aus nach";
+                o.label = "Sleep after";
                 o.type = MenuConfig::MenuElementType::NumberEdit;
                 o.key = "sleep_after";
                 o.dropdownOptions = neverLabel();
@@ -490,12 +490,12 @@ namespace DefaultMenus
 
             addDisplayTuningRow(sub);
 
-            // Reset all display settings to defaults (Nein/Ja guard). Wired in DeviceDisplay.
+            // Reset all display settings to defaults (No/Yes guard). Wired in DeviceDisplay.
             addRow(sub, [](MenuOption& o) {
-                o.label = "Zuruecksetzen";
+                o.label = "Reset";
                 o.type = MenuConfig::MenuElementType::Action;
                 o.key = "display_reset";
-                o.confirmText = "Alle Anzeige-Werte auf Standard?";
+                o.confirmText = "Reset all display values?";
             });
 
             sub.push_back(backRow());
@@ -518,15 +518,15 @@ namespace DefaultMenus
                 o.key = "prog_mode";
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Neustart";
+                o.label = "Restart";
                 o.type = MenuConfig::MenuElementType::Reboot;
                 o.key = "reboot_device";
             });
             addRow(sub, [](MenuOption& o) {
-                o.label = "Werkseinstellungen";
+                o.label = "Factory reset";
                 o.type = MenuConfig::MenuElementType::Toast;
                 o.key = "factory_reset";
-                o.toast = "Werksreset ...";
+                o.toast = "Factory reset ...";
             });
             sub.push_back(backRow());
         });
@@ -544,7 +544,7 @@ namespace DefaultMenus
             auto& sub = screenshot.submenu;
             sub.reserve(2);
             addRow(sub, [](MenuOption& o) {
-                o.label = "Invertieren";
+                o.label = "Invert";
                 o.type = MenuConfig::MenuElementType::Checkbox;
                 o.key = "screenshot_invert";
                 o.defaultValue = MenuValue(false); // OLED look by default (lit pixels white)
@@ -553,11 +553,11 @@ namespace DefaultMenus
         });
     }
 
-    // --- Home-Tasten (assignable home-screen keys) ----------------------------
+    // --- Home keys (assignable home-screen keys) ----------------------------
     MENU_NOINLINE inline void addHomeKeysRoot(std::vector<MenuOption>& roots)
     {
         addRow(roots, [](MenuOption& homeKeys) {
-            homeKeys.label = "Home-Tasten";
+            homeKeys.label = "Home keys";
             homeKeys.type = MenuConfig::MenuElementType::Submenu;
             homeKeys.sortOrder = 60;
 
@@ -571,10 +571,10 @@ namespace DefaultMenus
                 const char* key;
                 size_t defaultIdx;
             } keys[] = {
-                {"Oben", "homekey_up", 1},
-                {"Unten", "homekey_down", 2},
-                {"Links", "homekey_left", 0},
-                {"Rechts", "homekey_right", 5},
+                {"Up", "homekey_up", 1},
+                {"Down", "homekey_down", 2},
+                {"Left", "homekey_left", 0},
+                {"Right", "homekey_right", 5},
             };
 
             for (const auto& k : keys)
@@ -589,7 +589,7 @@ namespace DefaultMenus
             }
 
             addRow(sub, [](MenuOption& o) {
-                o.label = "OK halten";
+                o.label = "Hold OK";
                 o.type = MenuConfig::MenuElementType::Readonly;
             });
             sub.push_back(backRow());
@@ -650,7 +650,7 @@ namespace DefaultMenus
     inline MenuOption buildNetworkRootItem(const NetSnapshot& snap)
     {
         MenuOption netz;
-        netz.label = "Netzwerk";
+        netz.label = "Network";
         netz.type = MenuConfig::MenuElementType::Submenu;
         netz.devOnly = true;
         netz.sortOrder = 20;
@@ -665,22 +665,22 @@ namespace DefaultMenus
             o.defaultValue = MenuValue(snap.dhcp);
         });
 
-        addIpRow(sub, snap, "IP-Adresse", "net_ip", snap.ip, 0);
-        addIpRow(sub, snap, "Subnetzmaske", "net_subnet", snap.subnet, 1);
+        addIpRow(sub, snap, "IP address", "net_ip", snap.ip, 0);
+        addIpRow(sub, snap, "Subnet mask", "net_subnet", snap.subnet, 1);
         addIpRow(sub, snap, "Gateway", "net_gw", snap.gateway, 2);
-        addIpRow(sub, snap, "DNS-Server", "net_dns", snap.dns, 3);
+        addIpRow(sub, snap, "DNS server", "net_dns", snap.dns, 3);
 
         addRow(sub, [&snap](MenuOption& o) {
-            o.label = "Verbindung";
+            o.label = "Link";
             o.type = MenuConfig::MenuElementType::Dropdown;
             o.key = "net_link";
             o.dropdownOptions = linkModeOptions();
             o.defaultValue = MenuValue(static_cast<size_t>(snap.linkMode < 3 ? snap.linkMode : 0));
         });
 
-        // "Uebernehmen": commits the staged DHCP/IP override live (net_apply action, wired in Menu.cpp).
+        // "Apply": commits the staged DHCP/IP override live (net_apply action, wired in Menu.cpp).
         addRow(sub, [](MenuOption& o) {
-            o.label = "Uebernehmen";
+            o.label = "Apply";
             o.type = MenuConfig::MenuElementType::Action;
             o.key = "net_apply";
         });
@@ -724,14 +724,14 @@ namespace DefaultMenus
             auto& sub = widgetSub.submenu;
             sub.reserve(3);
             addRow(sub, [&w, &suffix](MenuOption& o) {
-                o.label = "Anzeigen";
+                o.label = "Show";
                 o.type = MenuConfig::MenuElementType::Checkbox;
                 o.key = "widget_show_" + suffix;
                 o.defaultValue = MenuValue(w.enabled);
                 o.toast = w.name; // which widget this row addresses
             });
             addRow(sub, [&w, &suffix](MenuOption& o) {
-                o.label = "Anzeigedauer";
+                o.label = "Duration";
                 o.type = MenuConfig::MenuElementType::Dropdown;
                 o.key = "widget_dur_" + suffix;
                 o.dropdownOptions = widgetDurationOptions();
@@ -751,14 +751,14 @@ namespace DefaultMenus
         widgetsRoot.sortOrder = 40;
 
         auto& sub = widgetsRoot.submenu;
-        sub.reserve(widgets.size() + 2); // + Reihenfolge + Zurueck
+        sub.reserve(widgets.size() + 2); // + Order + Back
 
         for (const auto& w : widgets)
             addWidgetRow(sub, w);
 
         // Single reorder entry for the whole rotation order.
         addRow(sub, [](MenuOption& o) {
-            o.label = "Reihenfolge";
+            o.label = "Order";
             o.type = MenuConfig::MenuElementType::Reorder;
             o.key = "widgets_reorder";
         });

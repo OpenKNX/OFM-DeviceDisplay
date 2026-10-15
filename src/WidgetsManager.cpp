@@ -283,7 +283,7 @@ void WidgetsManager::setScreenSaverWidget(Widget* widget)
         }
         else
         {
-            // Screensaver cleared to "Aus" while live: do NOT force SLEEP (that conflated "no
+            // Screensaver cleared to "off" while live: do NOT force SLEEP (that conflated "no
             // animation" with "off"). Wake to the normal display; Dim/Sleep timeouts then decide.
             logDebugP("Screensaver widget cleared while live -> wake to active");
             wakeUpDisplay();
@@ -1032,9 +1032,9 @@ void WidgetsManager::updatePowerSaveMode(uint32_t currentTime)
     else if (_powerSaveConfig.screenSaverTimeout > 0 && inactiveTime >= _powerSaveConfig.screenSaverTimeout &&
              _screenSaverWidget)
     {
-        // Only enter the Screensaver stage when a screensaver actually exists. With type "Aus"
+        // Only enter the Screensaver stage when a screensaver actually exists. With type "off"
         // (no widget) the stage is skipped -> the chain falls through to Dim/Sleep, so whether the
-        // display turns off is decided solely by "Schlafen nach" (sleepTimeout 0 = nie -> stays on).
+        // display turns off is decided solely by "Sleep after" (sleepTimeout 0 = never -> stays on).
         transitionToPowerSaveMode(PowerSaveMode::Screensaver);
     }
     else if (_powerSaveConfig.dimTimeout > 0 && inactiveTime >= _powerSaveConfig.dimTimeout)
@@ -1105,7 +1105,7 @@ void WidgetsManager::transitionToPowerSaveMode(PowerSaveMode newMode)
             logDebugP("Display: SCREENSAVER mode");
             _displayModule->setBrightness(50);
 
-            if (!_screenSaverWidget) // No screensaver widget (type "Aus") -> skip stage, don't force SLEEP
+            if (!_screenSaverWidget) // No screensaver widget (type "off") -> skip stage, don't force SLEEP
             {
                 logDebugP("No screensaver widget -> wake to active (sleep governed by sleepTimeout).");
                 wakeUpDisplay();
@@ -1892,9 +1892,9 @@ void WidgetsManager::sortDefaultOrder(size_t (*rank)(Widget*))
 }
 
 /**
- * @brief Page/rotation status text for the Home overlay ("2/4" / "manuell")
+ * @brief Page/rotation status text for the Home overlay ("2/4" / "manual")
  * @details - Multi-page current widget: "n/N" (1-based current page / page count).
- *          - Paused + single-page current widget: "manuell".
+ *          - Paused + single-page current widget: "manual".
  *          - Otherwise (single-page, actively rotating, or no current widget): "".
  *          Pure text provider; performs no state changes.
  * @return status text (may be empty)
@@ -1914,7 +1914,7 @@ std::string WidgetsManager::getPageStatusText() const
     }
 
     // Single-page widget: only the paused/manual mode carries a status label.
-    if (_rotationPaused) return std::string("manuell");
+    if (_rotationPaused) return std::string("manual");
 
     return std::string();
 }
@@ -1964,9 +1964,9 @@ uint32_t WidgetsManager::getWidgetDisplayTime(const std::string& widgetName) con
  * @details Replaces the hardcoded init() defaults with the on-device settings:
  *          - normalBrightness  <- brightnessIdx  (idx 0..9 -> 10..100 %)
  *          - dimBrightness      <- dimLevelIdx   (0 = nie -> = normal; 1..9 -> min(idx*10, normal))
- *          - dimTimeout        <- dimMin         (minutes; 0 OR dimLevel "nie" -> no DIMMED stage)
+ *          - dimTimeout        <- dimMin         (minutes; 0 OR dimLevel "never" -> no DIMMED stage)
  *          - screenSaverTimeout<- screenSaverMin (direct minutes, 0 -> no screensaver)
- *          - sleepTimeout      <- sleepMin       (direct minutes, 0 -> "nie")
+ *          - sleepTimeout      <- sleepMin       (direct minutes, 0 -> "never")
  *          Timeouts are user-set minutes (0 = off/never). offTimeout is left as configured elsewhere.
  * @param settings the persisted DisplaySettings to apply
  */
@@ -1977,13 +1977,13 @@ void WidgetsManager::applyDisplaySettings(const DisplaySettings& settings)
     const uint8_t normalPct = static_cast<uint8_t>((bIdx + 1) * 10);
     _powerSaveConfig.normalBrightness = normalPct;
 
-    // Dim-Level: idx 0 = "nie" (no dim), 1..9 -> 10..90 %. Effective dim is never brighter than
-    // normal (min-rule). Dim is disabled if the level is "nie" OR the time is 0 (either off-switch).
+    // Dim-Level: idx 0 = "never" (no dim), 1..9 -> 10..90 %. Effective dim is never brighter than
+    // normal (min-rule). Dim is disabled if the level is "never" OR the time is 0 (either off-switch).
     const uint8_t dIdx = settings.dimLevelIdx > 9 ? 9 : settings.dimLevelIdx;
     const bool dimOff = (dIdx == 0) || (settings.dimMin == 0);
     if (dIdx == 0)
     {
-        _powerSaveConfig.dimBrightness = normalPct; // "nie" -> no visible dim
+        _powerSaveConfig.dimBrightness = normalPct; // "never" -> no visible dim
     }
     else
     {
@@ -2111,7 +2111,7 @@ Widget* WidgetsManager::getActiveButtonWidget()
         return _currentWidget;
     }
 
-    // Priority 2: BACKGROUND-Widgets (Menu aktiv mit DisplayEnabled)
+    // Priority 2: BACKGROUND widgets (menu active with DisplayEnabled)
     if (_state == WidgetManagerState::Background &&
         _currentWidget &&
         _currentWidget->wantsButtonInput())
@@ -2123,7 +2123,7 @@ Widget* WidgetsManager::getActiveButtonWidget()
     Widget* backgroundWidget = findActiveBackgroundWidget();
     if (!backgroundWidget)
     {
-        // Kein aktives Background-Widget, suche nach RUNNING Background-Widgets
+        // No active background widget: look for a RUNNING one
         for (auto& widget : _backgroundWidgets)
         {
             if (widget &&

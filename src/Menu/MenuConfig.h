@@ -95,7 +95,7 @@ class MenuConfig
         std::function<void(const MenuOption&, const MenuValue&)> onValueChanged;
 
         std::string toast;                          // message shown when a Toast item is selected
-        std::string confirmText;                    // non-empty: Action/Toast runs only after a Nein/Ja guard
+        std::string confirmText;                    // non-empty: Action/Toast runs only after a No/Yes guard
         std::function<std::string()> valueProvider; // right-aligned live value for Readonly items
         uint8_t ip[4] = {0, 0, 0, 0};               // octet carrier for IpEdit items
         bool devOnly = false;                       // item only visible when developer mode is active

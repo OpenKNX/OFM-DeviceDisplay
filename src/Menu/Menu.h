@@ -63,7 +63,7 @@ class MenuWidget : public Widget
     // (not just the current view - eager submenus in _menuStack would otherwise stay stale).
     void rebuild() { buildMenuFromRegistry(); }
 
-    // Root renders as an icon grid (true) or text list (false); toggled live from the Anzeige menu.
+    // Root renders as an icon grid (true) or text list (false); toggled live from the Display menu.
     void setIconMenu(bool on)
     {
         if (_iconMenu != on)
@@ -78,7 +78,7 @@ class MenuWidget : public Widget
 
     // Screen/gesture hooks. The MenuWidget only renders + routes; the actual screens live elsewhere.
     // Until a hook is wired the corresponding select just logs + no-ops.
-    //   onAboutRequested()            -> open the "Über" screen
+    //   onAboutRequested()            -> open the "About" screen
     //   onFilesRequested(item)        -> open the SD-card file browser
     //   onGestureAction(action, item) -> start a hold-to-confirm gesture ("prog" | "reboot")
     //   onIpEditRequested(item)       -> open the 4-octet IP editor for item
@@ -113,7 +113,7 @@ class MenuWidget : public Widget
         RadioSelect,  // full-screen single-select picker (e.g. screensaver family)
         Slider,       // horizontal slider over a stepped dropdown (e.g. brightness)
         TextEdit,      // char-scroll text editor (TextInput items)
-        ConfirmDialog, // Nein/Ja guard before a destructive Action/Toast (MenuOption::confirmText)
+        ConfirmDialog, // No/Yes guard before a destructive Action/Toast (MenuOption::confirmText)
         NumberEdit     // 3-digit number editor (minutes 0..999) for NumberEdit items
     };
     MenuMode _mode = MenuMode::Normal;
@@ -154,12 +154,12 @@ class MenuWidget : public Widget
     bool handleTextEditButton(const ButtonEvent& event);
     void drawTextEditor();
 
-    // Confirm-dialog sub-mode: a modal Nein/Ja guard shown before a destructive Action/Toast whose
-    // MenuOption carries a non-empty confirmText. LEFT/Nein cancel; OK on Ja runs the captured action.
+    // Confirm-dialog sub-mode: a modal No/Yes guard shown before a destructive Action/Toast whose
+    // MenuOption carries a non-empty confirmText. LEFT/No cancel; OK on Yes runs the captured action.
     std::string _confirmTitle;
     std::string _confirmMessage;
     std::function<void()> _confirmOnYes;
-    uint8_t _confirmSel = 0; // 0 = Nein (default), 1 = Ja
+    uint8_t _confirmSel = 0; // 0 = No (default), 1 = Yes
     void enterConfirmDialog(const std::string& title, const std::string& message, std::function<void()> onYes);
     bool handleConfirmButton(const ButtonEvent& event);
     void drawConfirmDialog();
@@ -169,7 +169,7 @@ class MenuWidget : public Widget
     uint16_t _numberEdit = 0;
     uint8_t _numberCursor = 0;    // active digit: 0=hundreds, 1=tens, 2=ones
     size_t _numberEditIndex = 0;  // index into _currentMenu of the item being edited
-    std::string _numberZeroLabel; // label shown when the value is 0 (e.g. "nie" / "aus")
+    std::string _numberZeroLabel; // label shown when the value is 0 (e.g. "never" / "off")
     static constexpr uint16_t NUMBER_EDIT_MAX = 999;
     void enterNumberEdit(size_t itemIndex);
     void commitNumberEdit();

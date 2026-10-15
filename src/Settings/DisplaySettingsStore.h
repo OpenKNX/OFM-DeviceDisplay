@@ -136,7 +136,7 @@ class DisplaySettingsStore
     void setSleepMin(uint16_t v) { assign(_settings.sleepMin, v); }
     void setIconMenu(bool v) { assign(_settings.iconMenu, v); }
     void setScreenshotInvert(bool v) { assign(_settings.screenshotInvert, v); }
-    // Display hardware tuning (persisted only via the manual "Speichern" action).
+    // Display hardware tuning (persisted only via the manual "Save" action).
     void setDisplayRotate(bool v) { assign(_settings.displayRotate, v); }
     void setPreChargeIdx(uint8_t idx) { assign(_settings.preChargeIdx, idx); }
     void setRefreshIdx(uint8_t idx) { assign(_settings.refreshIdx, idx); }

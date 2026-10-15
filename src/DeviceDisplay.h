@@ -120,7 +120,7 @@ class DeviceDisplay : public OpenKNX::Module
     MenuWidget* _menuWidget = nullptr;               // kept so setup() can hand it the registry
     WidgetProgMode* _progModeWidget = nullptr;       // exclusive prog widget
     WidgetGestureOverlay* _gestureOverlay = nullptr; // hold/auto confirm overlay
-    WidgetAbout* _aboutWidget = nullptr;             // menu "Über" SciFi HUD (shown on demand)
+    WidgetAbout* _aboutWidget = nullptr;             // menu "About" SciFi HUD (shown on demand)
     WidgetOTA* _otaWidget = nullptr;                 // SYSTEM-priority OTA update overlay (over everything)
 
     // "Display" hardware tuning: live-previewed values NOT yet persisted. The store holds the saved
@@ -216,7 +216,7 @@ class DeviceDisplay : public OpenKNX::Module
     void wireMenuCallbacks();
 
     // Re-seed the GestureEngine's Home-key map from the persisted display settings (used at
-    // init/setup and after a "Home-Tasten" menu change).
+    // init/setup and after a "Home keys" menu change).
     void seedGestureKeyMapFromSettings();
 
     // Is the Home screen currently shown? Directional gestures only arm there.
@@ -227,7 +227,7 @@ class DeviceDisplay : public OpenKNX::Module
 
     void updateGestureOverlay();
 
-    // Show / dismiss the About HUD (menu "Über"). See the implementation for the display handoff.
+    // Show / dismiss the About HUD (menu "About"). See the implementation for the display handoff.
     void showAbout();
     void hideAbout();
 

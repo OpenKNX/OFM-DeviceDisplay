@@ -335,7 +335,7 @@ void MenuWidget::addDefaultOnValueChanged()
     registerOnValueChanged("dhcp_enabled", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
         if (val.isBool())
         {
-            // std::cout << "DHCP geändert auf: " << (val.getBool() ? "Enabled" : "Disabled") << std::endl;
+            // std::cout << "DHCP changed to: " << (val.getBool() ? "Enabled" : "Disabled") << std::endl;
             if (val.getBool())
             {
                 // openknx.network.enableDhcp();
@@ -352,20 +352,20 @@ void MenuWidget::addDefaultOnValueChanged()
         if (val.isSizeT())
         {
             // openknx.common.setTimeZone(opt.dropdownOptions[val.getSizeT()]);
-            logDebugP("Zeitzone geändert auf: %s", opt.dropdownOptions[val.getSizeT()].c_str());
+            logDebugP("Time zone changed to: %s", opt.dropdownOptions[val.getSizeT()].c_str());
         }
     });
     registerOnValueChanged("brightness_level", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
         if (val.isSizeT())
         {
-            // Auswahl ist 0-4, also 5%, 25%, 50%, 75%, 100%
+            // Selection is 0-4, i.e. 5%, 25%, 50%, 75%, 100%
             // const int selectedOption = static_cast<int>(std::clamp(val.getSizeT(), static_cast<size_t>(0), static_cast<size_t>(4)));
             const int selectedOption = static_cast<int>(std::min(static_cast<size_t>(4), std::max(static_cast<size_t>(0), val.getSizeT())));
             const int percentages[] = {5, 25, 50, 75, 100};
             const int percentage = percentages[selectedOption];
             int contrast = static_cast<int>(std::round(percentage * 255.0 / 100.0));
             _display->SetDisplayContrast(contrast);
-            logDebugP("Helligkeit geändert auf: %s%% (%d)", opt.dropdownOptions[val.getSizeT()].c_str(), contrast);
+            logDebugP("Brightness changed to: %s%% (%d)", opt.dropdownOptions[val.getSizeT()].c_str(), contrast);
         }
     });
     // Dimming is driven by the PowerSave state machine (dimMin -> dimTimeout); no manual toggle.
@@ -479,7 +479,7 @@ void MenuWidget::buildMenuFromRegistry()
     // placeholders here and build their children on ENTRY (Submenu case), not on every menu open.
     {
         MenuConfig::MenuOption netRoot;
-        netRoot.label = "Netzwerk";
+        netRoot.label = "Network";
         netRoot.type = MenuConfig::MenuElementType::Submenu;
         netRoot.devOnly = true;
         netRoot.sortOrder = 20;
@@ -765,7 +765,7 @@ bool MenuWidget::handleButtonEvent(const ButtonEvent& event)
         case ButtonType::LEFT:
             if (iconGridActive())
             {
-                gridMove(-1, 0); // icon grid: LEFT moves the cursor; exit via the "Beenden" tile
+                gridMove(-1, 0); // icon grid: LEFT moves the cursor; exit via the "Exit" tile
             }
             else if (_menuStack.empty())
             {
@@ -906,10 +906,10 @@ std::string MenuWidget::itemValueText(const MenuConfig::MenuOption& item) const
 
         case MenuConfig::MenuElementType::NumberEdit:
         {
-            // Minutes value; 0 shows the item's zero-label (dropdownOptions[0], e.g. "nie"/"aus").
+            // Minutes value; 0 shows the item's zero-label (dropdownOptions[0], e.g. "never"/"off").
             const size_t m = item.defaultValue.isSizeT() ? item.defaultValue.getSizeT() : 0;
             if (m == 0)
-                return item.dropdownOptions.empty() ? std::string("aus") : item.dropdownOptions[0];
+                return item.dropdownOptions.empty() ? std::string("off") : item.dropdownOptions[0];
             char buf[12];
             snprintf(buf, sizeof(buf), "%u min", static_cast<unsigned>(m));
             return std::string(buf);
@@ -1071,7 +1071,7 @@ void MenuWidget::selectItem()
         case MenuConfig::MenuElementType::Action:
             if (item.action)
             {
-                if (!item.confirmText.empty()) // destructive -> Nein/Ja guard first
+                if (!item.confirmText.empty()) // destructive -> No/Yes guard first
                 {
                     auto act = item.action;
                     enterConfirmDialog(item.label, item.confirmText, [act]() { if (act) act(); });
@@ -1121,7 +1121,7 @@ void MenuWidget::selectItem()
             break;
 
         case MenuConfig::MenuElementType::Back:
-            // One level up; at the root it closes the menu (selectable "Beenden").
+            // One level up; at the root it closes the menu (selectable "Exit").
             if (_menuStack.empty())
                 closeMenu();
             else
@@ -1140,7 +1140,7 @@ void MenuWidget::selectItem()
             break;
 
         case MenuConfig::MenuElementType::About:
-            // Open the "Über" screen via the wired hook; falls back to item.action().
+            // Open the "About" screen via the wired hook; falls back to item.action().
             logDebugP("About item selected: %s", item.label.c_str());
             if (_onAboutRequested)
                 _onAboutRequested();
@@ -1489,7 +1489,7 @@ void MenuWidget::drawIpEditor()
     _display->display->setTextSize(1);
     _display->display->setTextColor(WHITE, BLACK);
     _display->display->setCursor(2, static_cast<int16_t>(_screenHeight - 9));
-    _display->display->print("OK=ok  <=zurueck");
+    _display->display->print("OK=ok  <=back");
 
     _display->displayBuff();
 }
@@ -1652,7 +1652,7 @@ void MenuWidget::drawTextEditor()
     d->setTextSize(1);
     d->setTextColor(WHITE, BLACK);
     d->setCursor(2, static_cast<int16_t>(_screenHeight - 9));
-    d->print("OK=ok  <=zurueck");
+    d->print("OK=ok  <=back");
 
     _display->displayBuff();
 }
@@ -1672,7 +1672,7 @@ void MenuWidget::enterConfirmDialog(const std::string& title, const std::string&
 }
 
 // Horizontal [Nein][Ja] layout: LEFT selects Nein, RIGHT selects Ja (LEFT does NOT exit — cancel is
-// "Nein + OK"). UP/DOWN toggle. OK commits the selection (Ja runs the captured action).
+// "No + OK"). UP/DOWN toggle. OK commits the selection (Yes runs the captured action).
 bool MenuWidget::handleConfirmButton(const ButtonEvent& event)
 {
     switch (event.type)
@@ -1746,7 +1746,7 @@ void MenuWidget::drawConfirmDialog()
     }
 
     // Buttons [Nein] [Ja]; the selected one is filled, the other outlined.
-    static const char* const OPTS[2] = {"Nein", "Ja"};
+    static const char* const OPTS[2] = {"No", "Yes"};
     const int16_t by = 46, bh = 14, bw = 50;
     for (uint8_t i = 0; i < 2; i++)
     {
@@ -1774,7 +1774,7 @@ void MenuWidget::drawConfirmDialog()
 // ---------------- number editor ----------------
 
 // Enter the 3-digit number editor for _currentMenu[itemIndex] (minutes 0..999). Reads the current
-// value from defaultValue (SizeT); the zero-label comes from dropdownOptions[0] ("nie"/"aus").
+// value from defaultValue (SizeT); the zero-label comes from dropdownOptions[0] ("never"/"off").
 void MenuWidget::enterNumberEdit(size_t itemIndex)
 {
     if (itemIndex >= _currentMenu.size()) return;
@@ -1783,7 +1783,7 @@ void MenuWidget::enterNumberEdit(size_t itemIndex)
     _numberEditIndex = itemIndex;
     const size_t v = item.defaultValue.isSizeT() ? item.defaultValue.getSizeT() : 0;
     _numberEdit = (v > NUMBER_EDIT_MAX) ? NUMBER_EDIT_MAX : static_cast<uint16_t>(v);
-    _numberZeroLabel = item.dropdownOptions.empty() ? std::string("aus") : item.dropdownOptions[0];
+    _numberZeroLabel = item.dropdownOptions.empty() ? std::string("off") : item.dropdownOptions[0];
     _numberCursor = 0; // start on the hundreds digit
     _mode = MenuMode::NumberEdit;
     _editBlinkOn = true;
@@ -1859,7 +1859,7 @@ void MenuWidget::drawNumberEditor()
     d->setTextSize(1);
     d->setTextColor(WHITE, BLACK);
     d->setCursor(2, 0);
-    const char* label = (_numberEditIndex < _currentMenu.size()) ? _currentMenu[_numberEditIndex].label.c_str() : "Wert";
+    const char* label = (_numberEditIndex < _currentMenu.size()) ? _currentMenu[_numberEditIndex].label.c_str() : "Value";
     d->print(label);
 
     // 3 digits at size 2, the active one blinks; "min" at size 1 after them.
@@ -1906,7 +1906,7 @@ void MenuWidget::drawNumberEditor()
         d->print(z.c_str());
     }
     d->setCursor(2, static_cast<int16_t>(_screenHeight - 9));
-    d->print("OK=ok  <=zurueck");
+    d->print("OK=ok  <=back");
 
     _display->displayBuff();
 }
@@ -2019,7 +2019,7 @@ bool MenuWidget::handleReorderButton(const ButtonEvent& event)
 }
 
 // Render the reorder editor (mockup: renderMenu()/lvl.reorder):
-//   header "Reihenfolge" + status ("OK=greifen" / "⇕ verschieben")
+//   header "Order" + status ("OK=grab" / "moving")
 //   one row per widget: [grab-prefix] name .................... position (1..n)
 //   grabbed row inverted/framed; selected row inverted.
 void MenuWidget::drawReorder()
@@ -2040,10 +2040,10 @@ void MenuWidget::drawReorder()
     }
 
     // Header: title + right-aligned status.
-    const char* status = (grabIdx >= 0) ? "verschieben" : "OK=greifen";
+    const char* status = (grabIdx >= 0) ? "moving" : "OK=grab";
     _display->display->setTextColor(WHITE, BLACK);
     _display->display->setCursor(2, 0);
-    _display->display->print("Reihenfolge");
+    _display->display->print("Order");
     {
         int16_t bx, by;
         uint16_t bw, bh;
@@ -2057,7 +2057,7 @@ void MenuWidget::drawReorder()
     if (widgets.empty())
     {
         _display->display->setCursor(2, 14);
-        _display->display->print("(keine Widgets)");
+        _display->display->print("(no widgets)");
         _display->displayBuff();
         return;
     }
@@ -2531,14 +2531,14 @@ void MenuWidget::drawCategoryIcon(const std::string& label, int16_t cx, int16_t 
         d->fillRect(static_cast<int16_t>(cx - 1), static_cast<int16_t>(cy - 4), 2, 2, col); // dot
         d->fillRect(static_cast<int16_t>(cx - 1), static_cast<int16_t>(cy - 1), 2, 5, col); // stem
     }
-    else if (has("Anzeige") || has("Display"))
+    else if (has("Display"))
     {
         // monitor + stand
         d->drawRoundRect(static_cast<int16_t>(cx - 9), static_cast<int16_t>(cy - 7), 18, 12, 2, col);
         d->drawFastHLine(static_cast<int16_t>(cx - 4), static_cast<int16_t>(cy + 7), 8, col);
         d->drawFastVLine(cx, static_cast<int16_t>(cy + 5), 2, col);
     }
-    else if (has("Netzwerk") || has("Netz") || has("LAN"))
+    else if (has("Network") || has("LAN"))
     {
         // 3-node topology (coupler + two devices)
         d->drawLine(cx, static_cast<int16_t>(cy - 5), static_cast<int16_t>(cx - 7), static_cast<int16_t>(cy + 5), col);
@@ -2555,19 +2555,19 @@ void MenuWidget::drawCategoryIcon(const std::string& label, int16_t cx, int16_t 
         d->drawRect(static_cast<int16_t>(cx - 8), static_cast<int16_t>(cy + 1), 7, 7, col);
         d->drawRect(static_cast<int16_t>(cx + 1), static_cast<int16_t>(cy + 1), 7, 7, col);
     }
-    else if (has("Home") || has("Tasten"))
+    else if (has("Home"))
     {
         // D-pad (plus)
         d->fillRect(static_cast<int16_t>(cx - 2), static_cast<int16_t>(cy - 8), 5, 17, col);
         d->fillRect(static_cast<int16_t>(cx - 8), static_cast<int16_t>(cy - 2), 17, 5, col);
     }
-    else if (has("Ueber") || has("About"))
+    else if (has("About"))
     {
         // developer: head + shoulders silhouette
         d->fillCircle(cx, static_cast<int16_t>(cy - 4), 3, col);
         d->fillTriangle(static_cast<int16_t>(cx - 7), static_cast<int16_t>(cy + 8), static_cast<int16_t>(cx + 7), static_cast<int16_t>(cy + 8), cx, static_cast<int16_t>(cy + 1), col);
     }
-    else if (has("SD") || has("Karte") || has("Card"))
+    else if (has("SD") || has("Card"))
     {
         // SD card (rect with a cut top-right corner)
         d->drawLine(static_cast<int16_t>(cx - 6), static_cast<int16_t>(cy - 8), static_cast<int16_t>(cx + 2), static_cast<int16_t>(cy - 8), col);

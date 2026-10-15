@@ -120,7 +120,7 @@ void WidgetMatrix::updateMatrix()
         for (uint8_t offset = 0; offset < length; offset++)
         {
             int8_t y = head - offset;
-            if (y < 0) y += displayHeight; // Loop nach oben
+            if (y < 0) y += displayHeight; // wrap to the top
             if (y >= 0 && y < displayHeight)
             {
                 if (offset % 2 == 0)
