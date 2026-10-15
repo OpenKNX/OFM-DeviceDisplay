@@ -3,10 +3,13 @@
 Display module for OpenKNX devices: OLED output, widgets, menu, gestures and a web view.
 Entries are grouped by module version; every line traces to a commit in this repository.
 
-## v0.1.1: 2026-10-13
+## v0.1.1: 2026-10-15
 
 Tagged as `v0.1.1`, which is the version `library.json` carries -- the tag and the file state the same
 thing.
+
+**Texts**
+* Change: every text on the display is English -- menu, options, confirmations, toasts, the gesture and programming overlays and the clock. Dim after, Saver after and Sleep after fit one row with their value; the panel tuning submenu is Panel, the display settings submenu Display. The web page keeps its German labels
 
 **Settings**
 * Fix: the stored display settings take effect after a restart -- they were read from flash after the setup had applied the defaults, and nothing applied them afterwards
