@@ -14,6 +14,11 @@ namespace
     {
         return item.type == MenuConfig::MenuElementType::About;
     }
+
+    inline int rootSortKey(const MenuConfig::MenuOption& item)
+    {
+        return isAboutItem(item) ? INT_MAX : item.sortOrder;
+    }
 } // namespace
 
 const std::string& MenuRegistry::identityOf(const MenuOption& item)
@@ -143,14 +148,27 @@ std::vector<MenuRegistry::MenuOption> MenuRegistry::buildWith(const std::vector<
         result.push_back(t);
     }
 
-    // stable_sort keeps registration order among equal sortOrder; About is forced
-    // to the max key so sorting never lifts it out of the tail.
-    std::stable_sort(result.begin(), result.end(),
-                     [](const MenuOption& a, const MenuOption& b) {
-                         const int ka = isAboutItem(a) ? INT_MAX : a.sortOrder;
-                         const int kb = isAboutItem(b) ? INT_MAX : b.sortOrder;
-                         return ka < kb;
-                     });
+    // Stable insertion sort over indices: registration order among equal sortOrder, About forced to the
+    // max key so it never leaves the tail. Each option moves once; std::stable_sort instantiated far more code.
+    const size_t count = result.size();
+    std::vector<size_t> order(count);
+    for (size_t i = 0; i < count; ++i) order[i] = i;
+    for (size_t i = 1; i < count; ++i)
+    {
+        const size_t v = order[i];
+        const int kv = rootSortKey(result[v]);
+        size_t j = i;
+        while (j > 0 && rootSortKey(result[order[j - 1]]) > kv)
+        {
+            order[j] = order[j - 1];
+            --j;
+        }
+        order[j] = v;
+    }
+    std::vector<MenuOption> sorted;
+    sorted.reserve(count);
+    for (size_t i = 0; i < count; ++i) sorted.push_back(std::move(result[order[i]]));
+    result.swap(sorted);
 
     // Ensure exactly one trailing About entry on the local copy so build() stays const.
     int lastAboutIdx = -1;
