@@ -931,7 +931,7 @@ The **Anzeige → Display** submenu exposes hardware tuning — 180° rotation, 
 | `ddc i` | widget manager + menu settings + memory |
 | `ddc l` | list all widgets |
 
-The whole `ddc` console is compiled in **by default**. Build with **`-D DDC_CONSOLE_DISABLE`** to strip it and save flash — the menu, settings persistence and the KONAMI recovery all keep working without it.
+The whole `ddc` console is part of the developer console and is compiled in only with **`-D OPENKNX_CONSOLE_DEV`** (the switch OGM-Common and the other modules use for their developer and test commands). **`-D DDC_CONSOLE_DISABLE`** strips it again where flash is short (e.g. RP2040 with 2 MB) while the other developer commands stay. Without it the menu, settings persistence and the KONAMI recovery keep working.
 
 ### Per-widget settings (`WidgetSetting[WIDGET_SETTINGS_MAX = 16]`)
 Each widget's rotation config is stored by a stable **FNV-1a name hash** (fixed-size record), so records survive reboots/builds regardless of widget registration order:

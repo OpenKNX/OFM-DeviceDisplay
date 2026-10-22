@@ -1,6 +1,10 @@
-// The "ddc" command console is compiled in by default. Add build flag -D DDC_CONSOLE_DISABLE to strip
-// it and save flash; the menu, settings persistence and the KONAMI restore keep working without it.
-#if defined(DEVICE_DISPLAY_MODULE) && !defined(DDC_CONSOLE_DISABLE)
+// The "ddc" command console is part of the developer console: built with -D OPENKNX_CONSOLE_DEV unless
+// -D DDC_CONSOLE_DISABLE strips it to save flash. The menu, settings persistence and the KONAMI restore
+// work without it.
+#if defined(DEVICE_DISPLAY_MODULE) && defined(OPENKNX_CONSOLE_DEV) && !defined(DDC_CONSOLE_DISABLE)
+    #define DDC_CONSOLE_ENABLED
+#endif
+#ifdef DDC_CONSOLE_ENABLED
     #pragma once
 /**
  * @file        ddc_console.h

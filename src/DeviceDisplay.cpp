@@ -69,7 +69,7 @@ DeviceDisplay::DeviceDisplay()
 DeviceDisplay::~DeviceDisplay()
 {
     delete _buttonManager;
-    #ifndef DDC_CONSOLE_DISABLE
+    #ifdef DDC_CONSOLE_ENABLED
     delete _ddcConsole;
     #endif
     delete _menuRegistry;
@@ -93,7 +93,7 @@ void DeviceDisplay::init()
     _displayModule = new i2cDisplay();
     _widgetManager = new WidgetsManager();
     _buttonManager = new ButtonManager(_widgetManager);
-    #ifndef DDC_CONSOLE_DISABLE
+    #ifdef DDC_CONSOLE_ENABLED
     _ddcConsole = new DdcConsole(_widgetManager, _displayModule);
     #endif
 
@@ -101,7 +101,7 @@ void DeviceDisplay::init()
     _menuRegistry = new MenuRegistry();
 
     if (!_displayModule || !_widgetManager || !_buttonManager || !_menuRegistry
-        #ifndef DDC_CONSOLE_DISABLE
+        #ifdef DDC_CONSOLE_ENABLED
         || !_ddcConsole
         #endif
     )
@@ -472,7 +472,7 @@ void DeviceDisplay::setup(bool configured)
         logInfoP("Buttons initialized");
     }
 
-    #ifndef DDC_CONSOLE_DISABLE
+    #ifdef DDC_CONSOLE_ENABLED
     // Setup help system for console commands
     _ddcConsole->setup();
 
@@ -1496,17 +1496,17 @@ void DeviceDisplay::setScreenSaverType(ScreenSaverType type)
  **********************************************************************/
 void DeviceDisplay::showHelp()
 {
-    #ifndef DDC_CONSOLE_DISABLE
+    #ifdef DDC_CONSOLE_ENABLED
     openknx.console.printHelpLine("ddc", "Device Display Control. Use 'ddc ?' for help.");
     #endif
 }
 bool DeviceDisplay::processCommand(const std::string command, bool diagnose)
 {
     if (diagnose) return false;
-    #ifndef DDC_CONSOLE_DISABLE
+    #ifdef DDC_CONSOLE_ENABLED
     return _ddcConsole->processCommand(command);
     #else
-    (void)command; // "ddc" console stripped at build time
+    (void)command; // "ddc" console not built: needs OPENKNX_CONSOLE_DEV without DDC_CONSOLE_DISABLE
     return false;
     #endif
 }

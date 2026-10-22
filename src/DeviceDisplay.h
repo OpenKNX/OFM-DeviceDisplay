@@ -11,7 +11,6 @@
 #ifdef DEVICE_DISPLAY_MODULE
     #define WIDGET_MANAGER
 
-    #define WIDGET_CONSOLE             // Enable console widget
     #define DISPLAY_LOW_LEVEL_COMMANDS // Enable low-level commands
 
     #define DeviceDisplay_Display_Name "DeviceDisplay"

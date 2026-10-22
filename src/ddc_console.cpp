@@ -1,5 +1,5 @@
 
-#if defined(DEVICE_DISPLAY_MODULE) && !defined(DDC_CONSOLE_DISABLE)
+#if defined(DEVICE_DISPLAY_MODULE) && defined(OPENKNX_CONSOLE_DEV) && !defined(DDC_CONSOLE_DISABLE)
     #include "ddc_console.h"
     #include "DeviceDisplay.h"            // openknxDisplayModule + settingsStore() (ddc i "Menu Settings")
     #include "Menu/MenuRegistry.h"        // ddc i "Menu Config": registry tree + dynamic module items
