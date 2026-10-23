@@ -81,6 +81,11 @@ class ButtonManager
     uint16_t _buttonLeft = 0;
     uint16_t _buttonRight = 0;
 
+    // All buttons on one expander: its input port is read once per check (0 = read per pin)
+    uint8_t _portExpander = 0;
+    uint16_t _portValue = 0;
+    bool _portValid = false;
+
     // State tracking
     bool _enabled = false;
     uint32_t _lastCheck = 0;

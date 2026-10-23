@@ -40,6 +40,12 @@ bool ButtonManager::setup()
         openknx.gpio.pinMode(pin, INPUT, true, 0);
     }
 
+    // all five on one expander: one input-port read per check instead of one read per button
+    _portExpander = _buttonUp >> 8;
+    for (auto pin : pins)
+        if ((pin >> 8) != _portExpander)
+            _portExpander = 0;
+
     _enabled = true;
     logInfoP("Initialized (5-way navigation)");
     return true;
@@ -60,6 +66,10 @@ void ButtonManager::loop()
     uint32_t currentTime = millis();
     if (currentTime - _lastCheck < _checkInterval) return;
     _lastCheck = currentTime;
+
+    uint16_t port = 0;
+    _portValid = _portExpander && openknx.gpio.digitalReadPort(_portExpander, port);
+    _portValue = port;
 
     // Check all buttons
     const struct
@@ -182,6 +192,8 @@ ButtonEvent* ButtonManager::checkButton(uint16_t pin, ButtonType type, size_t in
 bool ButtonManager::readButton(uint16_t pin)
 {
     #ifdef FRONT_CTRL_UP // front-panel buttons; driven via openknx.gpio (PCA9557)
+    if (_portValid)
+        return (_portValue >> (pin & 0xFF)) & 0x01; // from the port read of this check
     return openknx.gpio.digitalRead(pin);
     #else
     return false;
