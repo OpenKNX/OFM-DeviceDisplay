@@ -2,6 +2,14 @@
 #pragma once
 #include "../Widget.h"
 
+// QR mask: fixed by default, ~15x faster than scoring all 8 masks (RP2350, v2: 1.4 ms instead of 22 ms).
+// Build flag OPENKNX_QR_AUTO_MASK selects the best-scored mask instead.
+#ifdef OPENKNX_QR_AUTO_MASK
+    #define OPENKNX_QR_MASK qrcodegen_Mask_AUTO
+#else
+    #define OPENKNX_QR_MASK qrcodegen_Mask_0
+#endif
+
 // WidgetQRCode class: Display a QR code on the screen
 class WidgetQRCode : public Widget
 {
@@ -36,6 +44,13 @@ class WidgetQRCode : public Widget
     // Additional public methods
     void setQRCodeText(const std::string &text); // Update the text for the QR code
     void setBackgroundWhite(bool white);         // Set the background to white or black
+
+    /**
+     * @brief Draws an encoded QR code (qrcodegen buffer) centered in x/y/w/h with filled modules as large as the
+     *        area allows, inside a quiet zone of `quiet` px. darkOnLight: black modules on a white field, else
+     *        white modules on the cleared (black) display. Returns the first column right of the code.
+     */
+    static int16_t drawQr(i2cDisplay *display, const uint8_t *qr, int16_t x, int16_t y, int16_t w, int16_t h, uint8_t quiet, bool darkOnLight);
 
   private:
     uint32_t _displayTime;        // Time to display the widget in ms

@@ -122,37 +122,36 @@ void WidgetQRCode::drawQRCode()
 {
     if (_qrCodeText.empty() || !_display) return;
 
-    static uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
-    static uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
+    // version 3 at most: buffers sized for it, not for version 40
+    static uint8_t qrcode[qrcodegen_BUFFER_LEN_FOR_VERSION(3)];
+    static uint8_t tempBuffer[qrcodegen_BUFFER_LEN_FOR_VERSION(3)];
 
     // Generate QR Code
     if (!qrcodegen_encodeText(_qrCodeText.c_str(), tempBuffer, qrcode,
-                              qrcodegen_Ecc_LOW, 3, 3, qrcodegen_Mask_AUTO, true))
+                              qrcodegen_Ecc_LOW, 3, 3, OPENKNX_QR_MASK, true))
     {
         logErrorP("Failed to generate QR code.");
         return;
     }
 
-    // Get QR Code size and pixel size
-    int qrSize = qrcodegen_getSize(qrcode);
-    int pixelSize = std::min(_display->GetDisplayWidth() / qrSize, _display->GetDisplayHeight() / qrSize);
-    int xOffset = (_display->GetDisplayWidth() - qrSize * pixelSize) / 2;
-    int yOffset = (_display->GetDisplayHeight() - qrSize * pixelSize) / 2;
-
     _display->display->clearDisplay(); // Clear the display
-
-    for (int y = 0; y < qrSize; y++)
-    {
-        for (int x = 0; x < qrSize; x++)
-        {
-            if (qrcodegen_getModule(qrcode, x, y))
-            {
-                _display->display->drawRect(xOffset + x * pixelSize, yOffset + y * pixelSize,
-                                            pixelSize, pixelSize, _backgroundWhite ? BLACK : WHITE);
-            }
-        }
-    }
+    drawQr(_display, qrcode, 0, 0, _display->GetDisplayWidth(), _display->GetDisplayHeight(), 0, _backgroundWhite);
     _display->displayBuff(); // Send buffer to display
     logDebugP("QR code drawn.");
+}
+
+int16_t WidgetQRCode::drawQr(i2cDisplay *display, const uint8_t *qr, int16_t x, int16_t y, int16_t w, int16_t h, uint8_t quiet, bool darkOnLight)
+{
+    const int16_t n = (int16_t)qrcodegen_getSize(qr);
+    const int16_t px = std::max<int16_t>(1, (std::min(w, h) - 2 * quiet) / n);
+    const int16_t box = n * px + 2 * quiet;
+    const int16_t x0 = x + (w - box) / 2;
+    const int16_t y0 = y + (h - box) / 2;
+    if (darkOnLight) display->display->fillRect(x0, y0, box, box, WHITE);
+    const uint16_t color = darkOnLight ? BLACK : WHITE;
+    for (int16_t my = 0; my < n; my++)
+        for (int16_t mx = 0; mx < n; mx++)
+            if (qrcodegen_getModule(qr, mx, my)) display->display->fillRect(x0 + quiet + mx * px, y0 + quiet + my * px, px, px, color);
+    return x0 + box;
 }
 #endif // DEVICE_DISPLAY_MODULE
