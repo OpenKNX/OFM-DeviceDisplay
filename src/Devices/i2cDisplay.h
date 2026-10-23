@@ -10,7 +10,8 @@
 
 #include "OpenKNX.h"
 
-#include "OpenKNX/I2C/Wire1Lock.h" // shared Wire1 (display+PCA9557) mutex; no-op on RP2040
+#include "OpenKNX/I2C/ScheduledWire.h" // OPENKNX_I2C_SCHEDULER: queued display chunks on RP2040/RP2350
+#include "OpenKNX/I2C/Wire1Lock.h"     // shared Wire1 (display+PCA9557) mutex; no-op on RP2040
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
@@ -141,4 +142,9 @@ class i2cDisplay
     void displayFullBuffer();
     void updateCols(int startCol, int endCol);
     void updatePage(int page, int startCol, int endCol);
+#if defined(OPENKNX_I2C_SCHEDULER) && defined(ARDUINO_ARCH_RP2040)
+    bool _queued = false; // pages go through the I2C scheduler queue; chosen once at init
+    void loopQueued();
+    void markDirty(int page, int startCol, int endCol);
+#endif
 };

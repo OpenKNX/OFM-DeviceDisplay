@@ -72,6 +72,9 @@ bool i2cDisplay::InitDisplay()
         display->clearDisplay();                      // Clear initialy the display buffer. Previous arcifacts could be displayed
         display->display();                           // Display the cleared buffer
     }
+#if defined(OPENKNX_I2C_SCHEDULER) && defined(ARDUINO_ARCH_RP2040)
+    _queued = CustomI2C == &openknxScheduledWire && openknxScheduledWire.queueReady();
+#endif
 
     return true;
 }
@@ -100,6 +103,13 @@ void i2cDisplay::setup()
 void i2cDisplay::loop()
 {
     if (!_curDispBuffer || !_prevDispBuffer || !display) return;
+#if defined(OPENKNX_I2C_SCHEDULER) && defined(ARDUINO_ARCH_RP2040)
+    if (_queued)
+    {
+        loopQueued();
+        return;
+    }
+#endif
 
     const int pages = lcdSettings.height / 8;
     const int width = lcdSettings.width;
@@ -123,6 +133,71 @@ void i2cDisplay::loop()
         _flushCursor = (uint8_t)((page + 1) % pages); // continue after this page on the next loop()
     }
 }
+
+#if defined(OPENKNX_I2C_SCHEDULER) && defined(ARDUINO_ARCH_RP2040)
+/**
+ * @brief Hand the dirty ranges to the I2C scheduler queue in 32-column chunks without waiting for the bus.
+ * @details prev takes the chunk when it is queued; a chunk that fails is marked dirty again. A full queue leaves
+ *          the rest dirty for the next loop().
+ */
+void i2cDisplay::loopQueued()
+{
+    static constexpr int CHUNK_COLS = 32;
+    const int pages = lcdSettings.height / 8;
+    const int width = lcdSettings.width;
+    if (pages <= 0 || width > 256) return; // tag holds 8-bit columns
+
+    uint32_t tag;
+    bool ok;
+    while (openknxScheduledWire.queueResult(tag, ok))
+        if (!ok)
+            markDirty(tag >> 16, (tag >> 8) & 0xFF, tag & 0xFF);
+
+    for (int i = 0; i < pages && i < MAX_PAGES; i++)
+    {
+        const int page = (_flushCursor + i) % pages;
+        if (!_pageDirty[page]) continue;
+        const int endCol = _dirtyEndCol[page];
+        for (int c0 = _dirtyStartCol[page]; c0 <= endCol; c0 += CHUNK_COLS)
+        {
+            const int c1 = (c0 + CHUNK_COLS - 1 < endCol) ? (c0 + CHUNK_COLS - 1) : endCol;
+            const int count = c1 - c0 + 1;
+            const uint8_t window[7] = {0x00, SSD1306_PAGEADDR, (uint8_t)page, (uint8_t)page, SSD1306_COLUMNADDR, (uint8_t)c0, (uint8_t)c1};
+            uint8_t data[1 + CHUNK_COLS];
+            data[0] = 0x40; // data mode
+            memcpy(&data[1], &_curDispBuffer[page * width + c0], count);
+            if (!openknxScheduledWire.queueWrite(lcdSettings.i2cadress, window, sizeof(window), data, count + 1, ((uint32_t)page << 16) | (c0 << 8) | c1))
+            {
+                _dirtyStartCol[page] = (int16_t)c0; // queue full: the rest goes next loop()
+                _flushCursor = (uint8_t)page;
+                return;
+            }
+            memcpy(&_prevDispBuffer[page * width + c0], &data[1], count);
+        }
+        _pageDirty[page] = false;
+        _flushCursor = (uint8_t)((page + 1) % pages);
+    }
+}
+
+/**
+ * @brief Add a column range of a page to its dirty range.
+ */
+void i2cDisplay::markDirty(int page, int startCol, int endCol)
+{
+    if (page < 0 || page >= MAX_PAGES) return;
+    if (_pageDirty[page])
+    {
+        if (startCol < _dirtyStartCol[page]) _dirtyStartCol[page] = (int16_t)startCol;
+        if (endCol > _dirtyEndCol[page]) _dirtyEndCol[page] = (int16_t)endCol;
+    }
+    else
+    {
+        _dirtyStartCol[page] = (int16_t)startCol;
+        _dirtyEndCol[page] = (int16_t)endCol;
+        _pageDirty[page] = true;
+    }
+}
+#endif
 
 /**
  * @brief Set the display width in pixels. Default is 128.
