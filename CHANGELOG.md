@@ -3,10 +3,27 @@
 Display module for OpenKNX devices: OLED output, widgets, menu, gestures and a web view.
 Entries are grouped by module version; every line traces to a commit in this repository.
 
-## v0.1.1: 2026-10-15
+## v0.1.1: 2026-10-23
 
 Tagged as `v0.1.1`, which is the version `library.json` carries -- the tag and the file state the same
 thing.
+
+**Display output**
+* Fix: after a rotation the whole frame is sent again -- SEGREMAP applies only to data written after it, so unchanged columns stayed mirrored
+* Change: on RP2040/RP2350 with `OPENKNX_I2C_SCHEDULER` the page chunks go to the I2C scheduler queue and `loop()` returns at once; a full queue leaves the rest of the page for the next pass, a failed chunk is sent again. Other platforms keep the synchronous push
+
+**Widgets**
+* Feature: `WidgetsManager::showDefaultWidget()` switches the rotation to a given widget; it acts only from the rotation view and returns whether the widget is shown, so a caller can retry
+* Feature: `WidgetQRCode::drawQr()` draws a QR code with filled modules and a quiet zone; the WiFi widget of OFM-Network uses it too
+* Fix: the QR widget drew its modules as outlines, hollow from 3 px up, and with a white background black modules on the black display -- both are drawn filled now
+* Change: the QR code uses a fixed mask, 1.4 ms instead of 22 ms for a version 2 code on the RP2350; `OPENKNX_QR_AUTO_MASK` selects the scored mask. The buffers are sized for version 3 instead of 40
+
+**Buttons**
+* Change: with all five front buttons on one expander, a check reads the port once instead of five times
+
+**Build**
+* Change: the ddc console is built with `OPENKNX_CONSOLE_DEV`; `DDC_CONSOLE_DISABLE` remains as opt-out, and the console widget is built only together with the console
+* Change: the root menu is ordered without `std::stable_sort` -- the same order, and the image shrinks by 14466 bytes
 
 **Texts**
 * Change: every text on the display is English -- menu, options, confirmations, toasts, the gesture and programming overlays and the clock. Dim after, Saver after and Sleep after fit one row with their value; the panel tuning submenu is Panel, the display settings submenu Display. The web page keeps its German labels
