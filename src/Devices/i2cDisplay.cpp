@@ -377,6 +377,22 @@ void i2cDisplay::setRotation(bool flip180)
     OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
     display->ssd1306_command(SSD1306_SEGREMAP | (flip180 ? 0x1 : 0x0));
     display->ssd1306_command(flip180 ? SSD1306_COMSCANDEC : SSD1306_COMSCANINC);
+    markAllDirty(); // the segment remap applies only to data written after it
+}
+
+/**
+ * @brief Send the whole frame again on the next loop() passes.
+ */
+void i2cDisplay::markAllDirty()
+{
+    if (!_curDispBuffer || !_prevDispBuffer) return;
+    const int pages = lcdSettings.height / 8;
+    for (int page = 0; page < pages && page < MAX_PAGES; page++)
+    {
+        _pageDirty[page] = true;
+        _dirtyStartCol[page] = 0;
+        _dirtyEndCol[page] = (int16_t)(lcdSettings.width - 1);
+    }
 }
 
 /**

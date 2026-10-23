@@ -142,6 +142,7 @@ class i2cDisplay
     void displayFullBuffer();
     void updateCols(int startCol, int endCol);
     void updatePage(int page, int startCol, int endCol);
+    void markAllDirty();
 #if defined(OPENKNX_I2C_SCHEDULER) && defined(ARDUINO_ARCH_RP2040)
     bool _queued = false; // pages go through the I2C scheduler queue; chosen once at init
     void loopQueued();
