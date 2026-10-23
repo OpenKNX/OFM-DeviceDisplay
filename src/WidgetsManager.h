@@ -186,6 +186,9 @@ class WidgetsManager // Manages the widget queue and state machine
     // disabled widgets. Always switch even while paused and reset the display timer. Wraps around.
     void nextWidgetManual();
     void prevWidgetManual();
+    // Switch the rotation to this DefaultWidget, as a manual switch would. Only from the rotation view
+    // (no status widget, menu or screensaver up). Returns true when the widget is shown.
+    bool showDefaultWidget(Widget* widget);
 
     // Page/rotation status text for the Home overlay: "n/N" (1-based) for a multi-page current
     // widget, "manual" when paused and single-page, otherwise empty.

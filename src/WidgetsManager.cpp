@@ -1635,6 +1635,20 @@ void WidgetsManager::nextWidgetManual()
 }
 
 /**
+ * @brief Bring one enabled DefaultWidget to the display from the rotation view (e.g. a module whose state
+ *        just changed); refused while a status widget, the menu or the screensaver is up.
+ * @return true when the widget is (now) the current one
+ */
+bool WidgetsManager::showDefaultWidget(Widget* widget)
+{
+    if (widget == nullptr || !(widget->getAction() & DefaultWidget) || !widget->isEnabled()) return false;
+    if (_currentWidget == widget) return true;
+    if (_state != WidgetManagerState::Default || _powerSaveMode != PowerSaveMode::Active) return false;
+    switchToDefaultWidgetManual(widget, millis(), "requested");
+    return true;
+}
+
+/**
  * @brief Manually switch to the previous DefaultWidget in user order
  */
 void WidgetsManager::prevWidgetManual()
