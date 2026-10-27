@@ -21,7 +21,7 @@
     let timer = null, busy = false;
     let streaming = rate.value === 'live';
     let fpsAt = 0, fpsFrames = 0;
-    let displayOff = false;
+    let displayOff = true;
     let lastFrame = null;
     let offNoteState = '';
 
@@ -91,15 +91,20 @@
                 if (!res.ok) throw 0;
                 const size = (res.headers.get('X-Display-Size') || '128x64').split('x');
                 const w = parseInt(size[0], 10) || 128, h = parseInt(size[1], 10) || 64;
+                displayOff = res.headers.get('X-Display-On') === '0';
+                if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+                if (displayOff) {
+                    clearCanvas(w, h);
+                    showOffNote();
+                    setStatus('Standby', 'err');
+                    return;
+                }
                 const bytes = new Uint8Array(await res.arrayBuffer());
                 if (bytes.length < (w / 8) * h) throw 0;
                 render(bytes, w, h);
-                // The buffer keeps stale content while the panel sleeps -> blank the canvas to the unlit
-                // colour and put the notice on top as DOM text (canvas text turns to mush when scaled up).
-                displayOff = res.headers.get('X-Display-On') === '0';
-                if (displayOff || rate.value === '0') clearCanvas(w, h);
+                if (rate.value === '0') clearCanvas(w, h);
                 showOffNote();
-                if (rate.value !== '0') setStatus(displayOff ? 'Standby' : 'live', displayOff ? 'err' : 'ok');
+                if (rate.value !== '0') setStatus('live', 'ok');
             } catch (e) {
                 setStatus('kein Bild', 'err');
             } finally { busy = false; }
@@ -120,9 +125,20 @@
 
     function receiveFrame(data) {
         if (!streaming) return;
-        if (!(data instanceof Uint8Array) || data.length < 4) return;
+        if (!(data instanceof Uint8Array) || data.length < 3) return;
         const w = data[0] * 8, h = data[1], isOff = data[2] === 0;
-        if (!w || w > 128 || !h || h > 64 || h % 8 || data.length !== 3 + w / 8 * h) return;
+        if (!w || w > 128 || !h || h > 64 || h % 8) return;
+        if (data.length === 3) {
+            if (!isOff) return;
+            if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+            displayOff = true;
+            fpsAt = fpsFrames = 0;
+            clearCanvas(w, h);
+            showOffNote();
+            setStatus('Standby', 'err');
+            return;
+        }
+        if (data.length !== 3 + w / 8 * h) return;
         render(data.subarray(3), w, h);
         displayOff = isOff;
         const now = Date.now();

@@ -25,6 +25,8 @@ namespace OpenKNX
     {
         bool _initialized = false;
         std::atomic<bool> _streamEnabled{false};
+        std::atomic<bool> _streamReset{false};
+        uint8_t _streamState = 0; // 0=unknown, 1=off, 2=on
 
         // ── Deferred action queue ─────────────────────────────────────────────
         // Requests queue their change instead of applying it in the handler (the ESP32 httpd task would
@@ -108,7 +110,12 @@ namespace OpenKNX
 
         void sendLiveFrame()
         {
-            if (!_streamEnabled.load(std::memory_order_relaxed)) return;
+            if (!_streamEnabled.load(std::memory_order_relaxed))
+            {
+                _streamState = 0;
+                return;
+            }
+            if (_streamReset.exchange(false, std::memory_order_relaxed)) _streamState = 0;
             if (!openknx.freeLoopTime()) return;
 
             uint16_t w = 0, h = 0;
@@ -118,8 +125,18 @@ namespace OpenKNX
             static constexpr size_t MAX_FRAMEBUFFER_BYTES = 128U * 64U / 8U;
             if (fb == nullptr || display == nullptr || bytes == 0 || bytes > MAX_FRAMEBUFFER_BYTES) return;
 
-            const uint8_t prefix[] = {(uint8_t)(w / 8), (uint8_t)h, (uint8_t)(display->isDisplayOn() ? 1 : 0)};
-            openknxNetwork.webserver.ui.trySendBinaryMessage("dspFrame", prefix, sizeof(prefix), fb, bytes);
+            const bool displayOn = display->isDisplayOn();
+            const uint8_t prefix[] = {(uint8_t)(w / 8), (uint8_t)h, (uint8_t)(displayOn ? 1 : 0)};
+            if (!displayOn)
+            {
+                // A zero-data frame clears the browser preview without retransmitting stale pixels.
+                if (_streamState != 1 && openknxNetwork.webserver.ui.trySendBinaryMessage(
+                        "dspFrame", prefix, sizeof(prefix), nullptr, 0)) _streamState = 1;
+                return;
+            }
+
+            if (openknxNetwork.webserver.ui.trySendBinaryMessage("dspFrame", prefix, sizeof(prefix), fb, bytes))
+                _streamState = 2;
         }
 
         // Fixed-capacity Print sink, so ScreenshotBmp can stream into a plain buffer.
@@ -265,10 +282,14 @@ namespace OpenKNX
             res.setContentType("application/octet-stream");
             res.setHeader("X-Display-Size", dim);
 
-            // The framebuffer keeps its last content while the panel is off, so the raw bytes alone
-            // would show a stale image as if it were live. Report the panel state with it.
             i2cDisplay* disp = openknxDisplayModule.getDisplayModule();
-            res.setHeader("X-Display-On", (disp != nullptr && disp->isDisplayOn()) ? "1" : "0");
+            const bool displayOn = disp != nullptr && disp->isDisplayOn();
+            res.setHeader("X-Display-On", displayOn ? "1" : "0");
+            if (!displayOn)
+            {
+                res.setStatus(204);
+                return;
+            }
             res.send(fb, (int)bytes);
         }
 
@@ -282,6 +303,13 @@ namespace OpenKNX
                 res.setStatus(503);
                 res.setContentType("text/plain");
                 res.send("no display");
+                return;
+            }
+
+            i2cDisplay* disp = openknxDisplayModule.getDisplayModule();
+            if (disp == nullptr || !disp->isDisplayOn())
+            {
+                res.setStatus(204);
                 return;
             }
 
@@ -537,7 +565,7 @@ namespace OpenKNX
         if (_initialized) return;
         _initialized = true;
 
-        openknxNetwork.webserver.addMenuItem("Display", "/display", 120);
+        openknxNetwork.webserver.addMenuItem("Display", "/display", 40);
 
         openknxNetwork.webserver.addRoute(
             WEB_GET, "/assets/display.css",
@@ -548,6 +576,11 @@ namespace OpenKNX
         openknxNetwork.webserver.addStylesheet("/assets/display.css");
         openknxNetwork.webserver.addJavaScript("/assets/display.js");
         openknxNetwork.webserver.ui.receiveMessage([](const char* key, const char* data, size_t len) {
+            if (strcmp(key, "connect") == 0)
+            {
+                _streamReset.store(true, std::memory_order_relaxed);
+                return;
+            }
             if (strcmp(key, "dspStream") != 0 || data == nullptr || len != 1) return;
             if (data[0] == '0' || data[0] == '1')
                 _streamEnabled.store(data[0] == '1', std::memory_order_relaxed);
