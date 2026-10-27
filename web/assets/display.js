@@ -10,6 +10,8 @@
     const rate = $('dsp-rate');
     const settings = $('dsp-settings');
     const offNote = $('dsp-off');
+    const offTitle = $('dsp-off-title');
+    const offDetail = $('dsp-off-detail');
     const widgets = $('dsp-widgets');
 
     // Lit pixel = the OpenKNX green (#449841, same value as logo.svg/favicon.svg/base.css);
@@ -17,10 +19,35 @@
     const ON = [0x44, 0x98, 0x41], OFF = [0x07, 0x14, 0x07];
     let invert = 0; // preview only - does not touch the panel or the BMP export
     let timer = null, busy = false;
+    let streaming = rate.value === 'live';
+    let fpsAt = 0, fpsFrames = 0;
+    let displayOff = false;
+    let lastFrame = null;
+    let offNoteState = '';
 
     function setStatus(text, cls) {
         status.textContent = text;
         status.className = 'dsp-status' + (cls ? ' ' + cls : '');
+    }
+
+    function clearCanvas(w, h) {
+        ctx.fillStyle = '#071407';
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    function showOffNote() {
+        const state = rate.value === '0' ? 'stopped' : displayOff ? 'display-off' : 'on';
+        if (state === offNoteState) return;
+        offNoteState = state;
+        offNote.hidden = state === 'on';
+        if (state === 'stopped') {
+            offTitle.textContent = 'Live-Übertragung aus';
+            offDetail.textContent = 'Aktualisierung auswählen oder „Jetzt“ drücken';
+            setStatus('Übertragung aus', 'err');
+        } else if (state === 'display-off') {
+            offTitle.textContent = 'Display ist aus';
+            offDetail.textContent = 'Taste drücken zum Wecken';
+        }
     }
 
     // ONE request from this page at a time. Every response is Connection: close and the RP2040
@@ -36,6 +63,7 @@
 
     // ── Framebuffer ─────────────────────────────────────────────────────────
     function render(bytes, w, h) {
+        lastFrame = bytes;
         if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
         const img = ctx.createImageData(w, h), px = img.data;
         for (let y = 0; y < h; y++) {
@@ -48,8 +76,14 @@
         ctx.putImageData(img, 0, 0);
     }
 
-    function refresh() {
-        if (busy || document.hidden) return;
+    function redrawPreview() {
+        if (!lastFrame) return;
+        render(lastFrame, canvas.width, canvas.height);
+        if (displayOff || rate.value === '0') clearCanvas(canvas.width, canvas.height);
+    }
+
+    function refresh(manual) {
+        if (busy || document.hidden || (!manual && streaming && window.OpenKNX && window.OpenKNX.connected)) return;
         busy = true;
         return serial(async function () {
             try {
@@ -62,13 +96,10 @@
                 render(bytes, w, h);
                 // The buffer keeps stale content while the panel sleeps -> blank the canvas to the unlit
                 // colour and put the notice on top as DOM text (canvas text turns to mush when scaled up).
-                const isOff = res.headers.get('X-Display-On') === '0';
-                if (isOff) {
-                    ctx.fillStyle = 'rgb(' + OFF[0] + ',' + OFF[1] + ',' + OFF[2] + ')';
-                    ctx.fillRect(0, 0, w, h);
-                }
-                offNote.hidden = !isOff;
-                setStatus(isOff ? 'Standby' : 'live', isOff ? 'err' : 'ok');
+                displayOff = res.headers.get('X-Display-On') === '0';
+                if (displayOff || rate.value === '0') clearCanvas(w, h);
+                showOffNote();
+                if (rate.value !== '0') setStatus(displayOff ? 'Standby' : 'live', displayOff ? 'err' : 'ok');
             } catch (e) {
                 setStatus('kein Bild', 'err');
             } finally { busy = false; }
@@ -78,8 +109,33 @@
     function reschedule() {
         if (timer) clearInterval(timer);
         timer = null;
-        const ms = parseInt(rate.value, 10);
-        if (ms > 0) timer = setInterval(refresh, ms);
+        const ms = rate.value === 'live' ? 1000 : +rate.value;
+        if (ms > 0) timer = setInterval(function () { refresh(); }, ms);
+    }
+
+    function syncStream() {
+        if (window.OpenKNX)
+            window.OpenKNX.send('dspStream', !document.hidden && streaming ? '1' : '0');
+    }
+
+    function receiveFrame(data) {
+        if (!streaming) return;
+        if (!(data instanceof Uint8Array) || data.length < 4) return;
+        const w = data[0] * 8, h = data[1], isOff = data[2] === 0;
+        if (!w || w > 128 || !h || h > 64 || h % 8 || data.length !== 3 + w / 8 * h) return;
+        render(data.subarray(3), w, h);
+        displayOff = isOff;
+        const now = Date.now();
+        if (!fpsAt) fpsAt = now;
+        fpsFrames++;
+        if (now - fpsAt >= 1000) {
+            const fps = Math.round(fpsFrames * 1000 / (now - fpsAt));
+            fpsAt = now;
+            fpsFrames = 0;
+            setStatus((isOff ? 'Standby' : 'Live') + ' · ' + fps + ' Bilder/s', isOff ? 'err' : 'ok');
+        }
+        if (isOff) clearCanvas(w, h);
+        showOffNote();
     }
 
     // ── Joystick ────────────────────────────────────────────────────────────
@@ -158,14 +214,14 @@
             row.insertCell().appendChild(dur);
 
             const moveCell = row.insertCell();
-            [['▲', -1, i > 0], ['▼', 1, i < list.length - 1]].forEach(function (m) {
+            [-1, 1].forEach(function (d) {
                 const b = document.createElement('button');
                 b.type = 'button';
                 b.className = 'dsp-mv';
-                b.textContent = m[0];
-                b.disabled = !m[2];
+                b.textContent = d < 0 ? '▲' : '▼';
+                b.disabled = i + d < 0 || i + d >= list.length;
                 b.addEventListener('click', function () {
-                    post('/display/widget?i=' + i + '&m=' + m[1]).then(loadWidgets);
+                    post('/display/widget?i=' + i + '&m=' + d).then(loadWidgets);
                 });
                 moveCell.appendChild(b);
             });
@@ -233,36 +289,43 @@
 
     // Builds one row per definition into the given tbody.
     function settingRow(def, body) {
-        {
-            const el = control(def);
-            el.id = 'set-' + def.id;
-            el.addEventListener('change', function () {
-                queueSave(def.id, def.kind === 0 ? (el.checked ? 1 : 0) : el.value);
-            });
+        const el = control(def);
+        el.id = 'set-' + def.id;
+        el.addEventListener('change', function () {
+            const value = def.kind === 0 ? (el.checked ? 1 : 0) : el.value;
+            if (def.id === 'invert') {
+                invert = value ? 1 : 0;
+                redrawPreview();
+            }
+            queueSave(def.id, value);
+        });
 
-            const row = body.insertRow();
-            const label = document.createElement('label');
-            label.textContent = def.label;
-            label.htmlFor = el.id;
-            row.insertCell().appendChild(label);
-            row.insertCell().appendChild(el);
+        const row = body.insertRow();
+        const label = document.createElement('label');
+        label.textContent = def.label;
+        label.htmlFor = el.id;
+        row.insertCell().appendChild(label);
+        row.insertCell().appendChild(el);
 
-            const hint = row.insertCell();
-            hint.className = 'gray';
-            hint.textContent = def.kind === 1 ? (def.hint || '') + ' (' + def.value + ')' : (def.hint || '');
-        }
+        const hint = row.insertCell();
+        hint.className = 'gray';
+        hint.textContent = def.kind === 1 ? (def.hint || '') + ' (' + def.value + ')' : (def.hint || '');
     }
 
     function sectionTable(list, group) {
         const t = document.createElement('table');
         t.className = 'attribute-table';
         const body = t.createTBody();
-        list.filter(function (d) { return (d.g || 0) === group; })
-            .forEach(function (d) { settingRow(d, body); });
+        for (const d of list) if ((d.g || 0) === group) settingRow(d, body);
         return t;
     }
 
     function renderSettings(list) {
+        const invertSetting = list.find(function (d) { return d.id === 'invert'; });
+        if (invertSetting) {
+            invert = invertSetting.value ? 1 : 0;
+            redrawPreview();
+        }
         settings.textContent = '';
         settings.appendChild(sectionTable(list, 0));
 
@@ -310,16 +373,35 @@
         });
     });
 
-    rate.addEventListener('change', reschedule);
-    $('dsp-now').addEventListener('click', refresh);
-    $('dsp-inv').addEventListener('change', function () {
-        invert = this.checked ? 1 : 0;
-        // Also flip the panel itself: SSD1306 invert is a display command, it does not change the
-        // framebuffer - so the preview has to invert locally AND the device setting has to follow.
-        queueSave('invert', invert);
-        refresh();
+    rate.addEventListener('change', function () {
+        streaming = this.value === 'live';
+        fpsAt = fpsFrames = 0;
+        reschedule();
+        syncStream();
+        showOffNote();
+        if (this.value === '0') clearCanvas(canvas.width, canvas.height);
+        if (!streaming || !window.OpenKNX || !window.OpenKNX.connected) refresh(true);
     });
-    document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+    $('dsp-now').addEventListener('click', function () { refresh(true); });
+    document.addEventListener('visibilitychange', function () {
+        syncStream();
+        if (!document.hidden && (!streaming || !window.OpenKNX || !window.OpenKNX.connected)) refresh(true);
+    });
+    window.addEventListener('pagehide', function () {
+        if (window.OpenKNX) window.OpenKNX.send('dspStream', '0');
+    });
+
+    function registerSocketHandlers() {
+        if (!window.OpenKNX) return;
+        window.OpenKNX.on('dspFrame', receiveFrame);
+        window.OpenKNX.onState(function (state) {
+            if (state === 'open') syncStream();
+            else if (streaming && !document.hidden) refresh(true);
+        });
+        syncStream();
+    }
+    if (window.OpenKNX) registerSocketHandlers();
+    else window.addEventListener('load', registerSocketHandlers, { once: true });
 
     refresh();
     reschedule();
