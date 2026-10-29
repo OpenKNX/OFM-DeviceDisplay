@@ -3,10 +3,16 @@
 Display module for OpenKNX devices: OLED output, widgets, menu, gestures and a web view.
 Entries are grouped by module version; every line traces to a commit in this repository.
 
-## v0.1.1: 2026-10-23
+## v0.1.1: 2026-10-29
 
 Tagged as `v0.1.1`, which is the version `library.json` carries -- the tag and the file state the same
-thing.
+thing. The live view needs OFM-Network `ec/v0.9.0-beta.2`, which adds `trySendBinaryMessage()`.
+
+**Web view**
+* Feature: "Live (max. Rate)" streams the framebuffer as the binary message `dspFrame` over the UI WebSocket of OFM-Network. The device sends a frame only in a loop pass with free loop time and drops it when the send queue has no room; the page shows the frames per second and asks for the stream only while it is visible
+* Change: the refresh choices are Aus, Alle 1 s (default), Alle 2 s, Alle 5 s and Live, before 4x/s, 2x/s (default), 1x/s and alle 5s. The invert checkbox is removed; the preview uses the stored invert setting
+* Fix: while the panel is off the device sends no framebuffer: `/display/fb.bin` and `/display/shot.bmp` answer 204, the stream sends one frame without data, and the page clears the preview instead of showing the last image. The page tells a switched-off display apart from a switched-off transfer
+* Change: the menu item has priority 40 (before 120) and follows WiFi (30)
 
 **Display output**
 * Fix: after a rotation the whole frame is sent again -- SEGREMAP applies only to data written after it, so unchanged columns stayed mirrored
