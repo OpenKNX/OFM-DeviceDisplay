@@ -2500,7 +2500,11 @@ void MenuWidget::drawIconMenu()
         if (selCell) d->fillRoundRect(static_cast<int16_t>(x0 + 1), static_cast<int16_t>(y0 + 1), static_cast<int16_t>(cellW - 2), static_cast<int16_t>(cellH - 2), 3, WHITE);
 
         // Icon centred in the cell; label is the top header, no per-icon caption.
-        drawCategoryIcon(_currentMenu[idx].label, static_cast<int16_t>(x0 + cellW / 2), static_cast<int16_t>(y0 + cellH / 2), fg);
+        const int16_t iconX = static_cast<int16_t>(x0 + cellW / 2), iconY = static_cast<int16_t>(y0 + cellH / 2);
+        if (_currentMenu[idx].icon)
+            d->drawBitmap(static_cast<int16_t>(iconX - 6), static_cast<int16_t>(iconY - 6), _currentMenu[idx].icon, 13, 13, fg);
+        else
+            drawCategoryIcon(_currentMenu[idx].label, iconX, iconY, fg);
     }
 
     if (pages > 1)

@@ -1553,6 +1553,8 @@ Menus are **not fixed at compile time**. They can be:
 
 ---
 
+A root item can bring its own icon for the icon menu: set `MenuOption::icon` to a 13x13 bitmap in PROGMEM. Without it the menu picks the glyph from the label.
+
 ### Menu Item Types
 
 #### 1. **Action Items** (Execute Function)

@@ -100,6 +100,7 @@ class MenuConfig
         uint8_t ip[4] = {0, 0, 0, 0};               // octet carrier for IpEdit items
         bool devOnly = false;                       // item only visible when developer mode is active
         int sortOrder = 0;                          // stable root ordering (0 = registration order)
+        const uint8_t* icon = nullptr;              // optional 13x13 bitmap for the icon menu, else the glyph from the label
 
         // Richer editors for Dropdown items (else the item cycles in place on select).
         bool radioList = false;                     // open a full-screen single-select picker
