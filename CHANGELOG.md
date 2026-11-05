@@ -3,6 +3,10 @@
 Display module for OpenKNX devices: OLED output, widgets, menu, gestures and a web view.
 Entries are grouped by module version; every line traces to a commit in this repository.
 
+## v0.1.2: 2026-11-05
+
+* Feature: a module can pass a 13x13 bitmap for the icon menu with `MenuOption::icon`; without one the menu picks the glyph from the label as before
+
 ## v0.1.1: 2026-10-29
 
 Tagged as `v0.1.1`, which is the version `library.json` carries -- the tag and the file state the same
