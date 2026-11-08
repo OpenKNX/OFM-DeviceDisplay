@@ -41,8 +41,8 @@ class i2cDisplay
         pin_size_t scl = -1;           // SCL pin on RP2040 for i2c1
     } lcdSettings;                     // Start with default settings
 
-    Adafruit_SSD1306* display; // Display object. Must be a pointer to be able to make it a unique_ptr
-    TwoWire* CustomI2C;        // I2C object. Must be a pointer to be able to use unique_ptr for it as well
+    Adafruit_SSD1306* display = nullptr; // Display object. Must be a pointer to be able to make it a unique_ptr
+    TwoWire* CustomI2C = nullptr;        // I2C object. Must be a pointer to be able to use unique_ptr for it as well
 
     void setup(); // Setup method for initialization
     void loop();
@@ -63,17 +63,14 @@ class i2cDisplay
                             pin_size_t sda, pin_size_t scl); // Set all display settings
     void SetDisplayContrast(uint8_t contrast);               // Set the display contrast
     void SetDisplayVCOMDetect(uint8_t vcomh);                // Set the display VCOMH regulator output
-    inline void SetDim(bool dim)                             // Dim the display (single Wire1 transaction)
-    {
-        OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
-        display->dim(dim);
-    }
+    void SetDim(bool dim);                                   // Contrast 0, or back to the brightness level
     void SetInvertDisplay(bool invert);          // Invert the display
     void SetDisplayStartLine(uint8_t startline); // Set the display start line
     void SetDisplayOffset(uint8_t offset);       // Set the display offset
     void SetDisplayClockDiv(uint8_t clockdiv);   // Set the display clock division
     void SetDisplayPreCharge(uint8_t precharge); // Set the display precharge
     void displayBuff();                          // compares the buffer with the panel state and sends only the changed areas
+    void sendCommandList(const uint8_t* bytes, uint8_t count); // command + parameters in one I2C transfer (locks Wire1)
 
     inline void __setLoopColumnMethod(bool loopColumnMethod) { __loopColumnMethod = loopColumnMethod; } // Set the loop column method
 
@@ -139,6 +136,7 @@ class i2cDisplay
     void updateArea(int x, int y, int byteIndex);
     void sendCommand(uint8_t command);         // locks Wire1 (single-command transaction)
     void sendCommandUnlocked(uint8_t command); // raw command; caller already holds the Wire1 lock
+    void sendCommandListUnlocked(const uint8_t* bytes, uint8_t count); // caller already holds the Wire1 lock
     void displayFullBuffer();
     void updateCols(int startCol, int endCol);
     void updatePage(int page, int startCol, int endCol);

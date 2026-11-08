@@ -319,9 +319,18 @@ void i2cDisplay::SetDisplaySettings(uint8_t width, uint8_t height, uint8_t i2cad
 void i2cDisplay::SetDisplayContrast(uint8_t contrast) // Set the contrast of the display
 {
     // Contrast is 0x81 (SSD1306_SETCONTRAST) on both SSD1306 and SSD1315 (0xD9 is pre-charge).
-    OPENKNX_WIRE1_LOCK();                          // shared Wire1 vs LED flush; no-op on RP2040
-    display->ssd1306_command(SSD1306_SETCONTRAST); // 0x81 on SSD1306 AND SSD1315
-    display->ssd1306_command(contrast);
+    OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
+    const uint8_t cmd[] = {SSD1306_SETCONTRAST, contrast}; // 0x81 on SSD1306 AND SSD1315
+    sendCommandListUnlocked(cmd, sizeof(cmd));
+}
+
+/**
+ * @brief Dim the display to contrast 0, or restore the contrast of the current brightness level.
+ * @param dim true = contrast 0, false = contrast of getBrightness()
+ */
+void i2cDisplay::SetDim(bool dim)
+{
+    SetDisplayContrast(dim ? 0 : (uint8_t)map(_brightness, 0, 100, 0, 255));
 }
 
 /**
@@ -338,8 +347,8 @@ void i2cDisplay::SetDisplayVCOMDetect(uint8_t vcomh) // Set the VCOMH regulator 
         return;
 
     OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
-    display->ssd1306_command(SSD13XX_SETVCOMDETECT);
-    display->ssd1306_command(vcomh);
+    const uint8_t cmd[] = {SSD13XX_SETVCOMDETECT, vcomh};
+    sendCommandListUnlocked(cmd, sizeof(cmd));
 }
 
 /**
@@ -433,8 +442,8 @@ void i2cDisplay::SetDisplayStartLine(uint8_t startline) // Set the display start
 void i2cDisplay::SetDisplayOffset(uint8_t offset) // Set the display offset
 {
     OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
-    display->ssd1306_command(SSD1306_SETDISPLAYOFFSET);
-    display->ssd1306_command(offset);
+    const uint8_t cmd[] = {SSD1306_SETDISPLAYOFFSET, offset};
+    sendCommandListUnlocked(cmd, sizeof(cmd));
 }
 
 /**
@@ -445,8 +454,8 @@ void i2cDisplay::SetDisplayOffset(uint8_t offset) // Set the display offset
 void i2cDisplay::SetDisplayClockDiv(uint8_t clockdiv) // Set the display clock division
 {
     OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
-    display->ssd1306_command(SSD1306_SETDISPLAYCLOCKDIV);
-    display->ssd1306_command(clockdiv);
+    const uint8_t cmd[] = {SSD1306_SETDISPLAYCLOCKDIV, clockdiv};
+    sendCommandListUnlocked(cmd, sizeof(cmd));
 }
 
 /**
@@ -458,8 +467,8 @@ void i2cDisplay::SetDisplayClockDiv(uint8_t clockdiv) // Set the display clock d
 void i2cDisplay::SetDisplayPreCharge(uint8_t precharge) // Set the display precharge
 {
     OPENKNX_WIRE1_LOCK(); // shared Wire1 vs LED flush; no-op on RP2040
-    display->ssd1306_command(SSD1306_SETPRECHARGE);
-    display->ssd1306_command(precharge);
+    const uint8_t cmd[] = {SSD1306_SETPRECHARGE, precharge};
+    sendCommandListUnlocked(cmd, sizeof(cmd));
 }
 
 /**
@@ -609,6 +618,27 @@ void i2cDisplay::sendCommandUnlocked(uint8_t command)
     CustomI2C->beginTransmission(lcdSettings.i2cadress);
     CustomI2C->write(0x00);
     CustomI2C->write(command);
+    CustomI2C->endTransmission();
+}
+
+/**
+ * @brief Send a command and its parameters in one I2C transfer.
+ * @details One transfer per byte lets a queued display chunk slip in between, which takes the parameter's
+ *          place and leaves the real parameter to be run as a command.
+ */
+void i2cDisplay::sendCommandList(const uint8_t* bytes, uint8_t count)
+{
+    OPENKNX_WIRE1_LOCK();
+    sendCommandListUnlocked(bytes, count);
+}
+
+void i2cDisplay::sendCommandListUnlocked(const uint8_t* bytes, uint8_t count)
+{
+    if (!CustomI2C || bytes == nullptr || count == 0) return;
+    CustomI2C->beginTransmission(lcdSettings.i2cadress);
+    CustomI2C->write(0x00); // Co = 0, D/C = 0: the following bytes are commands
+    for (uint8_t i = 0; i < count; i++)
+        CustomI2C->write(bytes[i]);
     CustomI2C->endTransmission();
 }
 

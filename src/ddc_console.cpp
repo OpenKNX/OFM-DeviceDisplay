@@ -1021,26 +1021,15 @@ bool DdcConsole::processScrollCommand(const std::string& command)
 
     if (command.compare(pos, 1, "r") == 0)
     {
-        OPENKNX_WIRE1_LOCK(); // one lock for the whole scroll-setup sequence (shared Wire1 mutex; no-op on RP2040)
-        _displayModule->display->ssd1306_command(SSD1306_RIGHT_HORIZONTAL_SCROLL);
-        _displayModule->display->ssd1306_command(0x00);
-        _displayModule->display->ssd1306_command(0x00);
-        _displayModule->display->ssd1306_command(0x07);
-        _displayModule->display->ssd1306_command(0x00);
-        _displayModule->display->ssd1306_command(0xFF);
-        _displayModule->display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+        // 26h + 6 parameters (dummy, start page, interval, end page, dummy, dummy), then 2Fh, as one transfer
+        static const uint8_t cmd[] = {SSD1306_RIGHT_HORIZONTAL_SCROLL, 0x00, 0x00, 0x00, 0x07, 0x00, 0xFF, SSD1306_ACTIVATE_SCROLL};
+        _displayModule->sendCommandList(cmd, sizeof(cmd));
         logInfoP("Scroll right");
     }
     else if (command.compare(pos, 1, "l") == 0)
     {
-        OPENKNX_WIRE1_LOCK();
-        _displayModule->display->ssd1306_command(SSD1306_LEFT_HORIZONTAL_SCROLL);
-        _displayModule->display->ssd1306_command(0x00);
-        _displayModule->display->ssd1306_command(0x00);
-        _displayModule->display->ssd1306_command(0x07);
-        _displayModule->display->ssd1306_command(0x00);
-        _displayModule->display->ssd1306_command(0xFF);
-        _displayModule->display->ssd1306_command(SSD1306_ACTIVATE_SCROLL);
+        static const uint8_t cmd[] = {SSD1306_LEFT_HORIZONTAL_SCROLL, 0x00, 0x00, 0x00, 0x07, 0x00, 0xFF, SSD1306_ACTIVATE_SCROLL};
+        _displayModule->sendCommandList(cmd, sizeof(cmd));
         logInfoP("Scroll left");
     }
     else if (command.compare(pos, 5, "start") == 0)
