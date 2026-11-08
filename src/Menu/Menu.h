@@ -232,9 +232,8 @@ class MenuWidget : public Widget
     // picked up. No-op when no registry was handed in.
     void buildMenuFromRegistry();
 
-    // Build the device-owned Netzwerk / Widgets submenu roots from the live NetworkModule /
-    // WidgetsManager. Presence-guarded: a missing module yields a plain default tree instead of a crash.
-    MenuConfig::MenuOption buildNetworkRootItem();
+    // Build the device-owned Widgets submenu root from the live WidgetsManager.
+    // Presence-guarded: a missing manager yields a plain default tree instead of a crash.
     MenuConfig::MenuOption buildWidgetsRootItem();
 
     bool _displayRootsRegistered = false; // display roots pushed into registry once

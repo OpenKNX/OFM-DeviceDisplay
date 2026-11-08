@@ -5,17 +5,9 @@
     #include "MenuRegistry.h"
     #include "OpenKNX.h"
 
-    // Network include is optional so a build without OFM-Network still compiles
-    // (the Netzwerk root then falls back to plain defaults).
     #include "../DeviceDisplay.h"
     #include "../Widget.h"
     #include "../WidgetsManager.h"
-    #if defined(__has_include)
-        #if __has_include("NetworkModule.h")
-            #include "NetworkModule.h"
-            #define MENU_HAS_NETWORK_MODULE 1
-        #endif
-    #endif
 
 MenuWidget::MenuWidget(uint32_t displayTime, WidgetFlags action)
     : _displayTime(displayTime),
@@ -295,43 +287,11 @@ void MenuWidget::addDefaultActions()
         });
     });
 
-#ifdef MENU_HAS_NETWORK_MODULE
-    // Network "Uebernehmen": commit the staged DHCP/IP override live (no reboot). The net_* onValueChanged
-    // handlers stage edits into the module's in-RAM override; this applies + persists them.
-    registerAction("net_apply", [this]() {
-        openknxNetwork.applyLocalNetworkConfig(false); // false = live re-init (resetNetwork), no reboot
-        logInfoP("Network override applied (live)");
-    });
-#endif
-
     assignRegisteredActions(_currentMenu);
 }
 
 void MenuWidget::addDefaultOnValueChanged()
 {
-#ifdef MENU_HAS_NETWORK_MODULE
-    // Network settings: stage edits into the module's in-RAM override (setters do NOT apply yet; the
-    // "Uebernehmen"/net_apply action commits + re-inits live). DHCP checkbox: checked == DHCP.
-    registerOnValueChanged("net_dhcp", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        if (val.isBool()) openknxNetwork.setLocalStaticIpEnabled(!val.getBool());
-    });
-    registerOnValueChanged("net_ip", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        const size_t p = val.getSizeT();
-        openknxNetwork.setLocalIp(IPAddress((uint8_t)(p >> 24), (uint8_t)(p >> 16), (uint8_t)(p >> 8), (uint8_t)p));
-    });
-    registerOnValueChanged("net_subnet", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        const size_t p = val.getSizeT();
-        openknxNetwork.setLocalSubnet(IPAddress((uint8_t)(p >> 24), (uint8_t)(p >> 16), (uint8_t)(p >> 8), (uint8_t)p));
-    });
-    registerOnValueChanged("net_gw", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        const size_t p = val.getSizeT();
-        openknxNetwork.setLocalGateway(IPAddress((uint8_t)(p >> 24), (uint8_t)(p >> 16), (uint8_t)(p >> 8), (uint8_t)p));
-    });
-    registerOnValueChanged("net_dns", [this](const MenuConfig::MenuOption&, const MenuValue& val) {
-        const size_t p = val.getSizeT();
-        openknxNetwork.setLocalDns(IPAddress((uint8_t)(p >> 24), (uint8_t)(p >> 16), (uint8_t)(p >> 8), (uint8_t)p));
-    });
-#endif
     registerOnValueChanged("dhcp_enabled", [this](const MenuConfig::MenuOption& opt, const MenuValue& val) {
         if (val.isBool())
         {
@@ -371,47 +331,6 @@ void MenuWidget::addDefaultOnValueChanged()
     // Dimming is driven by the PowerSave state machine (dimMin -> dimTimeout); no manual toggle.
 
     assignOnValueChangedHandlers(_currentMenu);
-}
-
-// Assemble the Netzwerk submenu from the live NetworkModule. When OFM-Network is absent the
-// snapshot stays at defaults and a plain tree is rendered. valueProvider re-pulls live dotted values.
-MenuConfig::MenuOption MenuWidget::buildNetworkRootItem()
-{
-    DefaultMenus::NetSnapshot snap;
-
-    #ifdef MENU_HAS_NETWORK_MODULE
-    auto fill = [](uint8_t out[4], IPAddress a) {
-        out[0] = a[0];
-        out[1] = a[1];
-        out[2] = a[2];
-        out[3] = a[3];
-    };
-
-    // localUsesStaticIp() == false -> DHCP mode (checkbox checked).
-    snap.dhcp = !openknxNetwork.localUsesStaticIp();
-    fill(snap.ip, openknxNetwork.localIP());
-    fill(snap.subnet, openknxNetwork.subnetMask());
-    fill(snap.gateway, openknxNetwork.gatewayIP());
-    fill(snap.dns, openknxNetwork.nameServerIP());
-
-    // Live read-only value provider for the four IP rows (0=ip 1=subnet 2=gw 3=dns).
-    snap.liveValue = [](uint8_t idx) -> std::string {
-        IPAddress a;
-        switch (idx)
-        {
-            case 0: a = openknxNetwork.localIP(); break;
-            case 1: a = openknxNetwork.subnetMask(); break;
-            case 2: a = openknxNetwork.gatewayIP(); break;
-            default: a = openknxNetwork.nameServerIP(); break;
-        }
-        char buf[16];
-        snprintf(buf, sizeof(buf), "%u.%u.%u.%u",
-                 (unsigned)a[0], (unsigned)a[1], (unsigned)a[2], (unsigned)a[3]);
-        return std::string(buf);
-    };
-    #endif
-
-    return DefaultMenus::buildNetworkRootItem(snap);
 }
 
 // Assemble the Widgets submenu from the live WidgetsManager rotation set.
@@ -475,20 +394,9 @@ void MenuWidget::buildMenuFromRegistry()
     // the registry — it lives only in _currentMenu and is released again by closeMenu().
     std::vector<MenuConfig::MenuOption> displayRoots = DefaultMenus::buildDisplayRootItems();
 
-    // LAZY roots: Netzwerk and Widgets are the heaviest branches, so add only lightweight root
-    // placeholders here and build their children on ENTRY (Submenu case), not on every menu open.
+    // LAZY root: Widgets is the heaviest branch, so add only a lightweight root placeholder
+    // here and build its children on ENTRY (Submenu case), not on every menu open.
     {
-        MenuConfig::MenuOption netRoot;
-        netRoot.label = "Network";
-        netRoot.type = MenuConfig::MenuElementType::Submenu;
-        netRoot.devOnly = true;
-        netRoot.sortOrder = 20;
-        netRoot.submenuBuilder = [this]() {
-            MenuConfig::MenuOption full = buildNetworkRootItem(); // live values, built on entry
-            return std::move(full.submenu);
-        };
-        displayRoots.push_back(std::move(netRoot));
-
         MenuConfig::MenuOption widgetsRoot;
         widgetsRoot.label = "Widgets";
         widgetsRoot.type = MenuConfig::MenuElementType::Submenu;

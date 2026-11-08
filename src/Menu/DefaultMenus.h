@@ -88,12 +88,6 @@ namespace DefaultMenus
         return opts;
     }
 
-    inline const std::vector<std::string>& linkModeOptions()
-    {
-        static const std::vector<std::string> opts = {"Auto", "10 Mbit", "100 Mbit"};
-        return opts;
-    }
-
     // Canonical duration option set for Duration.
     inline const std::vector<std::string>& widgetDurationOptions()
     {
@@ -599,9 +593,9 @@ namespace DefaultMenus
     inline std::vector<MenuOption> buildDisplayRootItems()
     {
         std::vector<MenuOption> roots;
-        // 6 built here + Netzwerk/Widgets appended by the caller. MenuOption move is not
+        // 6 built here + Widgets appended by the caller. MenuOption move is not
         // guaranteed noexcept, so a regrow would deep-copy the whole tree.
-        roots.reserve(8);
+        roots.reserve(7);
 
         addSysInfoRoot(roots);
         addExitRoot(roots);
@@ -611,82 +605,6 @@ namespace DefaultMenus
         addHomeKeysRoot(roots);
 
         return roots;
-    }
-
-    // Netzwerk submenu snapshot: initial IP/DHCP values are handed in by the caller (Menu.cpp);
-    // the valueProvider lambdas re-pull live values lazily.
-    struct NetSnapshot
-    {
-        bool dhcp = true;                 // true = DHCP, false = static (override)
-        uint8_t ip[4] = {0, 0, 0, 0};     // host address
-        uint8_t subnet[4] = {0, 0, 0, 0}; // subnet mask
-        uint8_t gateway[4] = {0, 0, 0, 0};
-        uint8_t dns[4] = {0, 0, 0, 0};
-        uint8_t linkMode = 0; // 0=auto, 1=10 Mbit, 2=100 Mbit
-        // Optional live provider (index 0..3 = ip/subnet/gw/dns).
-        std::function<std::string(uint8_t)> liveValue;
-    };
-
-    // IP rows stay always visible; when DHCP is on they render "auto" and are not editable.
-    MENU_NOINLINE inline void addIpRow(std::vector<MenuOption>& dst, const NetSnapshot& snap,
-                                     const char* label, const char* key, const uint8_t src[4], uint8_t liveIdx)
-    {
-        addRow(dst, [&](MenuOption& o) {
-            o.label = label;
-            o.type = MenuConfig::MenuElementType::IpAddress;
-            o.key = key;
-            o.ip[0] = src[0];
-            o.ip[1] = src[1];
-            o.ip[2] = src[2];
-            o.ip[3] = src[3];
-            if (snap.liveValue)
-            {
-                auto fn = snap.liveValue;
-                o.valueProvider = [fn, liveIdx]() { return fn(liveIdx); };
-            }
-        });
-    }
-
-    inline MenuOption buildNetworkRootItem(const NetSnapshot& snap)
-    {
-        MenuOption netz;
-        netz.label = "Network";
-        netz.type = MenuConfig::MenuElementType::Submenu;
-        netz.devOnly = true;
-        netz.sortOrder = 20;
-
-        auto& sub = netz.submenu;
-        sub.reserve(8);
-
-        addRow(sub, [&snap](MenuOption& o) {
-            o.label = "DHCP";
-            o.type = MenuConfig::MenuElementType::Checkbox;
-            o.key = "net_dhcp";
-            o.defaultValue = MenuValue(snap.dhcp);
-        });
-
-        addIpRow(sub, snap, "IP address", "net_ip", snap.ip, 0);
-        addIpRow(sub, snap, "Subnet mask", "net_subnet", snap.subnet, 1);
-        addIpRow(sub, snap, "Gateway", "net_gw", snap.gateway, 2);
-        addIpRow(sub, snap, "DNS server", "net_dns", snap.dns, 3);
-
-        addRow(sub, [&snap](MenuOption& o) {
-            o.label = "Link";
-            o.type = MenuConfig::MenuElementType::Dropdown;
-            o.key = "net_link";
-            o.dropdownOptions = linkModeOptions();
-            o.defaultValue = MenuValue(static_cast<size_t>(snap.linkMode < 3 ? snap.linkMode : 0));
-        });
-
-        // "Apply": commits the staged DHCP/IP override live (net_apply action, wired in Menu.cpp).
-        addRow(sub, [](MenuOption& o) {
-            o.label = "Apply";
-            o.type = MenuConfig::MenuElementType::Action;
-            o.key = "net_apply";
-        });
-
-        sub.push_back(backRow());
-        return netz;
     }
 
     // Widgets submenu: one submenu per rotation widget. Rows are keyed by a stable name-derived

@@ -71,7 +71,7 @@ errorWidget->addAction(DisplayEnabled); // → Shown immediately!
 - [x] **Hold-to-Confirm Gestures**: hold a Home key to fire Reboot / ProgMode / Display-off / Pause with a countdown bar + overlay (replaces the old "Long-Press Actions"; OK-hold → ProgMode, per-direction actions configurable & persisted) — see [Gesture System](#gesture-system-hold-to-confirm)
 - [x] **On-Device Settings Menu**: brightness, screensaver, timeouts, Home-key mapping, widget rotation — persisted in module flash — see [On-Device Settings](#on-device-settings-persistence)
 - [x] **Menu System v2**: registry-driven tree, in-place value editors (toggle / dropdown / IP / number), action + `onValueChanged` registries
-- [x] **On-Device Network Config**: set DHCP/static IP from the menu with live re-init (DeviceDisplay builds only)
+- [x] **On-Device Network Config**: the menu "Network" comes from OFM-Network as a module root (DHCP/static IP, Apply writes it and restarts)
 
 ### Planned Features (Phase 3)
 - [ ] **Config strategy — decision needed**: keep display config **on-device only** (menu + flash, as today) or **also expose it as ETS parameters**. Trade-off: ETS = central, reproducible, part of the backed-up project — but adds parameter bloat + an ETS↔flash sync/precedence path; local-only = simpler, no ETS round-trip, but the config isn't captured in the ETS project. → decide before adding more config surface.
@@ -1412,11 +1412,11 @@ The **MenuWidget** is a sophisticated, highly flexible background widget that pr
 > modules contribute root items + named actions / `onValueChanged` callbacks; the registry
 > deduplicates by key, stable-sorts by `sortOrder`, and pins **About** last. On open,
 > `MenuWidget` merges the display-owned tree (`DefaultMenus.h`: **Anzeige** / **System** /
-> **Home-Tasten** + the dynamic **Netzwerk** and **Widgets** submenus) with the module roots
+> **Home-Tasten** + the dynamic **Widgets** submenu) with the module roots (e.g. **Network** from OFM-Network)
 > into a live `MenuConfig` tree. Editing is in-place via **MenuModes** — `Normal`, `Slider`
 > (brightness), `RadioSelect` (screensaver + dropdowns), `IpEdit` (4-octet IP), `Reorder`
 > (widget order). Values live in a `MenuConfig` key→`MenuValue` store; a mutation fires the
-> registered `onValueChanged` (e.g. brightness→`i2cDisplay`, `net_apply`→live network re-init).
+> registered `onValueChanged` (e.g. brightness→`i2cDisplay`); a lazy submenu re-seeds its keys from the builder on entry.
 >
 > ```
 > MenuRegistry ──build()──▶ MenuWidget ───────▶ MenuConfig
