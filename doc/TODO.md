@@ -37,8 +37,9 @@ Einstellungen wegnehmen.
 
 - Die Einstellungen liegen als ein Block im Flash, über den gemeinsamen Speicher aus OGM-Common. Der Block
   hängt an der Modulnummer, andere Module verschieben ihn nicht.
-- OFM-Network macht das Prinzip schon vor: Was am Gerät für die IP eingestellt wird, liegt als lokale
-  Abweichung über dem ETS-Wert (`_localOverride`).
+- OFM-Network geht bei der IP den anderen Weg: Sein Menü „Network“ hängt es selbst ein und schreibt dieselben
+  Properties wie der ETS-Tab „IP“, es gibt keine lokale Abweichung über dem ETS-Wert. Der nächste
+  ETS-Download überschreibt sie.
 - Das Modul bekommt mit, wenn die ETS neu programmiert: `processBeforeTablesUnload()`. Das gibt es aber nur
   auf einem programmierten Gerät.
 - Eine neue Applikationsversion wirft die gespeicherten Daten nicht weg, nur eine andere
