@@ -5,6 +5,8 @@ Entries are grouped by module version; every line traces to a commit in this rep
 
 ## v0.1.2: 2026-11-05
 
+* Fix (SSD1306): multi-byte commands (contrast, dimming, offset, clock, precharge, scroll) go out as one I2C transfer; a transfer split between parameters could leave garbage on the panel. Leaving dim restores the contrast of the brightness level instead of a fixed one
+* Change: the menu "Network" is no longer built here; OFM-Network registers it as a module root. A lazy submenu re-seeds its keys from the builder on entry, so a dropped edit does not stay
 * Feature: a module can pass a 13x13 bitmap for the icon menu with `MenuOption::icon`; without one the menu picks the glyph from the label as before
 
 ## v0.1.1: 2026-10-29
