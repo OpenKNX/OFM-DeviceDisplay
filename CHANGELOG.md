@@ -8,6 +8,9 @@ Entries are grouped by module version; every line traces to a commit in this rep
 * Fix (SSD1306): multi-byte commands (contrast, dimming, offset, clock, precharge, scroll) go out as one I2C transfer; a transfer split between parameters could leave garbage on the panel. Leaving dim restores the contrast of the brightness level instead of a fixed one
 * Change: the menu "Network" is no longer built here; OFM-Network registers it as a module root. A lazy submenu re-seeds its keys from the builder on entry, so a dropped edit does not stay
 * Feature: a module can pass a 13x13 bitmap for the icon menu with `MenuOption::icon`; without one the menu picks the glyph from the label as before
+* Fix (keys): on a dark panel (Sleep or Off) a short key press only wakes it, and holding a key still fires its gesture; before, the press woke the panel and its release acted, so a short OK opened the menu. Dimmed and Screensaver still wake and act on the same press
+* Fix (gestures): a hold as the first key press after the DisplayOff gesture fires its gesture; before, the engine was still in the DisplayOff hold, ignored it, and its release acted as a short press
+* Fix (menu): the key press after a LEFT-hold menu exit is handled; before it was swallowed, because the exit waited for a RELEASE that the buttons do not send after LONG_PRESS. `ddc key <k> long` sends PRESS and LONG_PRESS like the buttons and acts once instead of twice
 
 ## v0.1.1: 2026-10-29
 
