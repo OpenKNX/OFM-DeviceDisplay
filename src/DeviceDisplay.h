@@ -135,10 +135,10 @@ class DeviceDisplay : public OpenKNX::Module
     bool _aboutActive = false;            // About HUD currently displayed
     bool _aboutSwallowRelease = false;    // eat the RELEASE paired with a dismissing PRESS
     bool _menuExitSwallowRelease = false; // eat the RELEASE that ends a LEFT-long-press menu exit
-    // After a gesture forces the display OFF, swallow every event from its still-held button
-    // until RELEASE, so the held button cannot re-wake the panel; a fresh press afterwards reacts.
-    bool _displayOffSwallow = false;
-    ButtonType _displayOffButton = ButtonType::SELECT;
+    // One bit per ButtonType: swallow the release (RELEASE/LONG_PRESS/VERY_LONG_PRESS) of a button still held
+    // after a gesture forced the display OFF, or of the press that woke a dark panel.
+    uint8_t _swallowMask = 0;
+    static uint8_t buttonBit(ButtonType type) { return static_cast<uint8_t>(1u << static_cast<uint8_t>(type)); }
     uint32_t _aboutShownAt = 0;                         // millis() when shown (for the auto-timeout)
     static constexpr uint32_t ABOUT_TIMEOUT_MS = 20000; // auto-dismiss after ~8 credit cycles
 
@@ -220,6 +220,7 @@ class DeviceDisplay : public OpenKNX::Module
 
     // Is the Home screen currently shown? Directional gestures only arm there.
     bool isHomeScreen() const;
+    void armGesture(ButtonType type);
 
     // On the Home screen a short directional press steps through the widget rotation manually.
     void handleHomeNavigation(ButtonType type);

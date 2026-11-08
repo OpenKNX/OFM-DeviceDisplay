@@ -171,9 +171,8 @@ void DeviceDisplay::init()
     _gestureEngine.setOnDisplayOff([this]() { // hold the DisplayOff key -> display off immediately
         logInfoP("Gesture: display off");
         if (_widgetManager) _widgetManager->forceDisplayOff();
-        // The mapped button is still held; ignore it until RELEASE so it can't re-wake the panel.
-        _displayOffSwallow = true;
-        _displayOffButton = _heldGestureButton;
+        // The mapped button is still held; ignore it until it is let go so it can't re-wake the panel.
+        _swallowMask |= buttonBit(_heldGestureButton);
     });
     _gestureEngine.setOnScreenshot([this]() { // hold the Screenshot key -> save the frozen frame
         logInfoP("Gesture: screenshot");
@@ -924,7 +923,7 @@ void DeviceDisplay::forceHome()
     // measure a state nobody asked for.
     _aboutSwallowRelease = false;
     _menuExitSwallowRelease = false;
-    _displayOffSwallow = false;
+    _swallowMask = 0;
 
     // Disarm any half-held gesture so the engine folds back to Idle and can re-arm.
     _gestureEngine.endHold();
@@ -955,7 +954,8 @@ void DeviceDisplay::setMenuDisplayEnabled(bool on)
  *
  * A PRESS arms a hold for the resolved action (advanced in loop()::tick()). On release we decide:
  * gesture reached Counting/Firing/Done -> consumed, no navigation; otherwise a short press ->
- * forward a single PRESS to the active widget. Any input wakes the display and resets timers.
+ * forward a single PRESS to the active widget. Any input wakes the display and resets timers; on a
+ * dark panel (Sleep/Off) a short press only wakes it, a hold still fires its gesture.
  */
 void DeviceDisplay::handleButtonEvent(const ButtonEvent& event)
 {
@@ -966,12 +966,35 @@ void DeviceDisplay::handleButtonEvent(const ButtonEvent& event)
     if (event.action == ButtonAction::PRESS && matchKonami(event.type))
         return; // sequence completed this press -> consume it
 
-    // A gesture forced the display OFF and its button is still held. Swallow every event from
-    // that button until RELEASE (before userInteraction()) so it cannot re-wake the panel.
-    if (_displayOffSwallow && event.type == _displayOffButton)
+    // Latched button (held after the DisplayOff gesture, or the press that woke a dark panel): swallow its
+    // release, before userInteraction(), so it neither re-wakes nor acts, and end its hold if it is the armed button.
+    const uint8_t bit = buttonBit(event.type);
+    if (_swallowMask & bit)
     {
-        if (event.action != ButtonAction::PRESS) // RELEASE / LONG_PRESS / VERY_LONG_PRESS = button let go
-            _displayOffSwallow = false;
+        _swallowMask &= static_cast<uint8_t>(~bit);
+        const bool letGo = (event.action != ButtonAction::PRESS); // RELEASE / LONG_PRESS / VERY_LONG_PRESS
+        if (_gestureButtonArmed && event.type == _heldGestureButton)
+        {
+            // let go: PreRoll/Counting -> Aborted, a fired action stays fired. A new PRESS means the release
+            // got lost (web request, ddc press): drop the stale hold so this press can arm a fresh one.
+            if (letGo)
+                _gestureEngine.endHold();
+            else
+                _gestureEngine.reset();
+            _gestureButtonArmed = false;
+            _gestureReachedBar = false;
+        }
+        if (letGo) return;
+    }
+
+    // Panel dark (Sleep/Off): a press wakes it and arms its gesture; the latch above swallows the
+    // release, so a short press only wakes and a hold fires its gesture as on a lit panel.
+    const PowerSaveMode powerSave = _widgetManager->getPowerSaveMode();
+    if (event.action == ButtonAction::PRESS && (powerSave == PowerSaveMode::Sleep || powerSave == PowerSaveMode::Off))
+    {
+        _widgetManager->userInteraction(); // wakes and restarts the inactivity timers
+        _swallowMask |= bit;
+        armGesture(event.type);
         return;
     }
 
@@ -1011,23 +1034,7 @@ void DeviceDisplay::handleButtonEvent(const ButtonEvent& event)
 
     if (isPress)
     {
-        // Arm a hold for the action this button maps to (OK -> ProgMode; directional -> keyMap on
-        // the Home screen). None -> nothing to arm.
-        const GestureAction action = _gestureEngine.resolveAction(event.type, isHomeScreen());
-        if (action != GestureAction::None)
-        {
-            _gestureEngine.startHold(action);
-            _gestureButtonArmed = true;
-            _gestureReachedBar = false; // fresh hold: bar not reached yet
-            _heldGestureButton = event.type;
-            if (action == GestureAction::Screenshot)
-                _shotFrozen = false; // re-freeze the clean frame for this new gesture (at Counting)
-        }
-        else
-        {
-            _gestureButtonArmed = false;
-            _gestureReachedBar = false;
-        }
+        armGesture(event.type);
 
         // Wake the display on any press even if nothing is armed / no widget is active.
         if (!_widgetManager->getActiveButtonWidget())
@@ -1123,6 +1130,29 @@ void DeviceDisplay::handleHomeNavigation(ButtonType type)
             return;
     }
     _widgetManager->userInteraction();
+}
+
+/**
+ * @brief Arm a hold for the action this button maps to (OK -> ProgMode; directional -> keyMap on the
+ *        Home screen); None -> nothing armed.
+ */
+void DeviceDisplay::armGesture(ButtonType type)
+{
+    const GestureAction action = _gestureEngine.resolveAction(type, isHomeScreen());
+    if (action != GestureAction::None)
+    {
+        _gestureEngine.startHold(action);
+        _gestureButtonArmed = true;
+        _gestureReachedBar = false; // fresh hold: bar not reached yet
+        _heldGestureButton = type;
+        if (action == GestureAction::Screenshot)
+            _shotFrozen = false; // re-freeze the clean frame for this new gesture (at Counting)
+    }
+    else
+    {
+        _gestureButtonArmed = false;
+        _gestureReachedBar = false;
+    }
 }
 
 /**
