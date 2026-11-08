@@ -134,7 +134,6 @@ class DeviceDisplay : public OpenKNX::Module
     // About HUD state: shown from the menu, dismissed by any button or an auto-timeout.
     bool _aboutActive = false;            // About HUD currently displayed
     bool _aboutSwallowRelease = false;    // eat the RELEASE paired with a dismissing PRESS
-    bool _menuExitSwallowRelease = false; // eat the RELEASE that ends a LEFT-long-press menu exit
     // One bit per ButtonType: swallow the release (RELEASE/LONG_PRESS/VERY_LONG_PRESS) of a button still held
     // after a gesture forced the display OFF, or of the press that woke a dark panel.
     uint8_t _swallowMask = 0;

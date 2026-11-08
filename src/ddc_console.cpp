@@ -606,11 +606,8 @@ bool DdcConsole::processKeyCommand(const std::string& command)
     openknxDisplayModule.handleButtonEvent(ButtonEvent(type, ButtonAction::PRESS));
     if (isLong)
     {
-        // A real long press still ends with the button being let go. Without that RELEASE the
-        // LEFT-hold menu exit leaves _menuExitSwallowRelease armed, and it then eats the NEXT
-        // press entirely -- which silently breaks whatever runs after "ddc key left long".
+        // LONG_PRESS replaces the RELEASE, as ButtonManager emits it when a held button is let go
         openknxDisplayModule.handleButtonEvent(ButtonEvent(type, ButtonAction::LONG_PRESS));
-        openknxDisplayModule.handleButtonEvent(ButtonEvent(type, ButtonAction::RELEASE));
     }
     else
     {

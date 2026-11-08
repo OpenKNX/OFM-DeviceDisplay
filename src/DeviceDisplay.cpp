@@ -922,7 +922,6 @@ void DeviceDisplay::forceHome()
     // Clear every latch that would otherwise eat the NEXT event and make the following test step
     // measure a state nobody asked for.
     _aboutSwallowRelease = false;
-    _menuExitSwallowRelease = false;
     _swallowMask = 0;
 
     // Disarm any half-held gesture so the engine folds back to Idle and can re-arm.
@@ -1022,14 +1021,6 @@ void DeviceDisplay::handleButtonEvent(const ButtonEvent& event)
         _aboutSwallowRelease = false;
         return;
     }
-    // Swallow the RELEASE (and any later hold ticks) that end a LEFT-long-press menu exit, so the
-    // paired release does not step the widget rotation after the menu already closed.
-    if (_menuExitSwallowRelease)
-    {
-        if (event.action == ButtonAction::RELEASE) _menuExitSwallowRelease = false;
-        return;
-    }
-
     const bool isPress = (event.action == ButtonAction::PRESS);
 
     if (isPress)
@@ -1079,8 +1070,7 @@ void DeviceDisplay::handleButtonEvent(const ButtonEvent& event)
         _widgetManager->getActiveButtonWidget() == static_cast<Widget*>(_menuWidget))
     {
         logInfoP("Menu: LEFT long-press -> exit menu");
-        _menuWidget->externalClose();
-        _menuExitSwallowRelease = true; // eat the paired RELEASE so it does not step the rotation
+        _menuWidget->externalClose(); // LONG_PRESS is the release of this press, no further event follows
         return;
     }
 
