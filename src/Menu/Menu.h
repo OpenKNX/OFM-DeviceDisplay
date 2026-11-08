@@ -318,9 +318,9 @@ class MenuWidget : public Widget
     void assignRadioIndexProviders(std::vector<MenuConfig::MenuOption>& menuOptions);
     void seedOptionValuesFromStore(std::vector<MenuConfig::MenuOption>& menuOptions);
 
-    // Seed each keyed option's defaultValue (crucially net_dhcp) so visibleIf resolves against real
-    // state on first entry. Only seeds keys still absent (never overwrites a change).
-    void seedDefaultValues(const std::vector<MenuConfig::MenuOption>& menuOptions);
+    // Seed each keyed option's defaultValue (e.g. net_dhcp) so visibleIf resolves against real state on
+    // first entry. Only seeds keys still absent, unless overwrite (a lazy submenu built from live values).
+    void seedDefaultValues(const std::vector<MenuConfig::MenuOption>& menuOptions, bool overwrite = false);
 
     void showOverlay(std::function<void()> drawFn);
     bool _infoOverlayActive = false;

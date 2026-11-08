@@ -629,15 +629,15 @@ void MenuWidget::assignRadioIndexProviders(std::vector<MenuConfig::MenuOption>& 
 }
 
 // Recursively seed keyed option defaults into _menuConfig so visibleIf (which treats an
-// absent key as "hidden") resolves against real state on first entry. Seeds only absent keys with a
-// non-None defaultValue. Crucial for net_dhcp, else a static-IP user's net_dhcp=false is never set.
-void MenuWidget::seedDefaultValues(const std::vector<MenuConfig::MenuOption>& menuOptions)
+// absent key as "hidden") resolves against real state on first entry. Seeds keys with a non-None
+// defaultValue: only absent ones, or every one with overwrite (a lazy submenu built from live values).
+void MenuWidget::seedDefaultValues(const std::vector<MenuConfig::MenuOption>& menuOptions, bool overwrite)
 {
     for (const auto& option : menuOptions)
     {
         if (!option.key.empty() &&
             option.defaultValue.getType() != MenuValue::None &&
-            !_menuConfig.hasValue(option.key))
+            (overwrite || !_menuConfig.hasValue(option.key)))
         {
             // seedValue (not setValue): prime visibleIf state only, never fire onValueChanged.
             _menuConfig.seedValue(option.key, option.defaultValue);
@@ -646,7 +646,7 @@ void MenuWidget::seedDefaultValues(const std::vector<MenuConfig::MenuOption>& me
 
         if (!option.submenu.empty())
         {
-            seedDefaultValues(option.submenu);
+            seedDefaultValues(option.submenu, overwrite);
         }
     }
 }
@@ -1106,7 +1106,7 @@ void MenuWidget::selectItem()
                     assignRegisteredActions(child);
                     assignOnValueChangedHandlers(child);
                     assignRadioIndexProviders(child);
-                    seedDefaultValues(child);
+                    seedDefaultValues(child, true); // the builder's values are the live ones, a dropped edit must not stay
                 }
                 _selectedIndexStack.push_back(_selectedIndex);
                 _menuStack.push_back(std::move(_currentMenu));
